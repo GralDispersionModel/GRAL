@@ -1,0 +1,12 @@
+--------------------------------------------------------------------------------
++  > >          G R A L VERSION: 20.01RC1        < <   +
+Computation started at: 27.11.2019 15:57:40
+Computation folder:     C:\Development\DotNetCore\GRAL_2001B4
+Application hash code:  21961319baef5337f4d15ad96194adb043a13240
+GRAL Error: Error when reading file 'GRAL.geb' in line 1 - Execution stopped: press ESC to stop
+--------------------------------------------------------------------------------
++  > >          G R A L VERSION: 20.01RC1        < <   +
+Computation started at: 27.11.2019 15:58:37
+Computation folder:     C:\Development\DotNetCore\GRAL_2001B4
+Application hash code:  21961319baef5337f4d15ad96194adb043a13240
+GRAL Error: Error when reading file 'GRAL.geb' in line 1 - Execution stopped: press ESC to stop
