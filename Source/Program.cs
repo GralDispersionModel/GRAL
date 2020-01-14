@@ -67,7 +67,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info = "+  > >          G R A L VERSION: 20.01           < <   +";
+            string Info = "+  > >          G R A L VERSION: 21.01Alpha      < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
