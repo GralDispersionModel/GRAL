@@ -142,8 +142,8 @@ namespace GRAL_2001
             {
                 //if (Program.Met_Time_Ser.Count() > (Program.IWET - 1))
                 //{
-                    if (MathF.Abs(Program.MeteopgtLst[n].Vel - Program.MeteoTimeSer[Program.IWET - 1].Vel) < 0.1F
-                       && MathF.Abs(Program.MeteopgtLst[n].Dir - Program.MeteoTimeSer[Program.IWET - 1].Dir) < 0.1F
+                    if (MathF.Abs(Program.MeteopgtLst[n].Vel - Program.MeteoTimeSer[Program.IWET - 1].Vel) < 0.01F
+                       && MathF.Abs(Program.MeteopgtLst[n].Dir - Program.MeteoTimeSer[Program.IWET - 1].Dir) < 0.01F
                        && (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Program.IWET - 1].Stab_Class))
                     {
                         iwet = n;
