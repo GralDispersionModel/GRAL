@@ -322,50 +322,61 @@ namespace GRAL_2001
                                 }
 
                                 double lang = Math.Sqrt(Math.Pow(Program.LS_X2[i] - Program.LS_X1[i], 2) + Math.Pow(Program.LS_Y2[i] - Program.LS_Y1[i], 2));
-
-                                zuff1 = Rng.NextDouble();
-
-                                double zahl0 = lang * zuff1;
-                                double zahl1 = 0;
-                                //noise abatement wall +1m
-                                if (Program.LS_Laerm[i] > 0)
+                                double zzz = 0;   // z value
+                                double zahl1 = 0; // vertical mixing height
+                                
+                                if (lang > 0.1) 
                                 {
+                                    // default case: horizontal line source 
                                     zuff1 = Rng.NextDouble();
 
-                                    zahl1 = Program.LS_Laerm[i] + zuff1;
-                                }
-                                //user defined volume for initial mixing of particles (traffic induced turbulence)
-                                else if (Program.LS_Laerm[i] < 0)
-                                {
+                                    double zahl0 = lang * zuff1;
+                                    //noise abatement wall +1m
+                                    if (Program.LS_Laerm[i] > 0)
+                                    {
+                                        zuff1 = Rng.NextDouble();
+
+                                        zahl1 = Program.LS_Laerm[i] + zuff1;
+                                    }
+                                    //user defined volume for initial mixing of particles (traffic induced turbulence)
+                                    else if (Program.LS_Laerm[i] < 0)
+                                    {
+                                        zuff1 = Rng.NextDouble();
+                                        zahl1 = zuff1 * Math.Abs(Program.LS_Laerm[i]);
+                                    }
+                                    //standard initial mixing is up to 3m
+                                    else if (Program.LS_Laerm[i] == 0)
+                                    {
+                                        zuff1 = Rng.NextDouble();
+                                        zahl1 = 3 * zuff1;
+                                    }
                                     zuff1 = Rng.NextDouble();
 
-                                    zahl1 = zuff1 * Math.Abs(Program.LS_Laerm[i]);
+                                    double zahl2 = Program.LS_Width[i] * zuff1;
+
+                                    //rotation of coordinate system
+                                    double alpha = (Program.LS_X2[i] - Program.LS_X1[i]) / lang;
+                                    double beta = (Program.LS_Y2[i] - Program.LS_Y1[i]) / lang;
+                                    double x1 = zahl0 * alpha - zahl2 * beta;
+                                    double y1 = zahl0 * beta + zahl2 * alpha;
+
+                                    //transformation of coordinate system
+                                    double xb = Program.LS_Width[i] * 0.5 * beta;
+                                    double yb = Program.LS_Width[i] * 0.5 * alpha;
+                                    double xv = Program.LS_X1[i] + xb;
+                                    double yv = Program.LS_Y1[i] - yb;
+                                    Program.Xcoord[nteil] = xv + x1;
+                                    Program.YCoord[nteil] = yv + y1;
+                                    zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) / lang * zahl0;
                                 }
-                                //standard initial mixing is up to 3m
-                                else if (Program.LS_Laerm[i] == 0)
+                                else
                                 {
+                                    // special case: vertical line source
+                                    Program.Xcoord[nteil] = Program.LS_X1[i];
+                                    Program.YCoord[nteil] = Program.LS_Y1[i];
                                     zuff1 = Rng.NextDouble();
-
-                                    zahl1 = 3 * zuff1;
+                                    zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) * zuff1;
                                 }
-                                zuff1 = Rng.NextDouble();
-
-                                double zahl2 = Program.LS_Width[i] * zuff1;
-
-                                //rotation of coordinate system
-                                double alpha = (Program.LS_X2[i] - Program.LS_X1[i]) / lang;
-                                double beta = (Program.LS_Y2[i] - Program.LS_Y1[i]) / lang;
-                                double x1 = zahl0 * alpha - zahl2 * beta;
-                                double y1 = zahl0 * beta + zahl2 * alpha;
-
-                                //transformation of coordinate system
-                                double xb = Program.LS_Width[i] * 0.5 * beta;
-                                double yb = Program.LS_Width[i] * 0.5 * alpha;
-                                double xv = Program.LS_X1[i] + xb;
-                                double yv = Program.LS_Y1[i] - yb;
-                                Program.Xcoord[nteil] = xv + x1;
-                                Program.YCoord[nteil] = yv + y1;
-                                double zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) / lang * zahl0;
 
                                 //in complex terrain z-coordinate is placed onto actual model height
                                 double xsi = Program.Xcoord[nteil] - Program.IKOOAGRAL;
