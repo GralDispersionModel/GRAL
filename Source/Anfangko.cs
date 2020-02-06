@@ -19,32 +19,32 @@ using System.Threading;
 
 namespace GRAL_2001
 {
-	class StartCoordinates
-	{
-		/// <summary>
-    	/// Calculate the start coordinates of all particles at a random point within the source geometries.
+    class StartCoordinates
+    {
+        /// <summary>
+        /// Calculate the start coordinates of all particles at a random point within the source geometries.
         /// Calculates the "mass" of each particle, depending on the emission rate of the source and the number of particles per source.
         /// Calculates the average deposition settings for each source group in the transient mode (used for the transient particles).
-    	/// </summary>
-		public static void Calculate()
-		{
-			/*
+        /// </summary>
+        public static void Calculate()
+        {
+            /*
 			 * 1) coordinates for source 1
 			 * 2) coordinates for source 2
 			 * 3) etc.
-			 */ 
-			 
-			for (int i = 1; i <= Program.TS_Count; i++)
-			{
-				Program.TS_Width[i] = (float) Math.Max(0.1F, 
-					Math.Sqrt(Math.Pow(Program.TS_X1[i] - Program.TS_X2[i], 2) + Math.Pow(Program.TS_Y1[i] - Program.TS_Y2[i], 2)));
-				Program.TS_Height[i] = (float) Math.Max(0.1F,
-					(Math.Max(Program.TS_Z1[i], Program.TS_Z2[i]) - Math.Min(Program.TS_Z1[i], Program.TS_Z2[i])));
-				Program.TS_cosalpha[i] = (float) ((Program.TS_Y2[i] - Program.TS_Y1[i]) / Program.TS_Width[i]);
-				Program.TS_sinalpha[i] = (float) ((Program.TS_X1[i] - Program.TS_X2[i]) / Program.TS_Width[i]);
-			}
-			
-			double Volume_Time_Unit = 1000000000 / Program.GridVolume / 3600;
+			 */
+
+            for (int i = 1; i <= Program.TS_Count; i++)
+            {
+                Program.TS_Width[i] = (float)Math.Max(0.1F,
+                    Math.Sqrt(Math.Pow(Program.TS_X1[i] - Program.TS_X2[i], 2) + Math.Pow(Program.TS_Y1[i] - Program.TS_Y2[i], 2)));
+                Program.TS_Height[i] = (float)Math.Max(0.1F,
+                    (Math.Max(Program.TS_Z1[i], Program.TS_Z2[i]) - Math.Min(Program.TS_Z1[i], Program.TS_Z2[i])));
+                Program.TS_cosalpha[i] = (float)((Program.TS_Y2[i] - Program.TS_Y1[i]) / Program.TS_Width[i]);
+                Program.TS_sinalpha[i] = (float)((Program.TS_X1[i] - Program.TS_X2[i]) / Program.TS_Width[i]);
+            }
+
+            double Volume_Time_Unit = 1000000000 / Program.GridVolume / 3600;
             //SimpleRNG.SetSeed((uint)Environment.TickCount);
 
             Parallel.For(1, Program.NTEILMAX + 1, Program.pOptions, nteil =>
@@ -52,7 +52,7 @@ namespace GRAL_2001
                 int seed = 0;
                 unchecked
                 {
-                   seed = nteil * Environment.TickCount;
+                    seed = nteil * Environment.TickCount;
                 }
                 Random Rng = new Random(seed);
 
@@ -142,7 +142,7 @@ namespace GRAL_2001
                                     else if (Program.PS_Mode[i] == 2) // deposition only
                                     {
                                         Program.ParticleMass[nteil] = Program.PS_ER_Dep[i] / Program.PS_PartNumb[i] * 1000000000 / Program.GridVolume / Program.TAUS; // Paricle mass for deposition depending to the particle number of this source
-                                                                                                                                                           //										Console.WriteLine(Program.Part_Mass[nteil] + " / " + Program.PS_PartNumb[i] + " / " + Program.PS_ER_Dep[i] + " / TAUS " + Program.TAUS + "/ dV " + Program.dV);
+                                                                                                                                                                      //										Console.WriteLine(Program.Part_Mass[nteil] + " / " + Program.PS_PartNumb[i] + " / " + Program.PS_ER_Dep[i] + " / TAUS " + Program.TAUS + "/ dV " + Program.dV);
                                         Program.ParticleVdep[nteil] = Program.PS_V_Dep[i];
                                         Program.ParticleVsed[nteil] = Program.PS_V_sed[i];
                                     }
@@ -321,51 +321,74 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = Program.LS_V_sed[i];
                                 }
 
-                                double lang = Math.Sqrt(Math.Pow(Program.LS_X2[i] - Program.LS_X1[i], 2) + Math.Pow(Program.LS_Y2[i] - Program.LS_Y1[i], 2));
+                                double lang = Math.Sqrt(Math.Pow(Program.LS_X2[i] - Program.LS_X1[i], 2) +
+                                                        Math.Pow(Program.LS_Y2[i] - Program.LS_Y1[i], 2));
+                                double zzz = 0;   // z value
+                                double zahl1 = 0; // vertical mixing height
 
-                                zuff1 = Rng.NextDouble();
-
-                                double zahl0 = lang * zuff1;
-                                double zahl1 = 0;
-                                //noise abatement wall +1m
-                                if (Program.LS_Laerm[i] > 0)
+                                if (lang > 0.1)
                                 {
+                                    // default case: horizontal line source 
                                     zuff1 = Rng.NextDouble();
 
-                                    zahl1 = Program.LS_Laerm[i] + zuff1;
-                                }
-                                //user defined volume for initial mixing of particles (traffic induced turbulence)
-                                else if (Program.LS_Laerm[i] < 0)
-                                {
+                                    double zahl0 = lang * zuff1;
+                                    //noise abatement wall +1m
+                                    if (Program.LS_Laerm[i] > 0)
+                                    {
+                                        zuff1 = Rng.NextDouble();
+
+                                        zahl1 = Program.LS_Laerm[i] + zuff1;
+                                    }
+                                    //user defined volume for initial mixing of particles (traffic induced turbulence)
+                                    else if (Program.LS_Laerm[i] < 0)
+                                    {
+                                        zuff1 = Rng.NextDouble();
+                                        zahl1 = zuff1 * Math.Abs(Program.LS_Laerm[i]);
+                                    }
+                                    //standard initial mixing is up to 3m
+                                    else if (Program.LS_Laerm[i] == 0)
+                                    {
+                                        zuff1 = Rng.NextDouble();
+                                        zahl1 = 3 * zuff1;
+                                    }
                                     zuff1 = Rng.NextDouble();
 
-                                    zahl1 = zuff1 * Math.Abs(Program.LS_Laerm[i]);
+                                    double zahl2 = Program.LS_Width[i] * zuff1;
+
+                                    //rotation of coordinate system
+                                    double alpha = (Program.LS_X2[i] - Program.LS_X1[i]) / lang;
+                                    double beta = (Program.LS_Y2[i] - Program.LS_Y1[i]) / lang;
+                                    double x1 = zahl0 * alpha - zahl2 * beta;
+                                    double y1 = zahl0 * beta + zahl2 * alpha;
+
+                                    //transformation of coordinate system
+                                    double xb = Program.LS_Width[i] * 0.5 * beta;
+                                    double yb = Program.LS_Width[i] * 0.5 * alpha;
+                                    double xv = Program.LS_X1[i] + xb;
+                                    double yv = Program.LS_Y1[i] - yb;
+                                    Program.Xcoord[nteil] = xv + x1;
+                                    Program.YCoord[nteil] = yv + y1;
+                                    zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) / lang * zahl0;
                                 }
-                                //standard initial mixing is up to 3m
-                                else if (Program.LS_Laerm[i] == 0)
+                                else
                                 {
+                                    // special case: vertical line source
+                                    float _vertExt = Program.LS_Laerm[i];
+                                    if (_vertExt < 0)
+                                    {
+                                        // use vertical extension as radius
+                                        Program.Xcoord[nteil] = Program.LS_X1[i] + (1 - Rng.NextDouble() * 2) * _vertExt; // (-1 to 1) * VertExt
+                                        Program.YCoord[nteil] = Program.LS_Y1[i] + (1 - Rng.NextDouble() * 2) * _vertExt; // (-1 to 1) * VertExt
+                                    }
+                                    else
+                                    {
+                                        // vertical Line source without radius
+                                        Program.Xcoord[nteil] = Program.LS_X1[i];
+                                        Program.YCoord[nteil] = Program.LS_Y1[i];
+                                    }
                                     zuff1 = Rng.NextDouble();
-
-                                    zahl1 = 3 * zuff1;
+                                    zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) * zuff1;
                                 }
-                                zuff1 = Rng.NextDouble();
-
-                                double zahl2 = Program.LS_Width[i] * zuff1;
-
-                                //rotation of coordinate system
-                                double alpha = (Program.LS_X2[i] - Program.LS_X1[i]) / lang;
-                                double beta = (Program.LS_Y2[i] - Program.LS_Y1[i]) / lang;
-                                double x1 = zahl0 * alpha - zahl2 * beta;
-                                double y1 = zahl0 * beta + zahl2 * alpha;
-
-                                //transformation of coordinate system
-                                double xb = Program.LS_Width[i] * 0.5 * beta;
-                                double yb = Program.LS_Width[i] * 0.5 * alpha;
-                                double xv = Program.LS_X1[i] + xb;
-                                double yv = Program.LS_Y1[i] - yb;
-                                Program.Xcoord[nteil] = xv + x1;
-                                Program.YCoord[nteil] = yv + y1;
-                                double zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) / lang * zahl0;
 
                                 //in complex terrain z-coordinate is placed onto actual model height
                                 double xsi = Program.Xcoord[nteil] - Program.IKOOAGRAL;
@@ -518,26 +541,26 @@ namespace GRAL_2001
                 Rng = null;
             });
 
-			// Transient Mode: calculate average deposition settings for each source group one times (if Transient_Depo == null)
-			if (Program.ISTATIONAER == 0 && Program.TransientDepo == null)
+            // Transient Mode: calculate average deposition settings for each source group one times (if Transient_Depo == null)
+            if (Program.ISTATIONAER == 0 && Program.TransientDepo == null)
             {
-				Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count + 1];
+                Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count + 1];
                 for (int i = 0; i <= Program.SourceGroups.Count; i++)
-				{
-					Program.TransientDepo[i] = new TransientDeposition(); 
-				}
+                {
+                    Program.TransientDepo[i] = new TransientDeposition();
+                }
 
                 int[] mode = new int[Program.SourceGroups.Count + 1];
                 int[] counter = new int[Program.SourceGroups.Count + 1];
                 double[] vsed = new double[Program.SourceGroups.Count + 1];
                 double[] vdep = new double[Program.SourceGroups.Count + 1];
-				
-				// loop over all particles
-				for (int nteil = 1; nteil < Program.NTEILMAX + 1; nteil++)
-				{
-					if (Program.ParticleMode[nteil] < 2) // no deposition weighting if depo only
-					{
-						int SG = Program.ParticleSG[nteil]; // SG of particle
+
+                // loop over all particles
+                for (int nteil = 1; nteil < Program.NTEILMAX + 1; nteil++)
+                {
+                    if (Program.ParticleMode[nteil] < 2) // no deposition weighting if depo only
+                    {
+                        int SG = Program.ParticleSG[nteil]; // SG of particle
                         int SG_index = 0;
                         //find the corresponding index to the source group
                         for (int i = 0; i < Program.SourceGroups.Count; i++)
@@ -553,22 +576,22 @@ namespace GRAL_2001
                         vdep[SG_index] += Program.ParticleVdep[nteil];
                         vsed[SG_index] += Program.ParticleVsed[nteil];
                         ++counter[SG_index];
-					}
-				}
+                    }
+                }
 
-				// Set average deposition values for each source group
+                // Set average deposition values for each source group
                 for (int i = 0; i < Program.SourceGroups.Count; i++)
-				{ 
-					Program.TransientDepo[i].DepositionMode = 0;
-					if (counter[i] > 0)
-					{
-						Program.TransientDepo[i].Vdep = vdep[i] / counter[i];
-						Program.TransientDepo[i].Vsed = vsed[i] / counter[i];
-						Program.TransientDepo[i].DepositionMode = mode[i];
-					}
-				}
-			} // Transient Mode: average depo settings
+                {
+                    Program.TransientDepo[i].DepositionMode = 0;
+                    if (counter[i] > 0)
+                    {
+                        Program.TransientDepo[i].Vdep = vdep[i] / counter[i];
+                        Program.TransientDepo[i].Vsed = vsed[i] / counter[i];
+                        Program.TransientDepo[i].DepositionMode = mode[i];
+                    }
+                }
+            } // Transient Mode: average depo settings
 
-		}
-	}
+        }
+    }
 }

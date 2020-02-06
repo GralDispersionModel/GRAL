@@ -84,7 +84,8 @@ namespace GRAL_2001
 								
                                 //Conversion of emissions given in kg/h/km in kg/h
                                 float length = (float)Math.Sqrt(Math.Pow(sd.X1 - sd.X2, 2) + 
-                                                                Math.Pow(sd.Y1 - sd.Y2, 2));
+                                                                Math.Pow(sd.Y1 - sd.Y2, 2) +
+                                                                Math.Pow(sd.Z1 - sd.Z2, 2));
                                 double emission = Convert.ToDouble(text[13].Replace(".", Program.Decsep));
                                 double emission_kg_h = length * emission * 0.001F;
                                 
