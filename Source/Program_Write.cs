@@ -789,7 +789,7 @@ namespace GRAL_2001
 									{
 										write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
 										            "," + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-										            "," + Program.SC_Gral[I_SC][J_SC].ToString() + "," + Program.BdLayHeight.ToString() + ",");
+										            "," + Program.SC_Gral[I_SC][J_SC].ToString() + "," + Convert.ToInt32(Program.BdLayHeight).ToString(ic) + ",");
 									}
 									else // invalid indices -> write mean SCL or meteogpt SCL
 									{
