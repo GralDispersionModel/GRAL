@@ -728,7 +728,8 @@ namespace GRAL_2001
 
                     List<string> content = new List<string>();
 
-                    if (File.Exists("GRAL_Meteozeitreihe.dat"))
+                    //read the existing header and content up to the recent Program.IWET - prevent errors if a user restarts at a previous weather situation
+                    if (Program.IWET > 1 && File.Exists("GRAL_Meteozeitreihe.dat"))
                     {
                         using (FileStream wr = new FileStream("GRAL_Meteozeitreihe.dat", FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
@@ -753,18 +754,18 @@ namespace GRAL_2001
                                 }
                                 catch
                                 {
-                                    content.Add("0");
+                                    //content.Add("0");
                                 }
 
-                                for (int ianz = 1; ianz <= Program.IWET - 1; ianz++)
+                                for (int ianz = 1; ianz <= Program.IWET; ianz++)
                                 {
                                     try
                                     {
-                                        content.Add(read.ReadLine().ToString(ic));
+                                        content.Add(read.ReadLine().ToString(ic)); // add existing data
                                     }
                                     catch
                                     {
-                                        content.Add("0");
+                                        content.Add("0"); // add 0 if a user continues with later weater situations
                                     }
                                 }
                             }
@@ -773,23 +774,11 @@ namespace GRAL_2001
                     else
                     {
                         // create a new header
-                        if (Program.Topo == 1 && Program.AKL_GRAMM[0, 0] != 0) // 11.9.2017 Kuntner Local SCL available
+                        content.Add("U,V,SC,BLH+");
+                        string[] headerLine = CreateMeteoHeader(4);
+                        foreach (string h in headerLine)
                         {
-                            content.Add("U,V,SC,BLH+");
-                            string[] headerLine = CreateMeteoHeader(4);
-                            foreach (string h in headerLine)
-                            {
-                                content.Add(h);
-                            }
-                        }
-                        else
-                        {
-                            content.Add("U,V,BLH+");
-                            string[] headerLine = CreateMeteoHeader(3);
-                            foreach (string h in headerLine)
-                            {
-                                content.Add(h);
-                            }
+                            content.Add(h);
                         }
                     }
 
@@ -825,14 +814,16 @@ namespace GRAL_2001
 
                                     write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                                 "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                                "\t," + Ak.ToString() +
+                                                "\t" + Ak.ToString(ic) +
                                                 "\t" + Convert.ToInt32(Program.BdLayHeight).ToString(ic) + "\t");
                                 }
                             }
                             else // original format without SCL
                             {
+                                int Ak = Program.StabClass;
                                 write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                       "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
+                                      "\t" + Ak.ToString(ic) +
                                       "\t" + Convert.ToInt32(Program.BdLayHeight).ToString(ic) + "\t");
                             }
                         }
