@@ -44,7 +44,7 @@ namespace GRAL_2001
                         {
                             text1 = sr.ReadLine();
 
-                            text = text1.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                            text = text1.Split(new char[] { ',', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
                             if (text.Length > 3) // at least 4 entries available?
                             {

@@ -415,46 +415,80 @@ namespace GRAL_2001
                 try
                 {
                     CultureInfo ic = CultureInfo.InvariantCulture;
-                    using (FileStream wr = new FileStream("zeitreihe.dat", FileMode.OpenOrCreate))
+                    List<string> content = new List<string>();
+
+                    // read existing header and concentration data
+                    if (Program.IWET > 1 && File.Exists("ReceptorConcentrations.dat"))
                     {
-                        StreamReader read = new StreamReader(wr);
-                        List<string> inhalt = new List<string>();
-
-                        for (int ianz = 1; ianz <= Program.IWET - 1; ianz++)
+                        using (FileStream wr = new FileStream("ReceptorConcentrations.dat", FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            try
+                            using (StreamReader read = new StreamReader(wr))
                             {
-                                inhalt.Add(read.ReadLine().ToString(ic));
-                            }
-                            catch
-                            {
-                                inhalt.Add("0");
-                            }
-                        }
-                        read.Close();
-                        read.Dispose();
-
-                        using (StreamWriter write = new StreamWriter("zeitreihe.dat", false))
-                        {
-                            for (int ianz = 1; ianz <= Program.IWET - 1; ianz++)
-                            {
-                                write.WriteLine(inhalt[ianz - 1]);
-                            }
-
-                            for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
-                            {
-                                //write.Write("NQI " + NQi[iq].ToString(ic) + " ");
-                                for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
+                                // Read header
+                                for (int ianz = 1; ianz < 5; ianz++)
                                 {
-                                    write.Write(Program.ReceptorConc[ianz][iq].ToString(ic) + " ");
+                                    try
+                                    {
+                                        content.Add(read.ReadLine()); // add existing data
+                                    }
+                                    catch
+                                    {
+                                        content.Add("0"); // add 0 if a user continues with later weater situations
+                                    }
+                                }
+
+                                for (int ianz = 1; ianz <= Program.IWET; ianz++)
+                                {
+                                    try
+                                    {
+                                        if (read.EndOfStream)
+                                        {
+                                            content.Add("0");
+                                        }
+                                        else
+                                        {
+                                            content.Add(read.ReadLine());
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        content.Add("0");
+                                    }
                                 }
                             }
                         }
                     }
+                    else
+                    {
+                        // create a new header
+                        string[] headerLine = ReceptorConcentrationCreateMeteoHeader();
+                        for (int i = 0; i < 5; i++)
+                        {
+                            content.Add(headerLine[i]);
+                        }
+                    }
+
+                    using (StreamWriter write = new StreamWriter("ReceptorConcentrations.dat", false))
+                    {
+                        for (int ianz = 0; ianz < content.Count; ianz++)
+                        {
+                            write.WriteLine(content[ianz]);
+                        }
+
+                        for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
+                        {
+                            //write.Write("NQI " + NQi[iq].ToString(ic) + " ");
+                            for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
+                            {
+                                write.Write(Program.ReceptorConc[ianz][iq].ToString(ic) + "\t");
+                            }
+                        }
+                    }
+
                 }
                 catch (Exception exc)
                 {
-                    LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing zeitreihe.dat file: " + exc.Message);
+                    LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing ReceptorConcentrations.dat file: " + exc.Message);
                 }
 
                 for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
@@ -495,11 +529,11 @@ namespace GRAL_2001
                                     header[i] = read.ReadLine(); // read header
                                 }
 
-                                for (int ianz = 1; ianz <= Program.IWET - 1; ianz++)
+                                for (int ianz = 1; ianz <= Program.IWET; ianz++)
                                 {
                                     try
                                     {
-                                        inhalt.Add(read.ReadLine().ToString());
+                                        inhalt.Add(read.ReadLine());
                                     }
                                     catch
                                     {
@@ -761,7 +795,7 @@ namespace GRAL_2001
                                 {
                                     try
                                     {
-                                        content.Add(read.ReadLine().ToString(ic)); // add existing data
+                                        content.Add(read.ReadLine()); // add existing data
                                     }
                                     catch
                                     {
@@ -775,7 +809,7 @@ namespace GRAL_2001
                     {
                         // create a new header
                         content.Add("U,V,SC,BLH+");
-                        string[] headerLine = CreateMeteoHeader(4);
+                        string[] headerLine = ReceptorMeteoCreateMeteoHeader(4);
                         foreach (string h in headerLine)
                         {
                             content.Add(h);
@@ -844,8 +878,10 @@ namespace GRAL_2001
         /// <summary>
         ///Create a header for the file GRAL_Meteozeitreihe
         /// </summary>
-        private string[] CreateMeteoHeader(int mode)
+        private string[] ReceptorMeteoCreateMeteoHeader(int mode)
         {
+            CultureInfo ic = CultureInfo.InvariantCulture;
+
             string[] headerLine = new string[5];
             string tabs = new string('\t', mode);
 
@@ -857,11 +893,11 @@ namespace GRAL_2001
                 }
                 else
                 {
-                    headerLine[0] += "Rec. " + ianz.ToString() + "/SG: " + tabs;
+                    headerLine[0] += "Rec. " + ianz.ToString() + tabs;
                 }
-                headerLine[1] += Math.Round(Program.ReceptorX[ianz], 1).ToString() + tabs;
-                headerLine[2] += Math.Round(Program.ReceptorY[ianz], 1).ToString() + tabs;
-                headerLine[3] += Math.Round(Program.ReceptorZ[ianz], 1).ToString() + tabs;
+                headerLine[1] += Math.Round(Program.ReceptorX[ianz], 1).ToString(ic) + tabs;
+                headerLine[2] += Math.Round(Program.ReceptorY[ianz], 1).ToString(ic) + tabs;
+                headerLine[3] += Math.Round(Program.ReceptorZ[ianz], 1).ToString(ic) + tabs;
 				if (mode == 3)
 				{
 					headerLine[4] += "U\tV\tBLH\t";
@@ -870,6 +906,37 @@ namespace GRAL_2001
 				{
 					headerLine[4] += "U\tV\tSC\tBLH\t";
 				}
+            }
+            return headerLine;
+        }
+
+        /// <summary>
+        ///Create a header for the file ReceptorConcetration.dat
+        /// </summary>
+        private string[] ReceptorConcentrationCreateMeteoHeader()
+        {
+            CultureInfo ic = CultureInfo.InvariantCulture;
+
+            string[] headerLine = new string[5];
+            string tabs = "\t";
+
+            for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
+            {
+                for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
+                {
+                    if ((ianz - 1) < Program.ReceptorName.Count)
+                    {
+                        headerLine[0] += Program.ReceptorName[ianz - 1] + "_SG:"+ Program.SourceGroups[iq].ToString(ic) + tabs;
+                    }
+                    else
+                    {
+                        headerLine[0] += "Rec. " + ianz.ToString() + "_SG:" + Program.SourceGroups[iq].ToString(ic) + tabs;
+                    }
+                    headerLine[1] += Math.Round(Program.ReceptorX[ianz], 1).ToString(ic) + tabs;
+                    headerLine[2] += Math.Round(Program.ReceptorY[ianz], 1).ToString(ic) + tabs;
+                    headerLine[3] += Math.Round(Program.ReceptorZ[ianz], 1).ToString(ic) + tabs;
+                    headerLine[4] += "-----" + tabs;
+                }
             }
             return headerLine;
         }
