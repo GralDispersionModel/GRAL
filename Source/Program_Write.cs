@@ -799,7 +799,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        content.Add("0"); // add 0 if a user continues with later weater situations
+                                        content.Add("0"); // add 0 if a user continues with a later weather situations
                                     }
                                 }
                             }
