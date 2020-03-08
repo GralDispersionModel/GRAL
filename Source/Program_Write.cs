@@ -425,7 +425,7 @@ namespace GRAL_2001
                             using (StreamReader read = new StreamReader(wr))
                             {
                                 // Read header
-                                for (int ianz = 1; ianz < 5; ianz++)
+                                for (int ianz = 1; ianz < 6; ianz++)
                                 {
                                     try
                                     {
@@ -433,7 +433,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        content.Add("0"); // add 0 if a user continues with later weater situations
+                                        content.Add("0"); // add 0 in the case of a bug
                                     }
                                 }
 
@@ -443,11 +443,11 @@ namespace GRAL_2001
                                     {
                                         if (read.EndOfStream)
                                         {
-                                            content.Add("0");
+                                            content.Add("0"); // IWET > than data lines in the existing file -> fill with 0 values
                                         }
                                         else
                                         {
-                                            content.Add(read.ReadLine());
+                                            content.Add(read.ReadLine()); // add existing data
                                         }
                                     }
                                     catch
@@ -462,7 +462,7 @@ namespace GRAL_2001
                     {
                         // create a new header
                         string[] headerLine = ReceptorConcentrationCreateMeteoHeader();
-                        for (int i = 0; i < 5; i++)
+                        for (int i = 0; i < 6; i++)
                         {
                             content.Add(headerLine[i]);
                         }
@@ -917,7 +917,7 @@ namespace GRAL_2001
         {
             CultureInfo ic = CultureInfo.InvariantCulture;
 
-            string[] headerLine = new string[5];
+            string[] headerLine = new string[6];
             string tabs = "\t";
 
             for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
@@ -926,16 +926,17 @@ namespace GRAL_2001
                 {
                     if ((ianz - 1) < Program.ReceptorName.Count)
                     {
-                        headerLine[0] += Program.ReceptorName[ianz - 1] + "_SG:"+ Program.SourceGroups[iq].ToString(ic) + tabs;
+                        headerLine[0] += Program.ReceptorName[ianz - 1] + tabs;
                     }
                     else
                     {
-                        headerLine[0] += "Rec. " + ianz.ToString() + "_SG:" + Program.SourceGroups[iq].ToString(ic) + tabs;
+                        headerLine[0] += "Rec. " + ianz.ToString(ic) + tabs;
                     }
-                    headerLine[1] += Math.Round(Program.ReceptorX[ianz], 1).ToString(ic) + tabs;
-                    headerLine[2] += Math.Round(Program.ReceptorY[ianz], 1).ToString(ic) + tabs;
-                    headerLine[3] += Math.Round(Program.ReceptorZ[ianz], 1).ToString(ic) + tabs;
-                    headerLine[4] += "-----" + tabs;
+                    headerLine[1] += Program.SourceGroups[iq].ToString(ic) + tabs;
+                    headerLine[2] += Math.Round(Program.ReceptorX[ianz], 1).ToString(ic) + tabs;
+                    headerLine[3] += Math.Round(Program.ReceptorY[ianz], 1).ToString(ic) + tabs;
+                    headerLine[4] += Math.Round(Program.ReceptorZ[ianz], 1).ToString(ic) + tabs;
+                    headerLine[5] += "-----" + tabs;
                 }
             }
             return headerLine;
