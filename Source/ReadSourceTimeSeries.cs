@@ -11,13 +11,13 @@
 #endregion
 
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 
 namespace GRAL_2001
 {
-	public class ReadSourceTimeSeries
+    public class ReadSourceTimeSeries
     {
         /// <summary>
 	    /// Read Time Series of Source Parameters at Transient Calculations
@@ -29,18 +29,18 @@ namespace GRAL_2001
             {
                 if (File.Exists(Filename))
                 {
-                    int lines = Program.CountLinesInFile(Filename); 
+                    int lines = Program.CountLinesInFile(Filename);
                     string header = string.Empty;
                     using (StreamReader read = new StreamReader(Filename))
                     {
                         header = read.ReadLine();
                     }
                     // Get number of columns without Day.Month and Hour
-                    string[] columns = header.Split(new char[] {'\t'}, StringSplitOptions.RemoveEmptyEntries);
+                    string[] columns = header.Split(new char[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
                     if (columns.Length > 1) // Index 0= Day.Month, 1 = Hour
                     {
                         TSColList = new List<TimeSeriesColumn>();
-                        
+
                         // Create Columns
                         for (int i = 2; i < columns.Length; i++)
                         {
@@ -55,10 +55,10 @@ namespace GRAL_2001
                         {
                             int lineCount = 0;
                             header = read.ReadLine();
-                            while(!read.EndOfStream)
+                            while (!read.EndOfStream)
                             {
                                 string linestring = read.ReadLine();
-                                columns = linestring.Split(new char[] {'\t'}, StringSplitOptions.RemoveEmptyEntries);                           
+                                columns = linestring.Split(new char[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
                                 for (int col = 2; col < columns.Length; col++)
                                 {
                                     if (lineCount < TSColList[col - 2].Value.Length)
@@ -73,7 +73,7 @@ namespace GRAL_2001
                     }
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
                 TSColList.Clear();

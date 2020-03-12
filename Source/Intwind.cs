@@ -11,20 +11,16 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
 namespace GRAL_2001
 {
     partial class Zeitschleife
     {
-        
+
         /// <summary>
-		///Interpolation of the microscale wind field in horizontal and vertical direction 
-		/// </summary>
+        ///Interpolation of the microscale wind field in horizontal and vertical direction 
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public static void IntWindCalculate(int IndexI, int IndexJ, int IndexId, int IndexJd,
                                              float AHint, ref float UXint, ref float UYint, ref float UZint, ref int IndexK,
@@ -58,14 +54,14 @@ namespace GRAL_2001
             {
                 int inumm = Program.MetProfileNumb;
                 int NKK = Program.NKK;
-                
+
                 //no obstacles
-                if(Program.BuildingFlatExist==false)
+                if (Program.BuildingFlatExist == false)
                 {
                     //interpolation between observations
                     float exponent;
                     float dumfac;
-                    if(zcoord <= Program.MeasurementHeight[1])
+                    if (zcoord <= Program.MeasurementHeight[1])
                     {
                         if (Program.Ob[1][1] <= 0)
                         {
@@ -92,7 +88,7 @@ namespace GRAL_2001
                             {
                                 exponent = 0.56F * MathF.Pow(Program.Ob[1][1], -0.15F);
                             }
-                            
+
                             dumfac = MathF.Pow(zcoord / Program.MeasurementHeight[inumm], exponent);
                             UXint = Program.UX[inumm] * dumfac;
                             UYint = Program.UY[inumm] * dumfac;
@@ -120,7 +116,7 @@ namespace GRAL_2001
                     }
                 }
                 //with obstacles
-                else if(Program.BuildingFlatExist==true)
+                else if (Program.BuildingFlatExist == true)
                 {
                     for (IndexK = 1; IndexK <= NKK; IndexK++)
                     {
@@ -141,17 +137,17 @@ namespace GRAL_2001
                     float w1 = WK_L[IndexK];
                     float w2 = WK_L[IndexK + 1];
                     UZint = w1 + (w2 - w1) / Program.DZK[IndexK] * (zcoord + AHint - Program.HOKART[IndexK - 1]);
-                    
-					//mean wind-speed component gradients are not computed as there is no significant change in computed concentrations, even though the well-mixed criterion (Anfossi et al., 2009) is not met
+
+                    //mean wind-speed component gradients are not computed as there is no significant change in computed concentrations, even though the well-mixed criterion (Anfossi et al., 2009) is not met
                 }
             }
         }
 
-        
+
         /// <summary>
-    	/// Find the index of a value in HOKART[] that exceeds the value Height - 19.05.25 Ku
-    	/// </summary>
-    	/// <param name="Height">Height to compare</param> 
+        /// Find the index of a value in HOKART[] that exceeds the value Height - 19.05.25 Ku
+        /// </summary>
+        /// <param name="Height">Height to compare</param> 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public static int BinarySearch(float Height)
         {
@@ -183,7 +179,7 @@ namespace GRAL_2001
                     low = mid + 1;
                 }
             }
-            
+
             if (low > nkk)
             {
                 low = nkk;

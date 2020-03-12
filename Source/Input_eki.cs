@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -68,10 +64,10 @@ namespace GRAL_2001
                     }
 
                     int ianzi = 0;
-                    for (int iprof = 1; iprof <= Program.MetProfileNumb;iprof++)
+                    for (int iprof = 1; iprof <= Program.MetProfileNumb; iprof++)
                     {
                         ianzi++;
-                        if((Program.UX[ianzi]==0)&&(Program.UY[ianzi]==0))
+                        if ((Program.UX[ianzi] == 0) && (Program.UY[ianzi] == 0))
                         {
                             Program.MeasurementHeight[ianzi] = Program.MeasurementHeight[ianzi + 1];
                             Program.MeasurementHeight[ianzi + 1] = Program.MeasurementHeight[ianzi + 2];
@@ -121,12 +117,12 @@ namespace GRAL_2001
                 catch
                 {
                     string err = "Error when reading file elimakidata.prn in line " + (Program.IWETstart).ToString() + " Execution stopped: press ESC to stop";
-                	Console.WriteLine(err);
-                	ProgramWriters.LogfileProblemreportWrite(err);
-                    
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileProblemreportWrite(err);
+
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                    
+
                     Environment.Exit(0);
                 }
                 sr.Close();
@@ -134,13 +130,13 @@ namespace GRAL_2001
             }
             catch
             {
-            	string err = "Error when reading file elimakidata.prn. -> Execution stopped: press ESC to stop";
+                string err = "Error when reading file elimakidata.prn. -> Execution stopped: press ESC to stop";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
-                
+
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                
+
                 Environment.Exit(0);
             }
         }

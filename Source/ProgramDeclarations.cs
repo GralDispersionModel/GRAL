@@ -531,7 +531,7 @@ namespace GRAL_2001
         ///<summary>
         ///Receptor name
         ///</summary>
-        public static List <string> ReceptorName = new List<string>();
+        public static List<string> ReceptorName = new List<string>();
         ///<summary>
         ///x-index of receptor points in the GRAL concentration grid
         ///</summary>

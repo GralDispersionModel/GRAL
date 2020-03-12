@@ -11,11 +11,8 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices; 
 
 namespace GRAL_2001
 {
@@ -31,11 +28,11 @@ namespace GRAL_2001
         {
             Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
-        	    float DXK = Program.DXK; float DYK = Program.DYK;
-        	    int KKART_LL, Vert_Index_LL;
-        	    float AREAxy_L = AREAxy;
-        	    
-        	    double[] PIMW = new double[Program.KADVMAX + 1];
+                float DXK = Program.DXK; float DYK = Program.DYK;
+                int KKART_LL, Vert_Index_LL;
+                float AREAxy_L = AREAxy;
+
+                double[] PIMW = new double[Program.KADVMAX + 1];
                 double[] QIMW = new double[Program.KADVMAX + 1];
 
                 for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
@@ -65,25 +62,25 @@ namespace GRAL_2001
                         Single[] UKSip_L = Program.UKS[i + 1][j];
                         Single[] VKSjm_L = Program.VKS[i][j - 1];
                         Single[] VKSjp_L = Program.VKS[i][j + 1];
-                        
+
 
                         Single[] UK_L = Program.UK[i][j];
                         Single[] VK_L = Program.VK[i][j];
                         KKART_LL = Program.KKART[i][j];
                         Vert_Index_LL = Program.VerticalIndex[i][j];
-                        
+
                         int KSTART = 1;
                         if (Program.CUTK[i][j] == 0)
                             KSTART = KKART_LL + 1;
                         for (int k = KSTART; k <= Vert_Index_LL; k++)
                         {
-                        	float DZK_K = Program.DZK[k];
+                            float DZK_K = Program.DZK[k];
                             float DXKDZK = DXK * DZK_K;
                             float DYKDZK = DYK * DZK_K;
                             float UKS_LL = UKS_L[k], UKS_LL_m = UKS_L[k - 1], VKS_LL = VKS_L[k], VKS_LL_m = VKS_L[k - 1];
                             float AP0 = PrognosticFlowfield.AP0[k];
-                                                         
-							//ADVECTION TERMS
+
+                            //ADVECTION TERMS
                             float FE = 0.25F * (UKS_LL + UKSip_L[k] + UKS_LL_m + UKSip_L[k - 1]) * DYKDZK;
                             float FW = 0.25F * (UKS_LL + UKSim_L[k] + UKS_LL_m + UKSim_L[k - 1]) * DYKDZK;
                             float FS = 0.25F * (VKS_LL + VKSjm_L[k] + VKS_LL_m + VKSjm_L[k - 1]) * DXKDZK;
@@ -123,7 +120,7 @@ namespace GRAL_2001
                         //OBTAIN NEW W-COMPONENTS
                         for (int k = Vert_Index_LL; k >= KSTART; k--)
                         {
-                        	WK_L[k] += (float)(relax * (PIMW[k] * WK_L[k + 1] + QIMW[k] - WK_L[k]));
+                            WK_L[k] += (float)(relax * (PIMW[k] * WK_L[k + 1] + QIMW[k] - WK_L[k]));
                         }
                     }
                 }

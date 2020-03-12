@@ -11,10 +11,10 @@
 #endregion
 
 using System;
-using System.Threading.Tasks;
-using System.IO;
 using System.Globalization;
+using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -53,7 +53,7 @@ namespace GRAL_2001
 		  CALCULATE 3D CONCENTRATION DATA IN
 		  TRANSIENT GRAL MODE					GRAL_Vert_Conc.txt
 		 */
-        
+
         static void Main(string[] args)
         {
             int p = (int)Environment.OSVersion.Platform;
@@ -62,7 +62,7 @@ namespace GRAL_2001
                 //Console.WriteLine ("Running on Unix");
                 RunOnUnix = true;
             }
-            
+
             //WRITE GRAL VERSION INFORMATION TO SCREEN
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
@@ -77,17 +77,17 @@ namespace GRAL_2001
             Console.WriteLine("|                                                      |");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("");
-            
+
             ShowCopyright(args);
 
             // write zipped files?
-            ResultFileZipped = false; 
+            ResultFileZipped = false;
             //User defined decimal seperator
             Decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
 
             int SIMD = CheckSIMD();
             LogLevel = CheckCommandLineArguments(args);
-            
+
             //Delete file Problemreport_GRAL.txt
             if (File.Exists("Problemreport_GRAL.txt") == true)
             {
@@ -110,17 +110,17 @@ namespace GRAL_2001
             catch { }
 
             ProgramReaders ReaderClass = new ProgramReaders();
-           
+
             //Read number of user defined vertical layers
             ReaderClass.ReadMicroVertLayers();
             GFFFilePath = ReaderClass.ReadGFFFilePath();
-            
+
             //Lowest grid level of the prognostic flow field model grid
             HOKART[0] = 0;
-            
+
             //read main GRAL domain file "GRAL.geb" and check if the file "UseOrigTopography.txt" exists
             ReaderClass.ReadGRALGeb();
-            
+
             //optional: read GRAMM file ggeom.asc
             if (File.Exists("ggeom.asc") == true)
             {
@@ -133,16 +133,16 @@ namespace GRAL_2001
 
             //Set the maximum number of threads to be used in each parallelized region
             ReaderClass.ReadMaxNumbProc();
-         
+
             //sets the number of cells near the walls of obstacles, where a boundary-layer is computed in the diagnostic flow field approach
             IGEB = Math.Max((int)(20 / DXK), 1);
-            
+
             //Read Pollutant and Wet deposition data
             Odour = ReaderClass.ReadPollutantTXT();
 
             //Create large arrays
             CreateLargeArrays();
-            
+
             //optional: reading GRAMM orography file ggeom.asc -> there are two ways to read ggeom.asc (1) the files contains all information or (2) the file just provides the path to the original ggeom.asc
             ReaderClass.ReadGgeomAsc();
 
@@ -239,14 +239,14 @@ namespace GRAL_2001
             VEG = CreateArray<float[][]>(NII + 2, () => CreateArray<float[]>(NJJ + 2, () => new float[NKK + 1]));
             Program.VEG[0][0][0] = -0.00001f;
             COV = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
-            
+
             //reading optional files used to define areas where either the tunnel jet stream is destroyed due to traffic
             //on the opposite lanes of a highway or where pollutants are sucked into a tunnel portal
             ReaderClass.ReadTunnelfilesOptional();
 
             //setting the lateral borders of the domain
             InitGralBorders();
-            
+
             //reading point source data
             if (PS_Count > 0)
             {
@@ -279,7 +279,7 @@ namespace GRAL_2001
                 Console.WriteLine("Reading file cadastre.dat");
                 ReadAreaSources.Read();
             }
-            
+
             //total number of particles released for each weather situation
             NTEILMAX = (int)(TAUS * TPS);
             //Volume of the GRAL concentration grid
@@ -288,10 +288,10 @@ namespace GRAL_2001
             NTEILMAX = ParticleManagement.Calculate();
             //Coriolis parameter
             CorolisParam = (float)(2 * 7.29 * 0.00001 * Math.Sin(Math.Abs(LatitudeDomain) * 3.1415 / 180));
-            
+
             //weather situation to start with
             IWET = IWETstart - 1;
-            
+
             //optional: reading land-use data from file landuse.asc
             ReaderClass.ReadLanduseFile();
 
@@ -325,14 +325,14 @@ namespace GRAL_2001
             {
                 WetDeposition = false;
             }
-            
+
             if (ISTATIONAER == 0)
             {
                 Info = "Transient GRAL mode. Number of weather situations: " + MeteoTimeSer.Count.ToString();
                 Console.WriteLine(Info);
                 ProgramWriters.LogfileGralCoreWrite(Info);
             }
-            
+
             /********************************************
 			 * MAIN LOOP OVER EACH WEATHER SITUATION    *
 			 ********************************************/
@@ -346,7 +346,7 @@ namespace GRAL_2001
                 IWET++;
                 IDISP = IWET;
                 WindVelGramm = -99; WindDirGramm = -99; StabClassGramm = -99; // Reset GRAMM values
-                
+
                 //show actual computed weather situation
                 Console.WriteLine("_".PadLeft(79, '_'));
                 Console.WriteLine("Weather number: " + IWET.ToString());
@@ -356,9 +356,9 @@ namespace GRAL_2001
 
                 //Set the maximum number of threads to be used in each parallelized region
                 ReaderClass.ReadMaxNumbProc();
-                
+
                 // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
-                if (ThreadWriteGffFiles != null) 
+                if (ThreadWriteGffFiles != null)
                 {
                     ThreadWriteGffFiles.Join(); // wait, until thread has been finished
                     ThreadWriteGffFiles = null; // Release ressources				
@@ -391,7 +391,7 @@ namespace GRAL_2001
                 {
                     Console.Write("Reading GRAMM wind field: ");
                 }
-                
+
                 if (ISTATIONAER == 0 && IDISP < 0) // found no corresponding weather situation in meteopgt.all
                 {
                     Info = "Cannot find a corresponding entry in meteopgt.all to the following line in mettimeseries.dat - situation skipped: " + IWET.ToString();
@@ -409,8 +409,8 @@ namespace GRAL_2001
                             wr.WriteLine(IWET.ToString());
                         }
                     }
-                    catch{}
-                    
+                    catch { }
+
                     //Topography mode -> read GRAMM stability classes
                     if (Topo == 1)
                     {
@@ -429,7 +429,7 @@ namespace GRAL_2001
                         if (File.Exists(SclFileName))
                         {
                             Console.WriteLine("Reading GRAMM stability classes: " + SclFileName);
-                            
+
                             ReadSclUstOblClasses Reader = new ReadSclUstOblClasses
                             {
                                 FileName = SclFileName,
@@ -440,7 +440,7 @@ namespace GRAL_2001
                             Reader.close();
                         }
                     }
-                    
+
                     //Read meteorological input data depending on the input type IStatisitcs
                     ReadMeteoData();
 
@@ -469,11 +469,11 @@ namespace GRAL_2001
                         {
                             Program.AHMIN = 0;
                         }
-                        
+
                         //optional: write GRAL flow fields
                         ThreadWriteGffFiles = new Thread(WriteGRALFlowFields.Write);
                         ThreadWriteGffFiles.Start(); // start writing thread
-                        
+
                         if (FirstLoop)
                         {
                             WriteGRALFlowFields.WriteGRALGeometries();
@@ -483,7 +483,7 @@ namespace GRAL_2001
 
                     //time needed for wind-field computations
                     double CalcTimeWindfield = (Environment.TickCount - StartTime) * 0.001;
- 
+
                     //reset receptor concentrations
                     if (ReceptorsAvailable == 1) // if receptors are acitvated
                         ReadReceptors.ReceptorResetConcentration();
@@ -644,7 +644,7 @@ namespace GRAL_2001
 
                     //Correction of concentration volume in each cell and for each gridded receptor 
                     VolumeCorrection();
-                    
+
                     //time needed for dispersion computations
                     double CalcTimeDispersion = (Environment.TickCount - StartTime) * 0.001 - CalcTimeWindfield;
                     Console.WriteLine();
@@ -673,13 +673,13 @@ namespace GRAL_2001
                         WriteClass.WriteReceptorTimeseries(0);
                     }
                     WriteClass.WriteReceptorConcentrations();
-                    
+
                     //microscale flow-field at receptors
                     WriteClass.WriteMicroscaleFlowfieldReceptors();
 
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
             }
-          
+
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == 0)
             {
@@ -705,8 +705,8 @@ namespace GRAL_2001
             //Write receptor statistical error
             if (Program.ReceptorsAvailable > 0)
             {
-               ProgramWriters WriteClass = new ProgramWriters();
-               WriteClass.WriteReceptorTimeseries(1);
+                ProgramWriters WriteClass = new ProgramWriters();
+                WriteClass.WriteReceptorTimeseries(1);
             }
 
             ProgramWriters.LogfileGralCoreWrite("GRAL simulations finished at: " + DateTime.Now.ToString());

@@ -20,7 +20,7 @@ namespace GRAL_2001
     {
         private const float sqrt2F = 1.4142135623731F;
         private const float sqrtPiF = 1.77245385090552F;
-        
+
         /// <summary>
         ///Time loop for all released particles - the particles are tracked until they leave the domain area (steady state mode)
         ///or until the dispersion time has expired (transient mode)
@@ -40,14 +40,14 @@ namespace GRAL_2001
             double u1_rg = 0;
 
             const float Pi2F = 2F * MathF.PI;
-            
+
             const float RNG_Const = 2.328306435454494e-10F;
 
             double xcoord_nteil = Program.Xcoord[nteil];
             double ycoord_nteil = Program.YCoord[nteil];
             float zcoord_nteil = Program.ZCoord[nteil];
             double masse = Program.ParticleMass[nteil];
-            
+
             //get index of internal source group number
             int SG_nteil = Program.ParticleSG[nteil];
             for (int i = 0; i < Program.SourceGroups.Count; i++)
@@ -95,7 +95,7 @@ namespace GRAL_2001
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
-            Span<int> kko = stackalloc int [Program.NS + 1];
+            Span<int> kko = stackalloc int[Program.NS + 1];
             double[] ReceptorConcentration = new double[Program.ReceptorNumber + 1];
             float a1 = 0.05F, a2 = 1.7F, a3 = 1.1F;
 
@@ -103,7 +103,7 @@ namespace GRAL_2001
             int ISTATISTIK = Program.IStatistics;
             int ISTATIONAER = Program.ISTATIONAER;
             int topo = Program.Topo;
-            
+
             int IndexI3d = 1;
             int IndexJ3d = 1;
             int IndexK3d = 1;
@@ -136,7 +136,7 @@ namespace GRAL_2001
                     {
                         masse *= Program.EmFacTimeSeries[Program.IWET - 1, SG_nteil];
                     }
-                                     
+
                     if (masse <= 0)
                     {
                         goto REMOVE_PARTICLE;
@@ -190,7 +190,7 @@ namespace GRAL_2001
             int IndexI;
             int IndexJ;
             int IndexId;
-			int IndexJd;
+            int IndexJd;
 
             //interpolated orography
             float differenz = 0;
@@ -199,7 +199,7 @@ namespace GRAL_2001
             if (topo == 1)
             {
                 IndexI = (int)(xsi * DXK_rez) + 1;
-                IndexJ = (int)(eta * DYK_rez) + 1;               
+                IndexJ = (int)(eta * DYK_rez) + 1;
                 if ((IndexI < 1) || (IndexI > Program.NII) || (IndexJ < 1) || (IndexJ > Program.NJJ))
                     goto REMOVE_PARTICLE;
 
@@ -207,13 +207,13 @@ namespace GRAL_2001
                 JUstern = (int)(eta1 * DDY1_rez) + 1;
                 if ((IUstern > Program.NX) || (JUstern > Program.NY) || (IUstern < 1) || (JUstern < 1))
                     goto REMOVE_PARTICLE;
-                
+
                 IndexId = IndexI;
-				IndexJd = IndexJ;
-                
+                IndexJd = IndexJ;
+
                 //interpolated orography
                 AHint = Program.AHK[IndexI][IndexJ];
-               
+
                 differenz = zcoord_nteil - AHint;
                 diff_building = differenz;
             }
@@ -223,9 +223,9 @@ namespace GRAL_2001
                 IndexJ = (int)(eta1 * DDY1_rez) + 1;
                 if ((IndexI < 1) || (IndexI > Program.NI) || (IndexJ < 1) || (IndexJ > Program.NJ))
                     goto REMOVE_PARTICLE;
-                
+
                 IndexId = (int)(xsi * DXK_rez) + 1;
-                IndexJd = (int)(eta * DYK_rez) + 1;           
+                IndexJd = (int)(eta * DYK_rez) + 1;
                 if ((IndexId < 1) || (IndexId > Program.NII) || (IndexJd < 1) || (IndexJd > Program.NJJ))
                     goto REMOVE_PARTICLE;
 
@@ -233,7 +233,7 @@ namespace GRAL_2001
                 differenz = zcoord_nteil;
                 diff_building = differenz;
             }
-        
+
             //wind-field interpolation
             float UXint = 0, UYint = 0, UZint = 0;
             int IndexK = 1;
@@ -436,7 +436,7 @@ namespace GRAL_2001
             while (timestep_number <= Max_Loops)
             {
                 ++timestep_number;
-                
+
                 //if particle is within the user-defined tunnel-entrance zone it is removed (sucked-into the tunnel)
                 if (Program.TunnelEntr == true)
                     if ((Program.TUN_ENTR[IndexId][IndexJd] == 1) && (differenz <= 5))
@@ -483,7 +483,7 @@ namespace GRAL_2001
                         W0int = Ustern * Program.StdDeviationW * 1.25F;
                     else
                         W0int = Program.W0int;
-                    varw  = Program.Pow2(W0int);
+                    varw = Program.Pow2(W0int);
                     varw2 = Program.Pow2(varw);
                     curt = 3 * varw2;
                 }
@@ -506,7 +506,7 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        skew  = a3 * diff_building * Program.Pow2(hterm) * Program.Pow3(wstern) / blh;
+                        skew = a3 * diff_building * Program.Pow2(hterm) * Program.Pow3(wstern) / blh;
                         dskew = a3 * Program.Pow3(wstern) / blh * Program.Pow2(hterm) - 2 * a3 * Program.Pow3(wstern) * diff_building * hterm / Program.Pow2(blh);
                     }
 
@@ -542,7 +542,7 @@ namespace GRAL_2001
                 float alpha = (0.3333F * dcurt - skew / (2 * varw) * (dskew - Program.C0z * eps) - varw * dvarw) / dummyterm;
                 //alpha needs to be bounded to keep algorithm stable
                 Math.Clamp(alpha, -0.1F, 0.1F);
-                
+
                 /*
 				alpha = (float)Math.Min(alpha, 0.1F);
                 alpha = (float)Program.fl_max(alpha, -0.1F);
@@ -574,7 +574,7 @@ namespace GRAL_2001
                 //in adjecent cells to vertical solid walls, turbulent velocities are only allowed in the direction away from the wall
                 if (velz == 0)
                     velz = 0.01F;
-                
+
                 short _kkart = Program.KKART[IndexI][IndexJ];
                 //solid wall west of the particle
                 if ((Program.KKART[IndexI - 1][IndexJ] > _kkart) && (IndexK <= Program.KKART[IndexI - 1][IndexJ]) && (Program.CUTK[IndexI - 1][IndexJ] > 0))
@@ -777,7 +777,7 @@ namespace GRAL_2001
 
                 //float zuff1 = (float)SimpleRNG.GetNormal();
                 Math.Clamp(zuff1, -2, 2);
-               
+
                 //random numbers for horizontal turbulent velocities
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -788,7 +788,7 @@ namespace GRAL_2001
                 u_rg = (m_z << 16) + m_w;
                 float zuff2 = MathF.Sqrt(-2F * MathF.Log((float)u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                 Math.Clamp(zuff2, -2, 2);
-                
+
                 float velX = velxold + UXint;
                 float velY = velyold + UYint;
                 //horizontal Langevin equations
@@ -873,7 +873,7 @@ namespace GRAL_2001
                     //maximum time step
                     idt = Program.dx / (tunpa + 0.05F) * 0.5F;
                     Math.Clamp(idt, 0.05F, 0.5F);
-                    
+
                     //idt = (float)Math.Min(Program.dx / (tunpa + 0.05F) * 0.5F, 0.5);
                     float tunpao = tunpa;
 
@@ -1005,14 +1005,14 @@ namespace GRAL_2001
                         JUstern = (int)(eta1 * DDY1_rez) + 1;
                         if ((IUstern > Program.NX) || (JUstern > Program.NY) || (IUstern < 1) || (JUstern < 1))
                             goto REMOVE_PARTICLE;
-                        
+
                         IndexId = IndexI;
                         IndexJd = IndexJ;
-                        
+
                         //interpolated orography
                         AHintold = AHint;
                         AHint = Program.AHK[IndexI][IndexJ];
-                        
+
                         differenz = zcoord_nteil - AHint;
                         diff_building = differenz;
                     }
@@ -1024,19 +1024,19 @@ namespace GRAL_2001
                         IndexJ = (int)(eta1 * DDY1_rez) + 1;
                         if ((IndexI < 1) || (IndexI > Program.NI) || (IndexJ < 1) || (IndexJ > Program.NJ))
                             goto REMOVE_PARTICLE;
-                        
+
                         IndexId = (int)(xsi * DXK_rez) + 1;
                         IndexJd = (int)(eta * DYK_rez) + 1;
                         if ((IndexId > Program.NII) || (IndexJd > Program.NJJ) || (IndexId < 1) || (IndexJd < 1))
                             goto REMOVE_PARTICLE;
-                            
+
                         //interpolated orography
                         AHintold = AHint;
                         differenz = zcoord_nteil;
                         diff_building = differenz;
 
                     }
-                    
+
                     //remove particles above maximum orography
                     if (zcoord_nteil >= Program.ModelTopHeight)
                         goto REMOVE_PARTICLE;
@@ -1085,7 +1085,7 @@ namespace GRAL_2001
                         {
                             IndexKOld = IndexK;
                             IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
-                            
+
                             if ((IndexK <= Program.KKART[IndexI][IndexJ]) && (Program.CUTK[IndexI][IndexJ] > 0))
                             {
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
@@ -1150,7 +1150,7 @@ namespace GRAL_2001
                     {
                         IndexKOld = IndexK;
                         IndexK = BinarySearch(zcoord_nteil); //19.05.25 Ku
-                        
+
                         if (IndexK <= Program.KKART[IndexId][IndexJd])
                         {
                             // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
@@ -1184,7 +1184,7 @@ namespace GRAL_2001
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log((float)u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                             velzold = (MathF.Sqrt(varw) + 0.82F * tunpa) * zahl1;
-                            
+
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -1265,7 +1265,7 @@ namespace GRAL_2001
                     int IndexJalt;
                     int IndexIdalt = 1;
                     int IndexJdalt = 1;
-                    
+
                     if (topo == 1)
                     {
                         IndexIalt = IndexI;
@@ -1274,7 +1274,7 @@ namespace GRAL_2001
                         IndexJ = (int)(eta * DYK_rez) + 1;
 
                         //19.05.25 Ku: allow a relative step along the terrain near the start point one times
-                        if (auszeit < 20 && TerrainStepAllowed && SourceType > 1 ) // Near the source, terrain correction 1 times, line and area sources only
+                        if (auszeit < 20 && TerrainStepAllowed && SourceType > 1) // Near the source, terrain correction 1 times, line and area sources only
                         {
                             int IndexIDelta = 2 * IndexI - IndexIalt;
                             int IndexJDelta = 2 * IndexJ - IndexJalt;
@@ -1325,7 +1325,7 @@ namespace GRAL_2001
 
                         IUstern = (int)(xsi1 * DDX1_rez) + 1;
                         JUstern = (int)(eta1 * DDY1_rez) + 1;
-                        
+
                         if ((IndexI > Program.NII) || (IndexJ > Program.NJJ) || (IndexI < 1) || (IndexJ < 1))
                             goto REMOVE_PARTICLE;
 
@@ -1341,7 +1341,7 @@ namespace GRAL_2001
                         IndexJalt = IndexJ;
                         IndexI = (int)(xsi1 * DDX1_rez) + 1;
                         IndexJ = (int)(eta1 * DDY1_rez) + 1;
-                        
+
                         if ((IndexI > Program.NII) || (IndexJ > Program.NJJ) || (IndexI < 1) || (IndexJ < 1))
                             goto REMOVE_PARTICLE;
 
@@ -1352,13 +1352,13 @@ namespace GRAL_2001
                         if ((IndexId > Program.NII) || (IndexJd > Program.NJJ) || (IndexId < 1) || (IndexJd < 1))
                             goto REMOVE_PARTICLE;
                     }
-                    
+
                     //reflexion of particles within buildings and at the surface
                     back = 0;
                     if (topo == 1)
                     {
                         int IndexKOld = IndexK;
-                        
+
                         IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
                         if (IndexK <= Program.KKART[IndexI][IndexJ])
                         {
@@ -1457,13 +1457,13 @@ namespace GRAL_2001
                                 zahl1 = MathF.Sqrt(-2F * MathF.Log((float)u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
                                 velzold = zahl1 * MathF.Sqrt(varw);
-                                if (vorzeichen < 0) 
+                                if (vorzeichen < 0)
                                 {
                                     velzold = Math.Abs(velzold);
                                 }
                                 else
                                 {
-                                   velzold = -Math.Abs(velzold);
+                                    velzold = -Math.Abs(velzold);
                                 }
                             }
 
@@ -1480,7 +1480,7 @@ namespace GRAL_2001
                             zahl1 = MathF.Sqrt(-2F * MathF.Log((float)u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
                             velxold = zahl1 * U0int * 3;
-                            if (vorzeichen1 < 0) 
+                            if (vorzeichen1 < 0)
                             {
                                 velxold = Math.Abs(velxold);
                             }
@@ -1504,7 +1504,7 @@ namespace GRAL_2001
                             velyold = zahl1 * V0int * 3;
                             if (vorzeichen1 < 0)
                             {
-                                 velyold = Math.Abs(velyold);
+                                velyold = Math.Abs(velyold);
                             }
                             else
                             {
@@ -1521,7 +1521,7 @@ namespace GRAL_2001
                     {
                         int kIndexKOld = IndexK;
                         IndexK = BinarySearch(zcoord_nteil); //19.05.25 Ku
-                        
+
                         //particle inside buildings
                         if (IndexK <= Program.KKART[IndexId][IndexJd])
                         {
@@ -1618,7 +1618,7 @@ namespace GRAL_2001
                                 zahl1 = MathF.Sqrt(-2F * MathF.Log((float)u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
                                 velzold = zahl1 * MathF.Sqrt(varw);
-                                if (vorzeichen < 0) 
+                                if (vorzeichen < 0)
                                 {
                                     velzold = Math.Abs(velzold);
                                 }
@@ -1643,11 +1643,11 @@ namespace GRAL_2001
                             velxold = zahl1 * U0int * 3;
                             if (vorzeichen1 < 0)
                             {
-                                 velxold = Math.Abs(velxold);
+                                velxold = Math.Abs(velxold);
                             }
                             else
                             {
-                                 velxold = -Math.Abs(velxold);
+                                velxold = -Math.Abs(velxold);
                             }
 
                             vorzeichen1 = 1;
@@ -1696,9 +1696,9 @@ namespace GRAL_2001
                 {
                     if ((IndexI < 1) || (IndexI > Program.NII) || (IndexJ < 1) || (IndexJ > Program.NJJ))
                         goto REMOVE_PARTICLE;
-                    
+
                     AHint = Program.AHK[IndexI][IndexJ];
-                    
+
                     differenz = zcoord_nteil - AHint;
                     diff_building = differenz;
                 }
@@ -1706,7 +1706,7 @@ namespace GRAL_2001
                 {
                     if ((IndexI < 1) || (IndexI > Program.NII) || (IndexJ < 1) || (IndexJ > Program.NJJ))
                         goto REMOVE_PARTICLE;
-                    
+
                     differenz = zcoord_nteil;
                     diff_building = differenz;
                 }
@@ -1815,7 +1815,7 @@ namespace GRAL_2001
                             // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
                             if (Program.ReceptorNearbyBuilding[irec])
                             {
-                                if (iko == Program.ReceptorIInd[irec] && 
+                                if (iko == Program.ReceptorIInd[irec] &&
                                     jko == Program.ReceptorJInd[irec])
                                 {
                                     float slice = (zcoordRelative - Program.ReceptorZ[irec]) * dz_rez;
@@ -1827,7 +1827,7 @@ namespace GRAL_2001
                             }
                             else // use the concentration at the receptor position x +- dx/2 and receptor y +- dy/2
                             {
-                                if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < dxHalf && 
+                                if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < dxHalf &&
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < dyHalf)
                                 {
                                     float slice = (zcoordRelative - Program.ReceptorZ[irec]) * dz_rez;
@@ -1836,7 +1836,7 @@ namespace GRAL_2001
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
                                 }
-                            }                        
+                            }
                         }
                     }
 
@@ -1849,7 +1849,7 @@ namespace GRAL_2001
                             double conc = masse * idt;
                             lock (conz3d_L)
                             {
-                                conz3d_L[SG_nteil] += (float) conc;
+                                conz3d_L[SG_nteil] += (float)conc;
                             }
                         }
                     }
@@ -1859,7 +1859,7 @@ namespace GRAL_2001
                     {
                         if (reflexion_flag == 0)
                         {
-                            IndexK3d = TransientConcentration.BinarySearchTransient(zcoord_nteil - AHint);              
+                            IndexK3d = TransientConcentration.BinarySearchTransient(zcoord_nteil - AHint);
                             IndexI3d = (int)(xsi * DXK_rez) + 1;
                             IndexJ3d = (int)(eta * DYK_rez) + 1;
 
@@ -1867,7 +1867,7 @@ namespace GRAL_2001
                             double conc = masse * Program.GridVolume * idt / (Area_cart * Program.DZK_Trans[IndexK3d]);
                             lock (conzsum_L)
                             {
-                                conzsum_L[IndexK3d] += (float) conc;
+                                conzsum_L[IndexK3d] += (float)conc;
                             }
                         }
                     }
@@ -1888,7 +1888,7 @@ namespace GRAL_2001
                                 double conc = masse * idt;
                                 lock (conz3dp_L)
                                 {
-                                    conz3dp_L[SG_nteil] += (float) conc;
+                                    conz3dp_L[SG_nteil] += (float)conc;
                                 }
                             }
                         }
@@ -1905,7 +1905,7 @@ namespace GRAL_2001
                                 double conc = masse * idt;
                                 lock (conz3dm_L)
                                 {
-                                    conz3dm_L[SG_nteil] += (float) conc;
+                                    conz3dm_L[SG_nteil] += (float)conc;
                                 }
                             }
                         }
@@ -1918,7 +1918,7 @@ namespace GRAL_2001
 
             if (Program.LogLevel > 0) // additional log output
             {
-#region log_output
+                #region log_output
                 if (reflexion_number > 400000)
                 {
                     lock (thisLock)
@@ -2005,7 +2005,7 @@ namespace GRAL_2001
                     }
                 }
 
-#endregion log_output
+                #endregion log_output
             }
 
             // Add local receptor concentrations to receptor array and store maximum concentration part for each receptor

@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -184,7 +180,7 @@ namespace GRAL_2001
                         info = "Receptor " + i.ToString() + "\t";
                     }
                     info += " : x = " + Math.Round(Program.ReceptorX[i], 1).ToString() + "\t y = " + Math.Round(Program.ReceptorY[i], 1).ToString() + "\t z = " + Math.Round(Program.ReceptorZ[i], 1).ToString();
-                    
+
                     if (Program.ReceptorNearbyBuilding[i])
                     {
                         info += "\t gridded";

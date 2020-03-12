@@ -10,7 +10,6 @@
 ///</remarks>
 #endregion
 
-using System;
 
 /// <summary>
 /// Wind Data Class

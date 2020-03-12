@@ -11,15 +11,12 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
-using System.IO;
-using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
+using System.Globalization;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -71,12 +68,12 @@ namespace GRAL_2001
 
                 Program.VerticalIndex = new Int16[NII + 1][];
                 Program.UsternObstaclesHelpterm = new float[NII + 1][];
-                Program.UsternTerrainHelpterm   = new float[NII + 1][];
+                Program.UsternTerrainHelpterm = new float[NII + 1][];
                 for (int i = 1; i < NII + 1; ++i)
                 {
                     Program.VerticalIndex[i] = new Int16[NJJ + 1];
                     Program.UsternObstaclesHelpterm[i] = new float[NJJ + 1];
-                    Program.UsternTerrainHelpterm[i]   = new float[NJJ + 1];         
+                    Program.UsternTerrainHelpterm[i] = new float[NJJ + 1];
                 }
             }
             else
@@ -496,7 +493,7 @@ namespace GRAL_2001
                             float[] VK_L = Program.VK[i][j];
                             float[] WK_L = Program.WK[i][j];
                             int Vert_index = Program.VerticalIndex[i][j];
-                            
+
                             bool ADVDOMiM = (Program.ADVDOM[iM1][j] < 1) || (i == 3);
                             bool ADVDOMiP = (Program.ADVDOM[iP1][j] < 1) || (i == NII - 1);
 
@@ -540,7 +537,7 @@ namespace GRAL_2001
                             int jM1 = j - 1;
                             int jM2 = j - 2;
                             int jP1 = j + 1;
-                            
+
                             float[] UK_L = Program.UK[i][j];
                             float[] WK_L = Program.WK[i][j];
                             int Vert_index = Program.VerticalIndex[i][j];
@@ -683,8 +680,8 @@ namespace GRAL_2001
                 Parallel.For(2, NJJ, Program.pOptions, j1 =>
                 {
                     float DELTAUMAX1 = 0;
-                    Span<float> PIMP = stackalloc float [NKK + 2];
-                    Span<float> QIMP = stackalloc float [NKK + 2];
+                    Span<float> PIMP = stackalloc float[NKK + 2];
+                    Span<float> QIMP = stackalloc float[NKK + 2];
                     float APP;
                     float ABP;
                     float ATP;
@@ -738,7 +735,7 @@ namespace GRAL_2001
                                 if (KKART_LL < k)
                                 {
                                     float temp = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                    DELTAUMAX1 = (float) Math.Max(DELTAUMAX1, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
+                                    DELTAUMAX1 = (float)Math.Max(DELTAUMAX1, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
                                     DPM_L[k] = temp;
 
                                     //Pressure field to compute pressure gradients in the momentum equations
@@ -778,7 +775,7 @@ namespace GRAL_2001
                             for (int k = 1; k <= Vert_index; ++k)
                             {
                                 float DPM_L_K = DPM_L[k];
-                                
+
                                 if (i > 2 && (KKART_LL < k) && (KKARTiM < k))
                                     UK_L[k] = (float)(Program.ConvToInt((UK_L[k] + (DPMim_L[k] - DPM_L_K) / DXK * DTIME) * Frund) / Frund);
 
@@ -806,7 +803,7 @@ namespace GRAL_2001
                     int iM1 = i - 1;
                     int iP1 = i + 1;
                     for (int j = 2; j <= NJJ - 1; ++j)
-                    {                
+                    {
                         int jM1 = j - 1;
                         if ((Program.ADVDOM[i][j] == 1) || (Program.ADVDOM[iM1][j] == 1) || (Program.ADVDOM[i][jM1] == 1))
                         {
@@ -837,11 +834,11 @@ namespace GRAL_2001
                                     WKS_L[k] = 0.5F * (WK_L[k] + WK_L[k + 1]);
 
                                 if (j == 2) Program.UKS[i][1][k] = Program.UKS[i][2][k];
-                                if (j == NJJ - 1) Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];                                
+                                if (j == NJJ - 1) Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];
                             }
                         }
-                      }
-                  });
+                    }
+                });
 
                 for (int j = 2; j < NJJ; ++j) // AVOID False Sharing! No Parallelization here
                 {
@@ -871,9 +868,9 @@ namespace GRAL_2001
                 //algebraic mixing length model
                 if (TURB_MODEL == 1)
                 {
-                    Parallel.Invoke(Program.pOptions, 
+                    Parallel.Invoke(Program.pOptions,
                         () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
-                        () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));                  
+                        () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));
                     W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
                 }
 
@@ -928,7 +925,7 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite("Convergence not fullfilled for flow field: " + Program.IWET.ToString());
             }
 
-                        //CHECK FOR UNREALISTIC WIND SPEED VALUES
+            //CHECK FOR UNREALISTIC WIND SPEED VALUES
             int UKunrealistic = 0;
             int VKunrealistic = 0;
             int WKunrealistic = 0;
@@ -944,7 +941,7 @@ namespace GRAL_2001
                         float[] UK_L = Program.UK[i][j];
                         float[] VK_L = Program.VK[i][j];
                         float[] WK_L = Program.WK[i][j];
-                        float limit  = (float) (10 * GESCHW_MAX);
+                        float limit = (float)(10 * GESCHW_MAX);
                         for (int k = 1; k <= Math.Min(NKK - 1, Program.KKART[i][j] + MAXHOEH); ++k)
                         {
                             if ((Math.Abs(UK_L[k]) > 55) || (Math.Abs(UK_L[k]) > limit))
@@ -976,8 +973,8 @@ namespace GRAL_2001
             if ((UKunrealistic >= 1) || (VKunrealistic >= 1) || (WKunrealistic >= 1))
             {
                 ProgramWriters.LogfileProblemreportWrite("Unrealistic wind speeds encountered for flow field: " + Program.IWET.ToString() + " x,y,z-coordinates (total): "
-                                            + Xunrealistic.ToString("0.0", ic) + "(" + UKunrealistic.ToString() + ") ," 
-                                            + Yunrealistic.ToString("0.0", ic) + "(" + VKunrealistic.ToString() + ") ," 
+                                            + Xunrealistic.ToString("0.0", ic) + "(" + UKunrealistic.ToString() + ") ,"
+                                            + Yunrealistic.ToString("0.0", ic) + "(" + VKunrealistic.ToString() + ") ,"
                                             + Zunrealistic.ToString("0.0", ic) + "(" + VKunrealistic.ToString() + ")");
             }
 

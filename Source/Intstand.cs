@@ -11,17 +11,13 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
 namespace GRAL_2001
 {
     partial class Zeitschleife
     {
-    	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IntStandCalculate(int nteil, int IUstern, int JUstern, float DiffBuilding, float windge, float sigmauhurly, ref float U0int, ref float V0int)
         {
             if ((Program.IStatistics == 0) || (Program.IStatistics == 3))
@@ -57,7 +53,7 @@ namespace GRAL_2001
             }
 
             //enhancing horizontal diffusion for point sources (Hurley, 2005)
-            if(Program.SourceType[nteil] == 0)
+            if (Program.SourceType[nteil] == 0)
             {
                 //U0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));
                 //V0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));

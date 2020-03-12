@@ -10,11 +10,6 @@
 ///</remarks>
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
 namespace GRAL_2001
@@ -28,7 +23,7 @@ namespace GRAL_2001
         {
             if (reflexion_flag == 0)
             {
-                int IndexK3d = BinarySearchTransient(zcoord_nteil - AHint);              
+                int IndexK3d = BinarySearchTransient(zcoord_nteil - AHint);
                 int IndexI3d = (int)(xsi / Program.DXK) + 1;
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
@@ -44,7 +39,7 @@ namespace GRAL_2001
         {
             if (reflexion_flag == 0)
             {
-                int IndexK3d = BinarySearchTransient(zcoord_nteil - AHint);             
+                int IndexK3d = BinarySearchTransient(zcoord_nteil - AHint);
                 int IndexI3d = (int)(xsi / Program.DXK) + 1;
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 

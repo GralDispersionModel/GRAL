@@ -11,8 +11,8 @@
 #endregion
 
 using System;
-using System.Threading.Tasks;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -40,21 +40,21 @@ namespace GRAL_2001
             Vector<float> DXK_V = new Vector<float>(DXK);
             Vector<float> DYK_V = new Vector<float>(DYK);
             Vector<float> VISHMIN_V = new Vector<float>(VISHMIN);
-            Vector<float> AREAxy_V  = new Vector<float>(AREAxy);
+            Vector<float> AREAxy_V = new Vector<float>(AREAxy);
             Vector<float> VG_V = new Vector<float>(VG);
-            
+
             Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
                 int KKART_LL, Vert_Index_LL;
 
-                Span<float> PIMV   = stackalloc float [Program.KADVMAX + 1];
-                Span<float> QIMV   = stackalloc float [Program.KADVMAX + 1];
-                Span<float> Mask   = stackalloc float [SIMD];
-                Span<float> Mask2  = stackalloc float [SIMD];
-                Span<float> AIM_A  = stackalloc float [SIMD];
-                Span<float> BIM_A  = stackalloc float [SIMD];
-                Span<float> CIM_A  = stackalloc float [SIMD];
-                Span<float> DIMV_A = stackalloc float [SIMD];
+                Span<float> PIMV = stackalloc float[Program.KADVMAX + 1];
+                Span<float> QIMV = stackalloc float[Program.KADVMAX + 1];
+                Span<float> Mask = stackalloc float[SIMD];
+                Span<float> Mask2 = stackalloc float[SIMD];
+                Span<float> AIM_A = stackalloc float[SIMD];
+                Span<float> BIM_A = stackalloc float[SIMD];
+                Span<float> CIM_A = stackalloc float[SIMD];
+                Span<float> DIMV_A = stackalloc float[SIMD];
 
                 Vector<float> DVDYN, DVDYS, DUDYE, DUDYW, DWDYT, DWDYB;
                 Vector<float> DE, DW, DS, DN, DT, DB;
@@ -95,33 +95,33 @@ namespace GRAL_2001
                         int iM1 = i - 1;
                         int iP1 = i + 1;
 
-                        Single[] VK_L   = Program.VK[i][j];
-                        Single[] UKS_L  = Program.UKS[i][j];
-                        Single[] VKS_L  = Program.VKS[i][j];
-                        Single[] WKS_L  = Program.WKS[i][j];
+                        Single[] VK_L = Program.VK[i][j];
+                        Single[] UKS_L = Program.UKS[i][j];
+                        Single[] VKS_L = Program.VKS[i][j];
+                        Single[] WKS_L = Program.WKS[i][j];
                         Single[] DPMNEW_L = Program.DPMNEW[i][j];
-                        Single[] VKim_L   = Program.VK[iM1][j];
-                        Single[] VKip_L   = Program.VK[iP1][j];
-                        Single[] VKjm_L   = Program.VK[i][jM1];
-                        Single[] VKjp_L   = Program.VK[i][jP1];
-                        Single[] UKSim_L  = Program.UKS[iM1][j];
-                        Single[] UKSip_L  = Program.UKS[iP1][j];
-                        Single[] UKSjm_L  = Program.UKS[i][jM1];
+                        Single[] VKim_L = Program.VK[iM1][j];
+                        Single[] VKip_L = Program.VK[iP1][j];
+                        Single[] VKjm_L = Program.VK[i][jM1];
+                        Single[] VKjp_L = Program.VK[i][jP1];
+                        Single[] UKSim_L = Program.UKS[iM1][j];
+                        Single[] UKSip_L = Program.UKS[iP1][j];
+                        Single[] UKSjm_L = Program.UKS[i][jM1];
                         Single[] UKSipjm_L = Program.UKS[iP1][jM1];
                         Single[] UKSimjm_L = Program.UKS[iM1][jM1];
-                        Single[] VKSjm_L   = Program.VKS[i][jM1];
-                        Single[] VKSim_L   = Program.VKS[iM1][j];
-                        Single[] WKSjm_L   = Program.WKS[i][jM1];
+                        Single[] VKSjm_L = Program.VKS[i][jM1];
+                        Single[] VKSim_L = Program.VKS[iM1][j];
+                        Single[] WKSjm_L = Program.WKS[i][jM1];
                         Single[] DPMNEWjm_L = Program.DPMNEW[i][jM1];
 
                         Single[] UKSipjp_L = Program.UKS[iP1][jP1];
                         Single[] UKSimjp_L = Program.UKS[iM1][jP1];
-                        Single[] WKSjp_L   = Program.WK[i][jP1];
-                        Single[] UK_L      = Program.UK[i][j];
+                        Single[] WKSjp_L = Program.WK[i][jP1];
+                        Single[] UK_L = Program.UK[i][j];
 
                         KKART_LL = Program.KKART[i][j];
                         Vert_Index_LL = Program.VerticalIndex[i][j];
-                        Ustern_terrain_helpterm   = Program.UsternTerrainHelpterm[i][j];
+                        Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
                         Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
                         bool ADVDOM_JM = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
                         bool ADVDOM_JP = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
@@ -241,15 +241,15 @@ namespace GRAL_2001
                                 DE = Vector<float>.Zero;
 
                             //ADVECTION TERMS
-                            UKSip_LV   = new Vector<float>(UKSip_L, k);
-                            UKSjm_LV   = new Vector<float>(UKSjm_L, k);
+                            UKSip_LV = new Vector<float>(UKSip_L, k);
+                            UKSjm_LV = new Vector<float>(UKSjm_L, k);
                             UKSipjm_LV = new Vector<float>(UKSipjm_L, k);
-                            UKSim_LV   = new Vector<float>(UKSim_L, k);
-                            VKSim_LV   = new Vector<float>(VKSim_L, k);
+                            UKSim_LV = new Vector<float>(UKSim_L, k);
+                            VKSim_LV = new Vector<float>(VKSim_L, k);
                             UKSimjm_LV = new Vector<float>(UKSimjm_L, k);
-                            VKSjm_LV   = new Vector<float>(VKSjm_L, k);
-                            WKSjm_LV   = new Vector<float>(WKSjm_L, k);
-                            WKSkM_LV   = new Vector<float>(WKS_L, kM1);
+                            VKSjm_LV = new Vector<float>(VKSjm_L, k);
+                            WKSjm_LV = new Vector<float>(WKSjm_L, k);
+                            WKSkM_LV = new Vector<float>(WKS_L, kM1);
 
                             FE = Vect_025 * (UKS_V + UKSip_LV + UKSjm_LV + UKSipjm_LV) * DYKDZK;
                             FW = Vect_025 * (UKS_V + UKSim_LV + UKSjm_LV + UKSimjm_LV) * DYKDZK;
@@ -319,7 +319,7 @@ namespace GRAL_2001
 
                             //SOURCE TERMS
                             intern2 = Vect_05 * (VKSim_LV + VKS_V);
-                            intern  = Vect_05 * (UKSim_LV + UKS_V);
+                            intern = Vect_05 * (UKSim_LV + UKS_V);
 
                             windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
 
@@ -343,11 +343,11 @@ namespace GRAL_2001
                                 //Array.Clear(Mask2, 0, Mask2.Length);
                                 int ii = KKART_LL_P1 - k;   // 0 to SIMD - 1
                                 Mask2[ii] = 1;              // Set the mask2 at SIMD position k == KKART_LL_P1 to 1
-                                
-                                xhilf = (float) ((float) i * (DXK - DXK * 0.5F));
-                                yhilf = (float) ((float) j * (DYK - DYK * 0.5F));
 
-                                intern  = Vect_05 * (UKSim_LV + UKS_V);
+                                xhilf = (float)((float)i * (DXK - DXK * 0.5F));
+                                yhilf = (float)((float)j * (DYK - DYK * 0.5F));
+
+                                intern = Vect_05 * (UKSim_LV + UKS_V);
                                 intern2 = Vect_05 * (VKSim_LV + VKS_V);
 
                                 windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_01);
@@ -371,7 +371,7 @@ namespace GRAL_2001
                                 int ii = KKART_LL_P1 - k;   // 0 to SIMD - 1
                                 Mask2[ii] = 1;                 // Set the mask2 at SIMD position k == KKART_LL_P1 to 1
 
-                                intern  = Vect_05 * (UKSim_LV + UKS_V);
+                                intern = Vect_05 * (UKSim_LV + UKS_V);
                                 intern2 = Vect_05 * (VKSim_LV + VKS_V);
                                 windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_01);
 
@@ -387,7 +387,7 @@ namespace GRAL_2001
                                 DVDYS = (VK_LV - VKjm_LV) * DXKDZK;
                                 DUDYE = (Vect_05 * (new Vector<float>(UKSipjp_L, k) + UKSip_LV) - Vect_05 * (UKSip_LV + UKSipjm_LV)) * DXKDZK;
                                 DUDYW = (Vect_05 * (new Vector<float>(UKSimjp_L, k) + UKSim_LV) - Vect_05 * (UKSim_LV + UKSimjm_LV)) * DXKDZK;
-                                DWDYT = (Vect_05 * (new Vector<float>(WKSjp_L, k)   + WKS_V)    - Vect_05 * (WKS_V + WKSjm_LV))    * AREAxy_V;
+                                DWDYT = (Vect_05 * (new Vector<float>(WKSjp_L, k) + WKS_V) - Vect_05 * (WKS_V + WKSjm_LV)) * AREAxy_V;
                                 DWDYB = (Vect_05 * (new Vector<float>(WKSjp_L, kM1) + WKSkM_LV) - Vect_05 * (WKSkM_LV + WKSjm_LV)) * AREAxy_V;
 
                                 if (mask_v_enable) // compute ADD_DIFF and add to DIMW

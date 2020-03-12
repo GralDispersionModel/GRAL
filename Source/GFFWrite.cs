@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.IO.Compression;
 
@@ -170,7 +166,7 @@ namespace GRAL_2001
                         ZipArchiveEntry write_entry = archive.CreateEntry(GRALflowfield);
                         using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
                         {
-                            writer.Write((Int32)Program.NKK); 
+                            writer.Write((Int32)Program.NKK);
                             writer.Write((Int32)Program.NJJ);
                             writer.Write((Int32)Program.NII);
                             writer.Write((float)Program.WindDirGral);
@@ -275,17 +271,17 @@ namespace GRAL_2001
                                     // loop unroll for better performance
                                     int km = k - 1;
                                     int bytecounter = 0;
-                                    for(int j = 1; j < Program.NJJ + 2; j++)
+                                    for (int j = 1; j < Program.NJJ + 2; j++)
                                     {
                                         Int16 _value = (Int16)(
                                              Math.Max(Int16.MinValue,
                                                       Math.Min(Int16.MaxValue, UK_L[j][km] * 100)));
-                                                      
+
                                         writeData[bytecounter++] = (byte)((_value & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_value & 0x0000FF00) >> 8);
                                     }
-                                    
-                                    for(int j = 1; j < Program.NJJ + 2; j++)
+
+                                    for (int j = 1; j < Program.NJJ + 2; j++)
                                     {
                                         Int16 _value = (Int16)(
                                             Math.Max(Int16.MinValue,
@@ -293,10 +289,10 @@ namespace GRAL_2001
                                         writeData[bytecounter++] = (byte)((_value & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_value & 0x0000FF00) >> 8);
                                     }
-                                    
-                                    for(int j = 1; j < Program.NJJ + 2; j++)
+
+                                    for (int j = 1; j < Program.NJJ + 2; j++)
                                     {
-                                        Int16 _value  = (Int16)(
+                                        Int16 _value = (Int16)(
                                             Math.Max(Int16.MinValue,
                                                      Math.Min(Int16.MaxValue, WK_L[j][k] * 100)));
                                         writeData[bytecounter++] = (byte)((_value & 0x000000FF));
@@ -350,12 +346,12 @@ namespace GRAL_2001
                         if (Program.StretchFF < 0.1)
                         {
                             writer.Write((int)Program.StretchFlexible.Count);
-                            foreach(float[] stretchflex in Program.StretchFlexible)
+                            foreach (float[] stretchflex in Program.StretchFlexible)
                             {
-                                writer.Write((float) stretchflex[0]);
-                                writer.Write((float) stretchflex[1]);
+                                writer.Write((float)stretchflex[0]);
+                                writer.Write((float)stretchflex[1]);
                             }
-						}
+                        }
                         writer.Write((float)Program.AHMIN);
 
                         for (int i = 1; i <= Program.NII + 1; i++)

@@ -12,9 +12,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -171,7 +168,7 @@ namespace GRAL_2001
                 Program.PS_V_Dep[i] = PQ[i].Vdep;
                 Program.PS_V_sed[i] = PQ[i].Vsed;
                 Program.PS_Mode[i] = PQ[i].Mode;
-                Program.PS_ER_Dep[i] = (float) (PQ[i].ER_dep);
+                Program.PS_ER_Dep[i] = (float)(PQ[i].ER_dep);
                 Program.PS_TimeSeriesTemperature[i] = PQ[i].TimeSeriesTemperature;
                 Program.PS_TimeSeriesVelocity[i] = PQ[i].TimeSeriesVelocity;
             }

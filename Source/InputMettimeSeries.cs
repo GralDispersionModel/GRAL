@@ -12,10 +12,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
+using System.Linq;
 
 namespace GRAL_2001
 {
@@ -30,43 +28,43 @@ namespace GRAL_2001
         public void ReadMetTimeSeries()
         {
             string filename = "mettimeseries.dat";
-            string[] text2; 
-            string[] text3; 
-            
+            string[] text2;
+            string[] text3;
+
             try
             {
-            	using (FileStream fs_mettimeseries = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
-            	{
-            		using (StreamReader mettimeseries = new StreamReader(fs_mettimeseries))
-            		{
-            			string text;
+                using (FileStream fs_mettimeseries = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    using (StreamReader mettimeseries = new StreamReader(fs_mettimeseries))
+                    {
+                        string text;
 
-            			// read data
-            			int count = 0;
-            			while (mettimeseries.EndOfStream == false)
-            			{
-            				WindData wd = new WindData();
-            				count++;
+                        // read data
+                        int count = 0;
+                        while (mettimeseries.EndOfStream == false)
+                        {
+                            WindData wd = new WindData();
+                            count++;
 
-            				text = mettimeseries.ReadLine();
+                            text = mettimeseries.ReadLine();
 
-            				text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-            				text3 = text2[0].Split(new char[] { '.', ':', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                            text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            text3 = text2[0].Split(new char[] { '.', ':', '-' }, StringSplitOptions.RemoveEmptyEntries);
 
-            				wd.Month = text3[1];
-            				wd.Day = text3[0];
-            				wd.Hour = text2[1];
-            				wd.Date = wd.Day + wd.Month;
-            				wd.Vel = Convert.ToSingle(text2[2].Replace(".", Program.Decsep));
-            				wd.Dir = Convert.ToSingle(text2[3].Replace(".", Program.Decsep));
-            				wd.Stab_Class = Convert.ToInt16(text2[4]);
-            				wd.IWet = count;
+                            wd.Month = text3[1];
+                            wd.Day = text3[0];
+                            wd.Hour = text2[1];
+                            wd.Date = wd.Day + wd.Month;
+                            wd.Vel = Convert.ToSingle(text2[2].Replace(".", Program.Decsep));
+                            wd.Dir = Convert.ToSingle(text2[3].Replace(".", Program.Decsep));
+                            wd.Stab_Class = Convert.ToInt16(text2[4]);
+                            wd.IWet = count;
 
-            				_winddata.Add(wd);
-            			}
+                            _winddata.Add(wd);
+                        }
 
-            		}
-            	}
+                    }
+                }
             }
             catch
             {
@@ -83,37 +81,37 @@ namespace GRAL_2001
         {
             string filename = "meteopgt.all";
             string[] text2;
-            
+
             try
             {
-            	using (FileStream fs_meteopgt = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
-            	{
-            		using (StreamReader meteopgt = new StreamReader(fs_meteopgt))
-            		{
-            			//header (not used)
-            			string text = meteopgt.ReadLine();
-            			text = meteopgt.ReadLine();
+                using (FileStream fs_meteopgt = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    using (StreamReader meteopgt = new StreamReader(fs_meteopgt))
+                    {
+                        //header (not used)
+                        string text = meteopgt.ReadLine();
+                        text = meteopgt.ReadLine();
 
-            			// read data
-            			int count = 0;
-            			while (meteopgt.EndOfStream == false)
-            			{
-            				WindData wd = new WindData();
-            				count++;
+                        // read data
+                        int count = 0;
+                        while (meteopgt.EndOfStream == false)
+                        {
+                            WindData wd = new WindData();
+                            count++;
 
-            				text = meteopgt.ReadLine();
-            				text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            text = meteopgt.ReadLine();
+                            text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
-            				wd.Dir = Convert.ToSingle(text2[0].Replace(".", Program.Decsep));
-            				wd.Vel = Convert.ToSingle(text2[1].Replace(".", Program.Decsep));
-            				wd.Stab_Class = Convert.ToInt16(text2[2]);
-            				wd.IWet = count;
+                            wd.Dir = Convert.ToSingle(text2[0].Replace(".", Program.Decsep));
+                            wd.Vel = Convert.ToSingle(text2[1].Replace(".", Program.Decsep));
+                            wd.Stab_Class = Convert.ToInt16(text2[2]);
+                            wd.IWet = count;
 
-            				_winddata.Add(wd);
-            			}
+                            _winddata.Add(wd);
+                        }
 
-            		}
-            	}
+                    }
+                }
             }
             catch
             {
@@ -142,13 +140,13 @@ namespace GRAL_2001
             {
                 //if (Program.Met_Time_Ser.Count() > (Program.IWET - 1))
                 //{
-                    if (MathF.Abs(Program.MeteopgtLst[n].Vel - Program.MeteoTimeSer[Program.IWET - 1].Vel) < 0.01F
-                       && MathF.Abs(Program.MeteopgtLst[n].Dir - Program.MeteoTimeSer[Program.IWET - 1].Dir) < 0.01F
-                       && (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Program.IWET - 1].Stab_Class))
-                    {
-                        iwet = n;
-                        break;
-                    }
+                if (MathF.Abs(Program.MeteopgtLst[n].Vel - Program.MeteoTimeSer[Program.IWET - 1].Vel) < 0.01F
+                   && MathF.Abs(Program.MeteopgtLst[n].Dir - Program.MeteoTimeSer[Program.IWET - 1].Dir) < 0.01F
+                   && (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Program.IWET - 1].Stab_Class))
+                {
+                    iwet = n;
+                    break;
+                }
                 //}
             }
 

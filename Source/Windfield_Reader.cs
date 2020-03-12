@@ -16,40 +16,35 @@
  * Date: 11.08.2015
  * Time: 08:59
  */
- 
+
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Text;
-using System.IO;
-using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 
 namespace GRAL_2001
 {
-	/// <summary>
-	///Read GRAMM Wind Fields
-	/// </summary>
-	public class WindfieldReader
-	{
-		/// <summary>
-		///Read GRAMM Wind Fields
-		/// </summary>
+    /// <summary>
+    ///Read GRAMM Wind Fields
+    /// </summary>
+    public class WindfieldReader
+    {
+        /// <summary>
+        ///Read GRAMM Wind Fields
+        /// </summary>
         public bool WindfieldRead(string filename, int NX, int NY, int NZ, ref Single[][][] UWI, ref Single[][][] VWI, ref Single[][][] WWI)
-		{
-			try
-			{
-				string decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
-				
-				int dummy = 0;
-				using (BinaryReader windfieldb = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
-				{
-				   dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = "Header"
-				}
-				
-				if (dummy == -1) // Compact wnd File-format
-				{
+        {
+            try
+            {
+                string decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
+
+                int dummy = 0;
+                using (BinaryReader windfieldb = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
+                {
+                    dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = "Header"
+                }
+
+                if (dummy == -1) // Compact wnd File-format
+                {
                     using (BinaryReader windfieldb = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
                     {
                         dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = "Header"
@@ -66,10 +61,10 @@ namespace GRAL_2001
                                     WWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
                                 }
                     }
-				}
-				else // classic windfield file format
-				{
-					string[] text = new string[1];
+                }
+                else // classic windfield file format
+                {
+                    string[] text = new string[1];
 
                     using (StreamReader windfield = new StreamReader(filename))
                     {
@@ -83,17 +78,17 @@ namespace GRAL_2001
                                     WWI[i][j][k] = (float)Convert.ToDouble(text[2].Replace(".", decsep));
                                 }
                     }
-					
-				}
-				return true; // Reader OK
-			}
-			catch(Exception ex)
-			{
-				Console.WriteLine(ex.Message.ToString());
-				return false; // Reader Error
-			}
-			
-			
-		}
-	}
+
+                }
+                return true; // Reader OK
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message.ToString());
+                return false; // Reader Error
+            }
+
+
+        }
+    }
 }

@@ -14,15 +14,15 @@
 /// Transient Deposition Data Class
 /// </summary>
 public class TransientDeposition
-	{
-		public int DepositionMode { get; set; }
-		public double Vdep { get; set; }
-		public double Vsed { get; set; }
+{
+    public int DepositionMode { get; set; }
+    public double Vdep { get; set; }
+    public double Vsed { get; set; }
 
-		public TransientDeposition()
-		{
-			DepositionMode = 0;
-			Vdep = 0;
-			Vsed = 0;
-		}
-	}
+    public TransientDeposition()
+    {
+        DepositionMode = 0;
+        Vdep = 0;
+        Vsed = 0;
+    }
+}

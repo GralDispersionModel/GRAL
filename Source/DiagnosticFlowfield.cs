@@ -11,9 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace GRAL_2001
@@ -25,9 +22,9 @@ namespace GRAL_2001
 	    /// </summary>
         public static void Calculate()
         {
-        	float DXK  = Program.DXK;
-			float DYK  = Program.DYK;
-			
+            float DXK = Program.DXK;
+            float DYK = Program.DYK;
+
             int IV = 1;
             float DTIME = (float)(0.5 * Math.Min(DXK, DYK) / (Math.Sqrt(Program.Pow2(Program.UK[1][1][Program.KADVMAX]) + (Program.Pow2(Program.VK[1][1][Program.KADVMAX])))));
             DTIME = Math.Min(DTIME, 5);
@@ -50,7 +47,7 @@ namespace GRAL_2001
 
             //main loop
             int COUNT = 1;
-            while(IV <= Iterations)
+            while (IV <= Iterations)
             {
                 //mass divergence in each cell
                 Parallel.For(2, Program.NII, Program.pOptions, i =>
@@ -63,7 +60,7 @@ namespace GRAL_2001
                         float[] WK_L = Program.WK[i][j];
                         float[] UKip_L = Program.UK[i + 1][j];
                         float[] VKjp_L = Program.VK[i][j + 1];
-                        int KKART      = Program.KKART[i][j];
+                        int KKART = Program.KKART[i][j];
 
                         for (int k = 1; k <= Program.NKK - 1; k++)
                         {
@@ -82,16 +79,16 @@ namespace GRAL_2001
                 EQUATION TDMA (PATANKAR 1980, S125)*/
 
                 //switch the loop to improve convergence
-                if(COUNT==1)
+                if (COUNT == 1)
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
-                	    Span<float> PIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> QIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> APP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ABP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ATP  = stackalloc float [Program.NKK + 1];
-                        
+                        Span<float> PIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> QIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> APP = stackalloc float[Program.NKK + 1];
+                        Span<float> ABP = stackalloc float[Program.NKK + 1];
+                        Span<float> ATP = stackalloc float[Program.NKK + 1];
+
                         for (int i = 2; i < Program.NII; i++)
                         {
                             float[] DIV_L = Program.DIV[i][j];
@@ -100,9 +97,9 @@ namespace GRAL_2001
                             float[] DPMip_L = Program.DPM[i + 1][j];
                             float[] DPMjm_L = Program.DPM[i][j - 1];
                             float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART       = Program.KKART[i][j]; 
-                            
-                            for (int k = Program.NKK-1; k >= 1; k--)
+                            int KKART = Program.KKART[i][j];
+
+                            for (int k = Program.NKK - 1; k >= 1; k--)
                             {
                                 if (KKART < k)
                                 {
@@ -124,7 +121,7 @@ namespace GRAL_2001
 
                             //Obtain new P-components
                             DPM_L[0] = 0;
-                            for (int k = 1; k <= Program.NKK-1; k++)
+                            for (int k = 1; k <= Program.NKK - 1; k++)
                             {
                                 if (KKART < k)
                                 {
@@ -138,16 +135,16 @@ namespace GRAL_2001
                         }
                     });
                 }
-                else if(COUNT==2)
+                else if (COUNT == 2)
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
                         int j = Program.NJJ - j1 + 1;
-                        Span<float> PIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> QIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> APP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ABP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ATP  = stackalloc float [Program.NKK + 1];
+                        Span<float> PIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> QIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> APP = stackalloc float[Program.NKK + 1];
+                        Span<float> ABP = stackalloc float[Program.NKK + 1];
+                        Span<float> ATP = stackalloc float[Program.NKK + 1];
 
                         for (int i = 2; i < Program.NII; i++)
                         {
@@ -157,8 +154,8 @@ namespace GRAL_2001
                             float[] DPMip_L = Program.DPM[i + 1][j];
                             float[] DPMjm_L = Program.DPM[i][j - 1];
                             float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART       = Program.KKART[i][j];
-                            
+                            int KKART = Program.KKART[i][j];
+
                             for (int k = Program.NKK - 1; k >= 1; k--)
                             {
                                 if (KKART < k)
@@ -200,13 +197,13 @@ namespace GRAL_2001
                     Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
                         int j = Program.NJJ - j1 + 1;
-                        Span<float> PIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> QIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> APP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ABP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ATP  = stackalloc float [Program.NKK + 1];
+                        Span<float> PIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> QIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> APP = stackalloc float[Program.NKK + 1];
+                        Span<float> ABP = stackalloc float[Program.NKK + 1];
+                        Span<float> ATP = stackalloc float[Program.NKK + 1];
 
-                        for (int i = Program.NII-1; i >= 2; i--)
+                        for (int i = Program.NII - 1; i >= 2; i--)
                         {
                             float[] DIV_L = Program.DIV[i][j];
                             float[] DPM_L = Program.DPM[i][j];
@@ -214,8 +211,8 @@ namespace GRAL_2001
                             float[] DPMip_L = Program.DPM[i + 1][j];
                             float[] DPMjm_L = Program.DPM[i][j - 1];
                             float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART       = Program.KKART[i][j];
-                           
+                            int KKART = Program.KKART[i][j];
+
                             for (int k = Program.NKK - 1; k >= 1; k--)
                             {
                                 if (KKART < k)
@@ -256,11 +253,11 @@ namespace GRAL_2001
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
-    	             	Span<float> PIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> QIMP = stackalloc float [Program.NKK + 2];
-                        Span<float> APP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ABP  = stackalloc float [Program.NKK + 1];
-                        Span<float> ATP  = stackalloc float [Program.NKK + 1];
+                        Span<float> PIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> QIMP = stackalloc float[Program.NKK + 2];
+                        Span<float> APP = stackalloc float[Program.NKK + 1];
+                        Span<float> ABP = stackalloc float[Program.NKK + 1];
+                        Span<float> ATP = stackalloc float[Program.NKK + 1];
 
                         for (int i = Program.NII - 1; i >= 2; i--)
                         {
@@ -270,8 +267,8 @@ namespace GRAL_2001
                             float[] DPMip_L = Program.DPM[i + 1][j];
                             float[] DPMjm_L = Program.DPM[i][j - 1];
                             float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART       = Program.KKART[i][j];
-                           
+                            int KKART = Program.KKART[i][j];
+
                             for (int k = Program.NKK - 1; k >= 1; k--)
                             {
                                 if (KKART < k)
@@ -324,7 +321,7 @@ namespace GRAL_2001
                             float[] UK_L = Program.UK[i][j];
                             float[] VK_L = Program.VK[i][j];
                             float[] WK_L = Program.WK[i][j];
-                            int KKART    = Program.KKART[i][j];
+                            int KKART = Program.KKART[i][j];
 
                             for (int k = 1; k < Program.NKK; k++)
                             {
@@ -364,6 +361,6 @@ namespace GRAL_2001
             //free working memory
             //Program.DIV = Program.CreateArray<float[][]>(1, () => Program.CreateArray<float[]>(1, () => new float[1]));
             //Program.DPM = Program.CreateArray<float[][]>(1, () => Program.CreateArray<float[]>(1, () => new float[1]));
-        }        
+        }
     }
 }
