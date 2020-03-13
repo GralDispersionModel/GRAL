@@ -11,20 +11,16 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
 using System.Globalization;
-using System.Runtime.CompilerServices; 
-using System.Collections.Concurrent;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
     public class MicroscaleTerrain
     {
-    	
+
         /// <summary>
         /// Get the microscale terrain from GRAL_topofile.txt or interpolate GRAMM terrain
         /// </summary>
@@ -33,15 +29,15 @@ namespace GRAL_2001
         {
             Console.WriteLine();
             Console.WriteLine("FLOW FIELD COMPUTATION WITH TOPOGRAPHY");
-			float DXK  = Program.DXK;
-			float DYK  = Program.DYK;
-			float DDX1 = Program.DDX[1];
-			float DDY1 = Program.DDY[1];
-			int Delta_IKOO = Program.IKOOAGRAL - Program.IKOOA;
-			int Delta_JKOO = Program.JKOOAGRAL - Program.JKOOA;
-			double vec_x = 0; double vec_y = 0; int vec_numb = 0;
-			bool[,] vec_count = new bool[Program.NII + 2, Program.NJJ +2];
-			Array.Clear(vec_count, 0, vec_count.Length);
+            float DXK = Program.DXK;
+            float DYK = Program.DYK;
+            float DDX1 = Program.DDX[1];
+            float DDY1 = Program.DDY[1];
+            int Delta_IKOO = Program.IKOOAGRAL - Program.IKOOA;
+            int Delta_JKOO = Program.JKOOAGRAL - Program.JKOOA;
+            double vec_x = 0; double vec_y = 0; int vec_numb = 0;
+            bool[,] vec_count = new bool[Program.NII + 2, Program.NJJ + 2];
+            Array.Clear(vec_count, 0, vec_count.Length);
 
             //read vegetation only once
             if (File.Exists("vegetation.dat") == true)
@@ -53,19 +49,19 @@ namespace GRAL_2001
                     Readclass.ReadVegetationDomain();
                 }
             }
-			
+
             //optional: orographical data as used in the GRAMM model is used
-            if(File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 999999) // No GRAL topography or GRAL topography = corrupt
+            if (File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 999999) // No GRAL topography or GRAL topography = corrupt
             {
                 Program.KADVMAX = 1;
-                
+
                 object obj = new object();
-                
+
                 Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
                 {
                     double vec_x_loc = 0; double vec_y_loc = 0; int vec_numb_loc = 0;
-                    Span<float> Zellhoehe   = stackalloc float [Program.NK + 1];
-                    Span<float> Zellhoehe_p = stackalloc float [Program.NK + 1];
+                    Span<float> Zellhoehe = stackalloc float[Program.NK + 1];
+                    Span<float> Zellhoehe_p = stackalloc float[Program.NK + 1];
 
                     for (int j = 1; j <= Program.NJJ; j++)
                     {
@@ -83,7 +79,7 @@ namespace GRAL_2001
                         float xwert = ((DXK * (float)i - DXK * 0.5F + Delta_IKOO) - (indi - 1) * DDX1);
                         float ywert = ((DYK * (float)j - DYK * 0.5F + Delta_JKOO) - (indj - 1) * DDY1);
                         float[] AHE_L = Program.AHE[indi][indj];
-                        
+
                         if ((indi <= Program.NX - 1) && (indi >= 2) && (indj <= Program.NY - 1) && (indj >= 2))
                         {
                             float[] AHEJP_L = Program.AHE[indi][indj + 1];
@@ -149,15 +145,15 @@ namespace GRAL_2001
                             int indk = 0;
                             int indk_p = 0;
                             int ik_p = 0;
-                            float zellhoehe=0;
+                            float zellhoehe = 0;
                             float zellhoehe_p = 0;
                             float delta_z = 0;
-                            
+
                             for (int ik = Program.NK; ik >= 1; ik--)
                             {
                                 ik_p = Math.Min(ik + 1, Program.NK);
                                 if ((indi > Program.NX - 1) || (indi < 2))
-                                {                                    
+                                {
                                     zellhoehe = AHE_L[ik] - Program.AHMIN;
                                     zellhoehe_p = AHE_L[ik_p] - Program.AHMIN;
                                 }
@@ -168,26 +164,26 @@ namespace GRAL_2001
                                 }
                                 else
                                 {
-                                    zellhoehe   = Zellhoehe[ik];
+                                    zellhoehe = Zellhoehe[ik];
                                     zellhoehe_p = Zellhoehe_p[ik];
                                 }
 
-                                if(vertk-Program.AHMIN > zellhoehe+Program.CUTK[i][j])
+                                if (vertk - Program.AHMIN > zellhoehe + Program.CUTK[i][j])
                                 {
                                     indk = ik;
                                     indk_p = Math.Min(indk + 1, Program.NK);
-                                    delta_z = (float) (vertk - Program.AHMIN) - (zellhoehe + Program.CUTK[i][j]);
+                                    delta_z = (float)(vertk - Program.AHMIN) - (zellhoehe + Program.CUTK[i][j]);
                                     break;
                                 }
                             }
 
-                            if(indk>0)
+                            if (indk > 0)
                             {
                                 if (indi > Program.NX) indi = Program.NX;
                                 if (indj > Program.NY) indj = Program.NY;
                                 int ixm = 0;
                                 int iym = 0;
-                                if(xwert<DDX1*0.5)
+                                if (xwert < DDX1 * 0.5)
                                 {
                                     ixm = indi - 1;
                                     ixm = Math.Max(ixm, 1);
@@ -245,12 +241,12 @@ namespace GRAL_2001
                                 // compute windvector in about 10m
                                 if (Program.ZSP[indi][indj][indk] - Program.AH[indi][indj] < 10 + (Program.ZKO[2] - Program.ZKO[1]) * 0.5F && vec_count[i, j] == false)
                                 {
-                                	vec_count[i, j] = true;
-                                	vec_x_loc += UK_L[k];
-                                	vec_y_loc += VK_L[k];
-                                	vec_numb_loc++;
+                                    vec_count[i, j] = true;
+                                    vec_x_loc += UK_L[k];
+                                    vec_y_loc += VK_L[k];
+                                    vec_numb_loc++;
                                 }
-                                
+
                                 if (i > 1)
                                     if (k <= Program.KKART[i - 1][j]) UK_L[k] = 0;
                                 if (j > 1)
@@ -270,27 +266,27 @@ namespace GRAL_2001
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k] + Program.AHMIN, Program.AHK[i][j]);
                                 if (Program.CUTK[i][j] > 0) Program.BUI_HEIGHT[i][j] = (float)Math.Max(Program.AHK[i][j] - Program.AHMIN - zellhoehe, Program.BUI_HEIGHT[i][j]);
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
-                                
+
                                 if (Program.ADVDOM[i][j] > 0)
-								{
-                                	lock (obj)
-                    				{
-                                		Program.KADVMAX = Math.Max(Program.KKART[i][j], Program.KADVMAX);
-                                	}
+                                {
+                                    lock (obj)
+                                    {
+                                        Program.KADVMAX = Math.Max(Program.KKART[i][j], Program.KADVMAX);
+                                    }
                                 }
-                                
+
                             }
                         }
                     }
                     lock (obj)
                     {
-                    	vec_numb += vec_numb_loc;
-                    	vec_x += vec_x_loc;
-                    	vec_y += vec_y_loc;
+                        vec_numb += vec_numb_loc;
+                        vec_x += vec_x_loc;
+                        vec_y += vec_y_loc;
                     }
                 });
             }
-            
+
             //optional: original orographical data is used
             else
             {
@@ -300,8 +296,8 @@ namespace GRAL_2001
                 {
                     int KADVMAX1 = 1;
                     double vec_x_loc = 0; float vec_y_loc = 0; int vec_numb_loc = 0;
-                    Span<float> Zellhoehe   = stackalloc float [Program.NK + 1];
-                    Span<float> Zellhoehe_p = stackalloc float [Program.NK + 1];
+                    Span<float> Zellhoehe = stackalloc float[Program.NK + 1];
+                    Span<float> Zellhoehe_p = stackalloc float[Program.NK + 1];
 
                     for (int j = 1; j <= Program.NJJ; j++)
                     {
@@ -319,7 +315,7 @@ namespace GRAL_2001
                         float xwert = ((DXK * (float)i - DXK * 0.5F + Delta_IKOO) - (indi - 1) * DDX1);
                         float ywert = ((DYK * (float)j - DYK * 0.5F + Delta_JKOO) - (indj - 1) * DDY1);
                         float[] AHE_L = Program.AHE[indi][indj];
-                        
+
                         if ((indi <= Program.NX - 1) && (indi >= 2) && (indj <= Program.NY - 1) && (indj >= 2))
                         {
                             float[] AHEJP_L = Program.AHE[indi][indj + 1];
@@ -387,9 +383,9 @@ namespace GRAL_2001
                             int ik_p = 0;
                             int indk_p = 0;
                             float zellhoehe_p = 0;
-                            float delta_z = 0; 
+                            float delta_z = 0;
                             float zellhoehe = 0;
-                            
+
                             for (int ik = Program.NK; ik >= 1; ik--)
                             {
                                 ik_p = Math.Min(ik + 1, Program.NK);
@@ -406,8 +402,8 @@ namespace GRAL_2001
                                 }
                                 else
                                 {
-                                   zellhoehe = Zellhoehe[ik];
-                                   zellhoehe_p = Zellhoehe_p[ik];
+                                    zellhoehe = Zellhoehe[ik];
+                                    zellhoehe_p = Zellhoehe_p[ik];
                                 }
 
                                 if (vertk <= Program.AHKOri[i][j] + Program.CUTK[i][j])
@@ -517,7 +513,7 @@ namespace GRAL_2001
                                 if (k < Program.NKK) WK_L[k + 1] = 0;
 
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k] + Program.AHKOriMin, Program.AHK[i][j]);
-                                
+
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
                                 if (Program.ADVDOM[i][j] > 0)
                                     KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
@@ -549,49 +545,49 @@ namespace GRAL_2001
                     Program.AHMIN = Math.Min(Program.AHMIN, Program.AHK[i][j]);
                 }
             }
-            
-            Program.WindDirGramm = (float) (Math.Atan2(vec_x, vec_y) * 180 / Math.PI + 180);
-			if (Program.WindDirGramm < 0)
-				Program.WindDirGramm += 360;
-			if (Program.WindDirGramm > 360)
-				Program.WindDirGramm -= 360;
-                       
+
+            Program.WindDirGramm = (float)(Math.Atan2(vec_x, vec_y) * 180 / Math.PI + 180);
+            if (Program.WindDirGramm < 0)
+                Program.WindDirGramm += 360;
+            if (Program.WindDirGramm > 360)
+                Program.WindDirGramm -= 360;
+
             if (vec_numb > 0)
-            	Program.WindVelGramm = (float) Math.Sqrt(Math.Pow(vec_x, 2) + Math.Pow(vec_y, 2)) / vec_numb;
-            
+                Program.WindVelGramm = (float)Math.Sqrt(Math.Pow(vec_x, 2) + Math.Pow(vec_y, 2)) / vec_numb;
+
             //optional: write GRAL orography
             if (Program.IDISP == 1 || firstloop)
             {
-                if(File.Exists("GRAL_Topography.txt")==true)
+                if (File.Exists("GRAL_Topography.txt") == true)
                 {
                     Console.WriteLine("Write file GRAL_Topography.txt");
-                   
+
                     try
                     {
-                    	using (StreamWriter wt = new StreamWriter("GRAL_Topography.txt"))
-                    	{
-                    		wt.WriteLine("ncols         " + Program.NII.ToString(CultureInfo.InvariantCulture));
-                    		wt.WriteLine("nrows         " + Program.NJJ.ToString(CultureInfo.InvariantCulture));
-                    		wt.WriteLine("xllcorner     " + Program.IKOOAGRAL.ToString(CultureInfo.InvariantCulture));
-                    		wt.WriteLine("yllcorner     " + Program.JKOOAGRAL.ToString(CultureInfo.InvariantCulture));
-                    		wt.WriteLine("cellsize      " + DXK.ToString(CultureInfo.InvariantCulture));
-                    		wt.WriteLine("NODATA_value  " + "-9999");
+                        using (StreamWriter wt = new StreamWriter("GRAL_Topography.txt"))
+                        {
+                            wt.WriteLine("ncols         " + Program.NII.ToString(CultureInfo.InvariantCulture));
+                            wt.WriteLine("nrows         " + Program.NJJ.ToString(CultureInfo.InvariantCulture));
+                            wt.WriteLine("xllcorner     " + Program.IKOOAGRAL.ToString(CultureInfo.InvariantCulture));
+                            wt.WriteLine("yllcorner     " + Program.JKOOAGRAL.ToString(CultureInfo.InvariantCulture));
+                            wt.WriteLine("cellsize      " + DXK.ToString(CultureInfo.InvariantCulture));
+                            wt.WriteLine("NODATA_value  " + "-9999");
 
-                    		for (int jj = Program.NJJ; jj >= 1; jj--)
-                    		{
-                    			for (int o = 1; o <= Program.NII; o++)
-                    			{
-                    				wt.Write((Program.AHK[o][jj] - Program.BUI_HEIGHT[o][jj]).ToString(CultureInfo.InvariantCulture) + " ");
-                    			}
-                    			wt.WriteLine();
-                    		}
-                    	}
+                            for (int jj = Program.NJJ; jj >= 1; jj--)
+                            {
+                                for (int o = 1; o <= Program.NII; o++)
+                                {
+                                    wt.Write((Program.AHK[o][jj] - Program.BUI_HEIGHT[o][jj]).ToString(CultureInfo.InvariantCulture) + " ");
+                                }
+                                wt.WriteLine();
+                            }
+                        }
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                    	string err = ex.Message + " / Error writing GRAL_Topography.txt";
-                    	Console.WriteLine(err);
-                    	ProgramWriters.LogfileGralCoreWrite(err);
+                        string err = ex.Message + " / Error writing GRAL_Topography.txt";
+                        Console.WriteLine(err);
+                        ProgramWriters.LogfileGralCoreWrite(err);
                     }
                 }
             }
@@ -600,19 +596,19 @@ namespace GRAL_2001
             Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);
 
             //in case of the diagnostic approach, a boundary layer is established near the obstacle's walls
-            if ((Program.FlowFieldLevel == 1)&&(Program.BuildingTerrExist==true))
+            if ((Program.FlowFieldLevel == 1) && (Program.BuildingTerrExist == true))
             {
-            	Parallel.For((1 + Program.IGEB), (Program.NII - Program.IGEB + 1), Program.pOptions, i =>
+                Parallel.For((1 + Program.IGEB), (Program.NII - Program.IGEB + 1), Program.pOptions, i =>
                 {
-            	    int IGEB = Program.IGEB;
+                    int IGEB = Program.IGEB;
                     for (int j = 1 + IGEB; j <= Program.NJJ - IGEB; j++)
                     {
-                    	double entf = 0;
-                    	float[] UK_L  =  Program.UK[i][j];
-                    	float[] VK_L  =  Program.VK[i][j];
-                    	float[] WK_L  =  Program.WK[i][j];
-                    	int KKART     =  Program.KKART[i][j];
-                    	
+                        double entf = 0;
+                        float[] UK_L = Program.UK[i][j];
+                        float[] VK_L = Program.VK[i][j];
+                        float[] WK_L = Program.WK[i][j];
+                        int KKART = Program.KKART[i][j];
+
                         for (int k = 1; k < Program.NKK; k++)
                         {
                             double abmind = 1;
@@ -788,7 +784,7 @@ namespace GRAL_2001
                             else
                                 fbt1 = DXK * DYK * WK_L[k];
 
-                            WK_L[k+1] = (float)((fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (DXK * DYK));
+                            WK_L[k + 1] = (float)((fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (DXK * DYK));
                         }
                     }
                 }
@@ -808,7 +804,7 @@ namespace GRAL_2001
             };
             return result;
         };
-        
-        
+
+
     }
 }

@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -43,9 +39,9 @@ namespace GRAL_2001
                     for (int n = 1; n <= Program.MetProfileNumb; n++)
                     {
                         Program.MeasurementHeight[n] = Convert.ToSingle(text[n - 1].Replace(".", Program.Decsep));
-                        Console.Write(Program.MeasurementHeight[n].ToString("0.00")+"m  ");
+                        Console.Write(Program.MeasurementHeight[n].ToString("0.00") + "m  ");
                     }
-                    Console.WriteLine();                    
+                    Console.WriteLine();
 
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
@@ -92,7 +88,7 @@ namespace GRAL_2001
                         {
                             Program.Ustern[ix][iy] = Program.Ustern[1][1];
                             Program.Ob[ix][iy] = Program.Ob[1][1];
-                            if(Program.BdLayHeight<=0)
+                            if (Program.BdLayHeight <= 0)
                             {
                                 if (Program.Ob[ix][iy] >= 0)
                                     Program.BdLayHeight = (float)Math.Min(0.4F * Math.Sqrt(Program.Ustern[1][1] * Program.Ob[1][1] / Program.CorolisParam), 1000);
@@ -112,7 +108,7 @@ namespace GRAL_2001
                 catch
                 {
                     Console.WriteLine("Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop");
-                    
+
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
                 }
@@ -121,13 +117,13 @@ namespace GRAL_2001
             }
             catch
             {
-            	string err = "Error when reading file inputzr.dat. -> Execution stopped: press ESC to stop";
+                string err = "Error when reading file inputzr.dat. -> Execution stopped: press ESC to stop";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
-                
+
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                
+
                 Environment.Exit(0);
             }
         }

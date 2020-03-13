@@ -11,12 +11,9 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -222,16 +219,16 @@ namespace GRAL_2001
                 else if (header == -2) // new format - better compression factor!
                 {
                     byte[] readData;
-					for (int k = 1; k <= Program.NKK + 1; k++)
+                    for (int k = 1; k <= Program.NKK + 1; k++)
                     {
                         for (int i = 1; i <= Program.NII + 1; i++)
                         {
                             float[][] UK_L = Program.UK[i];
                             float[][] VK_L = Program.VK[i];
                             float[][] WK_L = Program.WK[i];
-                            
+
                             readData = reader.ReadBytes((Program.NJJ + 1) * 6); // read one horizontal row 
-                            
+
                             int offset = (Program.NJJ + 1) * 2;
                             Parallel.For(1, Program.NJJ + 1, Program.pOptions, j =>
                             {
@@ -247,7 +244,7 @@ namespace GRAL_2001
                 }
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 return false;

@@ -10,7 +10,6 @@
 ///</remarks>
 #endregion
 
-using System;
 
 /// <summary>
 /// One Column of a Time Series File

@@ -11,8 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.IO;
 
 namespace GRAL_2001
@@ -108,7 +106,7 @@ namespace GRAL_2001
                 {
                     // if transient files are deletet (default) -> continue with the weather situation saved in the transient field
                     // otherwise continue with the user defined weather situation (overrides the default behaviour)
-                    if (Program.TransientTempFileDelete) 
+                    if (Program.TransientTempFileDelete)
                     {
                         Program.IWETstart = temp;
                     }

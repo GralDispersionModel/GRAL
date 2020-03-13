@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -41,16 +37,16 @@ namespace GRAL_2001
                     double akla_sum = 0; int akla_count = 0;
 
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                   
+
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
-                    	if (sr.EndOfStream == true) // at the end of the stream -> computation finished
-                    	{
-                    		return 1;
-                    	}
-                    	
-                    	string text1 = sr.ReadLine();
-                        
+                        if (sr.EndOfStream == true) // at the end of the stream -> computation finished
+                        {
+                            return 1;
+                        }
+
+                        string text1 = sr.ReadLine();
+
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
 
@@ -72,7 +68,7 @@ namespace GRAL_2001
                     Program.WindDirGral = (float)((270 - Program.WindDirGral) * Math.PI / 180);
                     Program.UX[1] = (float)(Program.WindVelGral * Math.Cos(Program.WindDirGral));
                     Program.UY[1] = (float)(Program.WindVelGral * Math.Sin(Program.WindDirGral));
-	
+
                     //Obukhov length and friction velocity
                     for (int ix = 1; ix <= Program.NX; ix++)
                     {
@@ -84,20 +80,20 @@ namespace GRAL_2001
                             {
                                 Program.StabClass = (int)Program.AKL_GRAMM[ix - 1, iy - 1];
                             }
-                            
+
                             // sum up the SC values inside the GRAL domain area
                             if (Program.IKOOA + Program.DDX[1] * ix > Program.IKOOAGRAL &&
                             Program.IKOOA + Program.DDX[1] * ix < Program.IKOOAGRAL + Program.dx * Program.NXL &&
                             Program.JKOOA + Program.DDY[1] * iy > Program.JKOOAGRAL &&
                             Program.JKOOA + Program.DDY[1] * iy < Program.JKOOAGRAL + Program.dy * Program.NYL)
                             {
-                            	akla_sum += Program.StabClass;
-                            	akla_count++;
+                                akla_sum += Program.StabClass;
+                                akla_count++;
                             }
-							
-                            Program.SC_Gral[ix][iy] = (byte) Math.Max(0, Math.Min(7, Program.StabClass)); // 11.9.2017 Kuntner remember the Stability class for the receptor concenterations
-                            
-                            if(Program.StabClass==1)
+
+                            Program.SC_Gral[ix][iy] = (byte)Math.Max(0, Math.Min(7, Program.StabClass)); // 11.9.2017 Kuntner remember the Stability class for the receptor concenterations
+
+                            if (Program.StabClass == 1)
                             {
                                 Program.Ob[ix][iy] = (float)Math.Min(1 / (-0.37 * Math.Pow(Program.Z0Gramm[ix][iy] * 100, -0.55)), -4);
                                 double phim = Math.Pow(1 - 16 * ahoehe / Program.Ob[ix][iy], 0.25);
@@ -111,7 +107,7 @@ namespace GRAL_2001
                                         if ((Program.ZSP[ix][iy][izz] - Program.AH[ix][iy]) < 5)
                                             izz = iz + 1;
                                     double windig = Math.Sqrt(Math.Pow(Program.UWIN[ix][iy][izz], 2) + Math.Pow(Program.VWIN[ix][iy][izz], 2));
-                                    Program.Ustern[ix][iy] = (float)((windig + 0.15) * 0.4 / (Math.Log((Program.ZSP[ix][iy][izz] - Program.AH[ix][iy]) / Program.Z0Gramm[ix][iy]) - 
+                                    Program.Ustern[ix][iy] = (float)((windig + 0.15) * 0.4 / (Math.Log((Program.ZSP[ix][iy][izz] - Program.AH[ix][iy]) / Program.Z0Gramm[ix][iy]) -
                                         psim * ((Program.ZSP[ix][iy][izz] - Program.AH[ix][iy]) / Program.Ob[ix][iy])));
                                 }
                             }
@@ -229,20 +225,20 @@ namespace GRAL_2001
 
                     Program.IWETstart = Program.IDISP + 1;
                     if (akla_count > 0)
-                    	Program.StabClassGramm = Convert.ToInt32(akla_sum / akla_count);
+                        Program.StabClassGramm = Convert.ToInt32(akla_sum / akla_count);
                 }
-                
+
                 return 0; // read meteopgt.all OK
             }
             catch
             {
-            	string err = "Error when reading file meteopgt.all in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop";   
+                string err = "Error when reading file meteopgt.all in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
-                
+
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                
+
                 Environment.Exit(0);
                 return 1; // read meteopgt.all Error
             }

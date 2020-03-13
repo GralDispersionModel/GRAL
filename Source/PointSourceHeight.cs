@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -25,13 +21,13 @@ namespace GRAL_2001
     	/// </summary>
         public static void CalculatePointSourceHeight()
         {
-        	for (int i = 1; i <= Program.PS_Count; i++)
+            for (int i = 1; i <= Program.PS_Count; i++)
             {
                 double xsi = Program.PS_X[i] - Program.IKOOAGRAL;
                 double eta = Program.PS_Y[i] - Program.JKOOAGRAL;
                 double xsi1 = Program.PS_X[i] - Program.IKOOA;
                 double eta1 = Program.PS_Y[i] - Program.JKOOA;
-                if((eta <= Program.EtaMinGral) || (xsi <= Program.XsiMinGral) || (eta >= Program.EtaMaxGral) || (xsi >= Program.XsiMaxGral))
+                if ((eta <= Program.EtaMinGral) || (xsi <= Program.XsiMinGral) || (eta >= Program.EtaMaxGral) || (xsi >= Program.XsiMaxGral))
                 {
                     Console.WriteLine("Point source " + i.ToString() + " out of GRAL domain.");
                 }
@@ -40,7 +36,7 @@ namespace GRAL_2001
                 int IndexJ = 1;
                 int IndexId = 1;
                 int IndexJd = 1;
-                if(Program.Topo==1)
+                if (Program.Topo == 1)
                 {
                     IndexI = (int)(xsi / Program.DXK) + 1;
                     IndexJ = (int)(eta / Program.DYK) + 1;
@@ -54,7 +50,7 @@ namespace GRAL_2001
                 IndexJd = (int)(eta / Program.DYK) + 1;
 
                 float AHint = 0;
-                if(Program.Topo == 1)
+                if (Program.Topo == 1)
                 {
                     AHint = Program.AHK[IndexI][IndexJ];
                 }
@@ -62,19 +58,19 @@ namespace GRAL_2001
                 // input = absolute source-height -> compute relative source height
                 if (Program.PS_Absolute_Height[i])
                 {
-                	Program.PS_Z[i] -= AHint;
-                	if (Program.PS_Z[i] < 0) // if relative height < 0
-                		Program.PS_Z[i] = 0.1F;
-                	Program.PS_Absolute_Height[i] = false; // correction just one times!
+                    Program.PS_Z[i] -= AHint;
+                    if (Program.PS_Z[i] < 0) // if relative height < 0
+                        Program.PS_Z[i] = 0.1F;
+                    Program.PS_Absolute_Height[i] = false; // correction just one times!
                 }
-                
+
                 //source height
                 Program.PS_effqu[i] = Program.PS_Z[i] + AHint;
 
                 //check if point source is within buildings
-                if((Program.BuildingTerrExist == true) || (Program.BuildingFlatExist == true))
+                if ((Program.BuildingTerrExist == true) || (Program.BuildingFlatExist == true))
                 {
-                	while(Program.PS_Z[i] <= Program.CUTK[IndexId][IndexJd])
+                    while (Program.PS_Z[i] <= Program.CUTK[IndexId][IndexJd])
                     {
                         Program.PS_Z[i] += 0.1f;
                         Program.PS_effqu[i] = Program.PS_Z[i] + AHint;

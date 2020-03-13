@@ -11,11 +11,8 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices; 
 
 namespace GRAL_2001
 {
@@ -27,16 +24,16 @@ namespace GRAL_2001
     	/// Momentum equations for the w wind component - k-epsilon model
     	/// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, float building_Z0, float relax)
+        public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, float building_Z0, float relax)
         {
             Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
-			    float DXK = Program.DXK; float DYK = Program.DYK;
-			    int KKART_LL, Vert_Index_LL;
-			    float AREAxy_L = AREAxy;
-			    Single[] PIMW = new Single[Program.KADVMAX + 1];
+                float DXK = Program.DXK; float DYK = Program.DYK;
+                int KKART_LL, Vert_Index_LL;
+                float AREAxy_L = AREAxy;
+                Single[] PIMW = new Single[Program.KADVMAX + 1];
                 Single[] QIMW = new Single[Program.KADVMAX + 1];
-                        
+
                 for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
                 {
                     int j = j1;
@@ -64,18 +61,18 @@ namespace GRAL_2001
                         Single[] UKSip_L = Program.UKS[i + 1][j];
                         Single[] VKSjm_L = Program.VKS[i][j - 1];
                         Single[] VKSjp_L = Program.VKS[i][j + 1];
-                        
+
                         Single[] UK_L = Program.UK[i][j];
                         Single[] VK_L = Program.VK[i][j];
                         KKART_LL = Program.KKART[i][j];
                         Vert_Index_LL = Program.VerticalIndex[i][j];
-                        
+
                         int KSTART = 1;
                         if (Program.CUTK[i][j] == 0)
                             KSTART = KKART_LL + 1;
                         for (int k = KSTART; k <= Vert_Index_LL; k++)
                         {
-                        	float DZK_K = Program.DZK[k];
+                            float DZK_K = Program.DZK[k];
                             float DXKDZK = DXK * DZK_K;
                             float DYKDZK = DYK * DZK_K;
                             float UKS_LL = UKS_L[k], UKS_LL_m = UKS_L[k - 1], VKS_LL = VKS_L[k], VKS_LL_m = VKS_L[k - 1];
@@ -102,7 +99,7 @@ namespace GRAL_2001
                                 DW = 0;
                             if ((Program.ADVDOM[i + 1][j] < 1) || (i == Program.NII - 1))
                                 DE = 0;
-                             
+
 
                             //ADVECTION TERMS
                             float FE = 0.25F * (UKS_LL + UKSip_L[k] + UKS_LL_m + UKSip_L[k - 1]) * DYKDZK;
@@ -130,12 +127,12 @@ namespace GRAL_2001
                             float PT = Math.Abs(FT / DT);
 
                             //POWER LAW ADVECTION SCHEME
-                            float BIM = DT * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PT)) + Program.FloatMax(-FT, 0);
-                            float CIM = DB * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PB)) + Program.FloatMax(FB, 0);
-                            float AE1 = DE * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PE)) + Program.FloatMax(-FE, 0);
-                            float AW1 = DW * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PW)) + Program.FloatMax(FW, 0);
-                            float AS1 = DS * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PS)) + Program.FloatMax(FS, 0);
-                            float AN1 = DN * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PN)) + Program.FloatMax(-FN, 0);
+                            float BIM = DT * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PT)) + Program.FloatMax(-FT, 0);
+                            float CIM = DB * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PB)) + Program.FloatMax(FB, 0);
+                            float AE1 = DE * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PE)) + Program.FloatMax(-FE, 0);
+                            float AW1 = DW * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PW)) + Program.FloatMax(FW, 0);
+                            float AS1 = DS * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PS)) + Program.FloatMax(FS, 0);
+                            float AN1 = DN * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PN)) + Program.FloatMax(-FN, 0);
 
                             //UPWIND SCHEME
                             /*
@@ -203,6 +200,6 @@ namespace GRAL_2001
             };
             return result;
         };
-       
+
     }
 }

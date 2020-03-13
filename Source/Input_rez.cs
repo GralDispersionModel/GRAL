@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -44,7 +40,7 @@ namespace GRAL_2001
                         {
                             text1 = sr.ReadLine();
 
-                            text = text1.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                            text = text1.Split(new char[] { ',', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
                             if (text.Length > 3) // at least 4 entries available?
                             {
@@ -184,7 +180,7 @@ namespace GRAL_2001
                         info = "Receptor " + i.ToString() + "\t";
                     }
                     info += " : x = " + Math.Round(Program.ReceptorX[i], 1).ToString() + "\t y = " + Math.Round(Program.ReceptorY[i], 1).ToString() + "\t z = " + Math.Round(Program.ReceptorZ[i], 1).ToString();
-                    
+
                     if (Program.ReceptorNearbyBuilding[i])
                     {
                         info += "\t gridded";

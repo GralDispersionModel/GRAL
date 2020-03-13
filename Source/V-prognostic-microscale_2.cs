@@ -11,11 +11,8 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices; 
 
 namespace GRAL_2001
 {
@@ -31,10 +28,10 @@ namespace GRAL_2001
         {
             Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
-        	    float DXK    = Program.DXK; float DYK = Program.DYK;
-        	    int KKART_LL, Vert_Index_LL;
-        	    float AREAxy_L = AREAxy;
-         	    Single[] PIMV = new Single[Program.KADVMAX + 1];
+                float DXK = Program.DXK; float DYK = Program.DYK;
+                int KKART_LL, Vert_Index_LL;
+                float AREAxy_L = AREAxy;
+                Single[] PIMV = new Single[Program.KADVMAX + 1];
                 Single[] QIMV = new Single[Program.KADVMAX + 1];
 
                 for (int j1 = 3; j1 <= Program.NJJ - 1; j1++)
@@ -65,23 +62,23 @@ namespace GRAL_2001
                         Single[] VKSim_L = Program.VKS[i - 1][j];
                         Single[] WKSjm_L = Program.WKS[i][j - 1];
                         Single[] DPMNEWjm_L = Program.DPMNEW[i][j - 1];
-                       
+
                         Single[] UKSipjp_L = Program.UKS[i + 1][j + 1];
                         Single[] UKSimjp_L = Program.UKS[i - 1][j + 1];
                         Single[] WKSjp_L = Program.WK[i][j + 1];
                         Single[] UK_L = Program.UK[i][j];
                         KKART_LL = Program.KKART[i][j];
                         Vert_Index_LL = Program.VerticalIndex[i][j];
-                        float Ustern_terrain_helpterm  = Program.UsternTerrainHelpterm[i][j];
+                        float Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
                         float Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
                         float CUTK_L = Program.CUTK[i][j];
-                        
+
                         int KSTART = 1;
                         if (CUTK_L == 0)
                             KSTART = KKART_LL + 1;
                         for (int k = KSTART; k <= Vert_Index_LL; k++)
                         {
-                        	float DZK_K = Program.DZK[k];
+                            float DZK_K = Program.DZK[k];
                             float DXKDZK = DXK * DZK_K;
                             float DYKDZK = DYK * DZK_K;
 
@@ -135,12 +132,12 @@ namespace GRAL_2001
                             float PT = Math.Abs(FT / DT);
 
                             //POWER LAW ADVECTION SCHEME
-                            float BIM = DT * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PT)) + Program.FloatMax(-FT, 0);
-                            float CIM = DB * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PB)) + Program.FloatMax(FB, 0);
-                            float AE1 = DE * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PE)) + Program.FloatMax(-FE, 0);
-                            float AW1 = DW * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PW)) + Program.FloatMax(FW, 0);
-                            float AS1 = DS * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PS)) + Program.FloatMax(FS, 0);
-                            float AN1 = DN * Program.FloatMax(0, (float) Program.Pow5(1 - 0.1 * PN)) + Program.FloatMax(-FN, 0);
+                            float BIM = DT * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PT)) + Program.FloatMax(-FT, 0);
+                            float CIM = DB * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PB)) + Program.FloatMax(FB, 0);
+                            float AE1 = DE * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PE)) + Program.FloatMax(-FE, 0);
+                            float AW1 = DW * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PW)) + Program.FloatMax(FW, 0);
+                            float AS1 = DS * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PS)) + Program.FloatMax(FS, 0);
+                            float AN1 = DN * Program.FloatMax(0, (float)Program.Pow5(1 - 0.1 * PN)) + Program.FloatMax(-FN, 0);
 
                             //UPWIND SCHEME
                             /*
@@ -164,7 +161,7 @@ namespace GRAL_2001
                             {
                                 float xhilf = (float)((float)i * (DXK - DXK * 0.5));
                                 float yhilf = (float)((float)j * (DYK - DYK * 0.5));
-                                float windhilf = Program.FloatMax((float) Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
+                                float windhilf = Program.FloatMax((float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
                                 int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
                                 int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
                                 float Ustern_Buildings = Ustern_terrain_helpterm * windhilf;
@@ -174,7 +171,7 @@ namespace GRAL_2001
                             }
                             else if ((k == KKART_LL + 1) && (CUTK_L == 1))
                             {
-                            	float windhilf = Program.FloatMax((float) Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
+                                float windhilf = Program.FloatMax((float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
                                 float Ustern_Buildings = Ustern_obstacles_helpterm * windhilf;
                                 DIMV -= (float)(VK_L[k] / windhilf * Program.Pow2(Ustern_Buildings) * AREAxy_L);
                             }
@@ -230,6 +227,6 @@ namespace GRAL_2001
             };
             return result;
         };
-      
+
     }
 }

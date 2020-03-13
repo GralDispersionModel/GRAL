@@ -11,8 +11,8 @@
 #endregion
 
 using System;
-using System.Threading.Tasks;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -47,14 +47,14 @@ namespace GRAL_2001
             {
                 int KKART_LL, Vert_Index_LL;
 
-                Span<float> PIMU   = stackalloc float [Program.KADVMAX + 1];
-                Span<float> QIMU   = stackalloc float [Program.KADVMAX + 1];
-                Span<float> Mask   = stackalloc float [SIMD];
-                Span<float> Mask2  = stackalloc float [SIMD];
-                Span<float> AIM_A  = stackalloc float [SIMD];
-                Span<float> BIM_A  = stackalloc float [SIMD];
-                Span<float> CIM_A  = stackalloc float [SIMD];
-                Span<float> DIMU_A = stackalloc float [SIMD];
+                Span<float> PIMU = stackalloc float[Program.KADVMAX + 1];
+                Span<float> QIMU = stackalloc float[Program.KADVMAX + 1];
+                Span<float> Mask = stackalloc float[SIMD];
+                Span<float> Mask2 = stackalloc float[SIMD];
+                Span<float> AIM_A = stackalloc float[SIMD];
+                Span<float> BIM_A = stackalloc float[SIMD];
+                Span<float> CIM_A = stackalloc float[SIMD];
+                Span<float> DIMU_A = stackalloc float[SIMD];
 
                 Vector<float> DVDXN, DVDXS, DUDXE, DUDXW, DWDXT, DWDXB;
                 Vector<float> DE, DW, DS, DN, DT, DB;

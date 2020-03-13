@@ -11,17 +11,11 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using System.Data;
-using System.Globalization;
-using System.Threading;
-using System.IO.Compression;
-using System.Runtime.CompilerServices;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 namespace GRAL_2001
 {
     partial class Program
@@ -346,7 +340,7 @@ namespace GRAL_2001
             }
             return result;
         }
-        
+
         /// <summary>
         /// Create large jagged arrays 
         /// </summary>        
@@ -648,7 +642,7 @@ namespace GRAL_2001
                 return ((int)(_val1 + 0.5));
             }
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         //[MethodImpl(MethodImplOptions.NoInlining)]
         public static double Pow5(double x1)
@@ -751,7 +745,7 @@ namespace GRAL_2001
         private static void TransferNonSteadyStateConcentrations(ProgramWriters WriteClass, ref Thread TreadWriteConz4dFile)
         {
             //Create a shallow copy
-            float[][][][] copytemp = (float[][][][]) Conz4d.Clone();
+            float[][][][] copytemp = (float[][][][])Conz4d.Clone();
             Conz4d = Conz5d;
             Conz5d = copytemp;
 
@@ -871,8 +865,8 @@ namespace GRAL_2001
                                     float HMax = Program.ReceptorZ[irec] + Program.dz * 0.5F - 0.2F;
 
                                     float buidingheight = BUI_HEIGHT[IndexI][IndexJ];
-                                    
-                                    if (buidingheight > HMin && buidingheight < HMax) 
+
+                                    if (buidingheight > HMin && buidingheight < HMax)
                                     {
                                         // Limit factor to 10, because in these cases, just a small portion of volume is left
                                         float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.dz / (Program.dz - (buidingheight - HMin))));
@@ -986,7 +980,7 @@ namespace GRAL_2001
                             for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
                                 // Limit factor to 10, because in these cases, just a small portion of volume is left
-                                float factor = (float) Math.Max(1, Math.Min(10, (Program.GridVolume / Math.Max(0.01F, Program.GridVolume - VolumeReduction[k]))));
+                                float factor = (float)Math.Max(1, Math.Min(10, (Program.GridVolume / Math.Max(0.01F, Program.GridVolume - VolumeReduction[k]))));
                                 Conc[iko][jko][k][IQ] *= factor;
                                 // corr[iko, jko] = factor; // DEBUG
                             }
@@ -1047,14 +1041,14 @@ namespace GRAL_2001
                 for (int j = 0; j < Program.NYL; ++j)
                 {
                     float buidingheight = Program.BUI_HEIGHT[i][j];
-                    
+
                     // loop over all slices
                     for (int k = 1; k < HMin.Length; k++)
                     {
                         if (buidingheight > HMin[k] && buidingheight < HMax[k])
                         {
                             // Limit factor to 10, because in these cases, just a small portion of volume is left
-                            float VolumeReduction = MathF.Max(1, MathF.Min(10,Program.dz / (Program.dz - (buidingheight - HMin[k]))));
+                            float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.dz / (Program.dz - (buidingheight - HMin[k]))));
                             for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
                                 Conc[i][j][k][IQ] *= VolumeReduction;

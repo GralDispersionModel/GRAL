@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 namespace GRAL_2001
@@ -40,7 +36,7 @@ namespace GRAL_2001
                     Program.MeasurementHeight[1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
                     Console.WriteLine();
                     Console.Write("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
-                    Console.WriteLine();                   
+                    Console.WriteLine();
 
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
@@ -90,13 +86,13 @@ namespace GRAL_2001
                 }
                 catch
                 {
-                	string err = "Error when reading file sonic.dat in line " + (Program.IWETstart + 1).ToString() + " Execution stopped: press ESC to stop";
+                    string err = "Error when reading file sonic.dat in line " + (Program.IWETstart + 1).ToString() + " Execution stopped: press ESC to stop";
                     Console.WriteLine(err);
                     ProgramWriters.LogfileProblemreportWrite(err);
-                    
+
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                    
+
                     Environment.Exit(0);
                 }
                 sr.Close();
@@ -104,13 +100,13 @@ namespace GRAL_2001
             }
             catch
             {
-            	string err = "Error when reading file sonic.dat. -> Execution stopped: press ESC to stop";
+                string err = "Error when reading file sonic.dat. -> Execution stopped: press ESC to stop";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
-                
+
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                
+
                 Environment.Exit(0);
             }
         }

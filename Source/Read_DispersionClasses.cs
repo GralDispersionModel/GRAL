@@ -16,25 +16,24 @@
  * Date: 18.07.2016
  * Time: 19:52
  */
- 
+
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Globalization;
 
 namespace GRAL_2001
 {
-	/// <summary>
-	/// Read the GRAMM local stability class
-	/// </summary>
-	public class ReadSclUstOblClasses
+    /// <summary>
+    /// Read the GRAMM local stability class
+    /// </summary>
+    public class ReadSclUstOblClasses
     {
         private string _filename;
-		public string FileName {get {return _filename;} set {_filename = value;} } // Filename
-		private float _GRAMMhorgridsize;
+        public string FileName { get { return _filename; } set { _filename = value; } } // Filename
+        private float _GRAMMhorgridsize;
         public float GRAMMhorgridsize { set { _GRAMMhorgridsize = value; } get { return _GRAMMhorgridsize; } }
 
-		private int NI;
+        private int NI;
         private int NJ;
 
         private int _NX;
@@ -47,21 +46,21 @@ namespace GRAL_2001
         public int Y0 { set { _Y0 = value; } }
         private int _X0 = 0;
         public int X0 { set { _X0 = value; } }
-        
+
         private int[,] _Stabclasses;
-        public int[,] Stabclasses { set { _Stabclasses = value; } get {return _Stabclasses;} }
+        public int[,] Stabclasses { set { _Stabclasses = value; } get { return _Stabclasses; } }
         private float[,] _MOlength;
-        public float[,] MOlength { set { _MOlength = value; } get{return _MOlength;} }
+        public float[,] MOlength { set { _MOlength = value; } get { return _MOlength; } }
         private float[,] _Ustar;
-        public float[,] Ustar { set { _Ustar = value; } get{return _Ustar;} }
+        public float[,] Ustar { set { _Ustar = value; } get { return _Ustar; } }
 
         public bool ReadSclFile() // read complete file to _Stabclasses, _MO_Lenght and _Ustar
-		{
-			try
-			{
-				if (File.Exists(_filename))
-				{
-					if (ReadGralFlowFields.CheckIfZippedFile(_filename)) // file zipped?
+        {
+            try
+            {
+                if (File.Exists(_filename))
+                {
+                    if (ReadGralFlowFields.CheckIfZippedFile(_filename)) // file zipped?
                     {
                         using (FileStream zipToOpen = new FileStream(_filename, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
@@ -93,42 +92,42 @@ namespace GRAL_2001
                                 }
                             }
                         }
-					}
-					else // not zipped
-					{
-						using(BinaryReader stability = new BinaryReader(File.Open(_filename, FileMode.Open)))
-						{
-							ReadValues(stability, ref _Stabclasses);
-						}
-						
-					}
-				}
-				else
-					throw new FileNotFoundException(_filename + @"not found");
+                    }
+                    else // not zipped
+                    {
+                        using (BinaryReader stability = new BinaryReader(File.Open(_filename, FileMode.Open)))
+                        {
+                            ReadValues(stability, ref _Stabclasses);
+                        }
 
-				return true; // Reading OK
-			}
-			catch
-			{
-				return false;
-			}
-			
-		}        
-		
-		/// <summary>
+                    }
+                }
+                else
+                    throw new FileNotFoundException(_filename + @"not found");
+
+                return true; // Reading OK
+            }
+            catch
+            {
+                return false;
+            }
+
+        }
+
+        /// <summary>
         /// Read OL and u*
         /// </summary>
-		private bool ReadValues(BinaryReader stability, ref float [,] Scl_Array)
-		{
-			try
-			{
-				// read the header
-				stability.ReadInt32();
-				NI = stability.ReadInt32();
-				NJ = stability.ReadInt32();
-				int NK = stability.ReadInt32();
+        private bool ReadValues(BinaryReader stability, ref float[,] Scl_Array)
+        {
+            try
+            {
+                // read the header
+                stability.ReadInt32();
+                NI = stability.ReadInt32();
+                NJ = stability.ReadInt32();
+                int NK = stability.ReadInt32();
 
-				_GRAMMhorgridsize = stability.ReadSingle();
+                _GRAMMhorgridsize = stability.ReadSingle();
 
                 if (Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
                 {
@@ -144,31 +143,31 @@ namespace GRAL_2001
                         Scl_Array[i, j] = (float)(temp);
                     }
                 }
-				return true;
-			}
-			catch
-			{
-				return false;
-			}
-		}
-		
-		/// <summary>
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Read the stability class 
         /// </summary>
-		private bool ReadValues(BinaryReader stability, ref int [,] Scl_Array)
-		{
-			try
-			{
-				// read the header
-				stability.ReadInt32();
-				NI = stability.ReadInt32();
-				NJ = stability.ReadInt32();
-				int NK = stability.ReadInt32();
+        private bool ReadValues(BinaryReader stability, ref int[,] Scl_Array)
+        {
+            try
+            {
+                // read the header
+                stability.ReadInt32();
+                NI = stability.ReadInt32();
+                NJ = stability.ReadInt32();
+                int NK = stability.ReadInt32();
 
-				_GRAMMhorgridsize = stability.ReadSingle();
+                _GRAMMhorgridsize = stability.ReadSingle();
                 if (Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
                 {
-					Scl_Array = null; // delete array -
+                    Scl_Array = null; // delete array -
                     Scl_Array = new int[NI, NJ]; // create new array
                 }
 
@@ -180,138 +179,138 @@ namespace GRAL_2001
                         Scl_Array[i, j] = temp;
                     }
                 }
-				return true;
-			}
-			catch
-			{
-				return false;
-			}
-		}
-		
-		public int ReadSclFile(int x, int y) // read one value from *.scl
-		{
-			try
-			{
-				short temp = 0;
-				if (File.Exists(_filename) && x >= 0 && y >= 0)
-				{
-					if (ReadGralFlowFields.CheckIfZippedFile(_filename)) // file zipped?
-					{
-						using(ZipArchive archive = ZipFile.OpenRead(_filename)) //open Zip archive
-						{
-							foreach (ZipArchiveEntry entry in archive.Entries) // search for a scl file
-							{
-								if (entry.FullName.Contains("scl"))
-								{
-									using (BinaryReader stability = new BinaryReader(entry.Open())) //OPen Zip entry
-									{
-										// read the header
-										stability.ReadInt32();
-										int NI = stability.ReadInt32();
-										int NJ = stability.ReadInt32();
-										int NK = stability.ReadInt32();
-										_GRAMMhorgridsize = stability.ReadSingle();
-										
-										long position = (x * NJ + y); // Position in bytes 20 Bytes = Header
-										
-										if (x < NI && y < NJ)
-										{
-											// Seek doesn't work in zipped files
-											// stability.BaseStream.Seek(position, SeekOrigin.Begin);
-											for (int i = 0; i < position; i++) // seek manually
-												stability.ReadInt16();
-											
-											temp = stability.ReadInt16(); // read this value
-										}
-									}
-								}
-							}
-						}
-					}
-					else // not zipped
-					{
-						using(BinaryReader stability = new BinaryReader(File.Open(_filename, FileMode.Open)))
-						{
-							// read the header
-							stability.ReadInt32();
-							int NI = stability.ReadInt32();
-							int NJ = stability.ReadInt32();
-							int NK = stability.ReadInt32();
-							_GRAMMhorgridsize = stability.ReadSingle();
-							
-							long position = (x * NJ + y) * 2 + 20; // Position in bytes 20 Bytes = Header
-							
-							long lenght = stability.BaseStream.Length; // data set lenght
-							if (position < lenght && x < NI && y < NJ)
-							{
-								stability.BaseStream.Seek(position, SeekOrigin.Begin);
-								temp = stability.ReadInt16(); // read this value
-							}
-						}
-						
-					}
-				}
-				else
-					throw new FileNotFoundException(_filename + @"not found");
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
-				return temp; // Reading OK
-			}
-			catch
-			{
-				return 0;
-			}
-		}
-		
-		public int ReadSclMean(int x, int y) // read a mean (3x3) value from *.scl file and return the stability class
-			// define Filename!
-		{
+        public int ReadSclFile(int x, int y) // read one value from *.scl
+        {
+            try
+            {
+                short temp = 0;
+                if (File.Exists(_filename) && x >= 0 && y >= 0)
+                {
+                    if (ReadGralFlowFields.CheckIfZippedFile(_filename)) // file zipped?
+                    {
+                        using (ZipArchive archive = ZipFile.OpenRead(_filename)) //open Zip archive
+                        {
+                            foreach (ZipArchiveEntry entry in archive.Entries) // search for a scl file
+                            {
+                                if (entry.FullName.Contains("scl"))
+                                {
+                                    using (BinaryReader stability = new BinaryReader(entry.Open())) //OPen Zip entry
+                                    {
+                                        // read the header
+                                        stability.ReadInt32();
+                                        int NI = stability.ReadInt32();
+                                        int NJ = stability.ReadInt32();
+                                        int NK = stability.ReadInt32();
+                                        _GRAMMhorgridsize = stability.ReadSingle();
+
+                                        long position = (x * NJ + y); // Position in bytes 20 Bytes = Header
+
+                                        if (x < NI && y < NJ)
+                                        {
+                                            // Seek doesn't work in zipped files
+                                            // stability.BaseStream.Seek(position, SeekOrigin.Begin);
+                                            for (int i = 0; i < position; i++) // seek manually
+                                                stability.ReadInt16();
+
+                                            temp = stability.ReadInt16(); // read this value
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else // not zipped
+                    {
+                        using (BinaryReader stability = new BinaryReader(File.Open(_filename, FileMode.Open)))
+                        {
+                            // read the header
+                            stability.ReadInt32();
+                            int NI = stability.ReadInt32();
+                            int NJ = stability.ReadInt32();
+                            int NK = stability.ReadInt32();
+                            _GRAMMhorgridsize = stability.ReadSingle();
+
+                            long position = (x * NJ + y) * 2 + 20; // Position in bytes 20 Bytes = Header
+
+                            long lenght = stability.BaseStream.Length; // data set lenght
+                            if (position < lenght && x < NI && y < NJ)
+                            {
+                                stability.BaseStream.Seek(position, SeekOrigin.Begin);
+                                temp = stability.ReadInt16(); // read this value
+                            }
+                        }
+
+                    }
+                }
+                else
+                    throw new FileNotFoundException(_filename + @"not found");
+
+                return temp; // Reading OK
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        public int ReadSclMean(int x, int y) // read a mean (3x3) value from *.scl file and return the stability class
+                                             // define Filename!
+        {
             int SCL = 0;
-			if (ReadSclFile()) // read complete file
-			{
-				SCL = SclMean(x, y);
-			}
-			
-			return SCL; // return mean stability class
-		}
-		
-		public int SclMean(int x, int y)
-		{
-			int counter = 0;
-			double sum = 0;
-			try
-			{
-				for (int i = x - 1; i < x + 2; i++)
-				{
-					for (int j = y - 1; j < y + 2; j++)
-					{
-						if (i >= 0 && j >= 0 && i < NI && j < NJ) // inside _Stabclassesay
-						{
-							sum += _Stabclasses[i,j];
-							counter++;
-							if (i == x && j == y) // double weighting of center
-							{
-								sum += _Stabclasses[i,j];
-								counter++;
-							}
-							
-						}
-					}
-				}
-			}
-			catch {}
-			
-			if (counter > 0)
-				return (int) Math.Round(sum / counter); // compute nearest value
-			else 
-				return 0;
-			
-			
-		}
+            if (ReadSclFile()) // read complete file
+            {
+                SCL = SclMean(x, y);
+            }
+
+            return SCL; // return mean stability class
+        }
+
+        public int SclMean(int x, int y)
+        {
+            int counter = 0;
+            double sum = 0;
+            try
+            {
+                for (int i = x - 1; i < x + 2; i++)
+                {
+                    for (int j = y - 1; j < y + 2; j++)
+                    {
+                        if (i >= 0 && j >= 0 && i < NI && j < NJ) // inside _Stabclassesay
+                        {
+                            sum += _Stabclasses[i, j];
+                            counter++;
+                            if (i == x && j == y) // double weighting of center
+                            {
+                                sum += _Stabclasses[i, j];
+                                counter++;
+                            }
+
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            if (counter > 0)
+                return (int)Math.Round(sum / counter); // compute nearest value
+            else
+                return 0;
+
+
+        }
 
         public bool ExportSclFile() //output, export for stability classes, friction velocity, and Obukhov length
         {
             try
-            {                
+            {
                 // write a Zip file
                 int header = -1;
                 Int16 dummy;
@@ -325,57 +324,57 @@ namespace GRAL_2001
                     {
                         using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
                         {
-                        	string ustarfilename = (Path.GetFileNameWithoutExtension(_filename) + ".ust");
-                        	ZipArchiveEntry write_entry1 = archive.CreateEntry(ustarfilename);
-                        	using (writer = new BinaryWriter(write_entry1.Open()))
-                        	{
-                        		writer.Write(header);
-                        		writer.Write(_NX - _X0);
-                        		writer.Write(_NY - _Y0);
-                        		writer.Write(_NZ);
-                        		writer.Write(_GRAMMhorgridsize);
-                        		for (int i = _X0; i < _NX; i++)
-                        			for (int j = _Y0; j < _NY; j++)
-                        		{
-                        			dummy = Convert.ToInt16(_Ustar[i, j]);
-                        			writer.Write(dummy);
-                        		}
-                        	}
+                            string ustarfilename = (Path.GetFileNameWithoutExtension(_filename) + ".ust");
+                            ZipArchiveEntry write_entry1 = archive.CreateEntry(ustarfilename);
+                            using (writer = new BinaryWriter(write_entry1.Open()))
+                            {
+                                writer.Write(header);
+                                writer.Write(_NX - _X0);
+                                writer.Write(_NY - _Y0);
+                                writer.Write(_NZ);
+                                writer.Write(_GRAMMhorgridsize);
+                                for (int i = _X0; i < _NX; i++)
+                                    for (int j = _Y0; j < _NY; j++)
+                                    {
+                                        dummy = Convert.ToInt16(_Ustar[i, j]);
+                                        writer.Write(dummy);
+                                    }
+                            }
 
-                        	string obukhovfilename = (Path.GetFileNameWithoutExtension(_filename) + ".obl");
-                        	ZipArchiveEntry write_entry2 = archive.CreateEntry(obukhovfilename);
-                        	using (writer = new BinaryWriter(write_entry2.Open()))
-                        	{
-                        		writer.Write(header);
-                        		writer.Write(_NX - _X0);
-                        		writer.Write(_NY - _Y0);
-                        		writer.Write(_NZ);
-                        		writer.Write(_GRAMMhorgridsize);
-                        		for (int i = _X0; i < _NX; i++)
-                        			for (int j = _Y0; j < _NY; j++)
-                        		{
-                        			dummy = Convert.ToInt16(_MOlength[i, j]);
-                        			writer.Write(dummy);
-                        		}
-                        	}
+                            string obukhovfilename = (Path.GetFileNameWithoutExtension(_filename) + ".obl");
+                            ZipArchiveEntry write_entry2 = archive.CreateEntry(obukhovfilename);
+                            using (writer = new BinaryWriter(write_entry2.Open()))
+                            {
+                                writer.Write(header);
+                                writer.Write(_NX - _X0);
+                                writer.Write(_NY - _Y0);
+                                writer.Write(_NZ);
+                                writer.Write(_GRAMMhorgridsize);
+                                for (int i = _X0; i < _NX; i++)
+                                    for (int j = _Y0; j < _NY; j++)
+                                    {
+                                        dummy = Convert.ToInt16(_MOlength[i, j]);
+                                        writer.Write(dummy);
+                                    }
+                            }
 
-                        	//computation and ouput of stability classes
-                        	string stabilityfile = (Path.GetFileNameWithoutExtension(_filename) + ".scl");
-                        	ZipArchiveEntry write_entry3 = archive.CreateEntry(stabilityfile);
-                        	using (writer = new BinaryWriter(write_entry3.Open()))
-                        	{
-                        		writer.Write(header);
-                        		writer.Write(_NX - _X0);
-                        		writer.Write(_NY - _Y0);
-                        		writer.Write(_NZ);
-                        		writer.Write(_GRAMMhorgridsize);
-                        		for (int i = _X0; i < _NX; i++)
-                        			for (int j = _Y0; j < _NY; j++)
-                        		{
-                        			dummy = Convert.ToInt16(_Stabclasses[i, j]);
-                        			writer.Write(dummy);
-                        		}
-                        	}
+                            //computation and ouput of stability classes
+                            string stabilityfile = (Path.GetFileNameWithoutExtension(_filename) + ".scl");
+                            ZipArchiveEntry write_entry3 = archive.CreateEntry(stabilityfile);
+                            using (writer = new BinaryWriter(write_entry3.Open()))
+                            {
+                                writer.Write(header);
+                                writer.Write(_NX - _X0);
+                                writer.Write(_NY - _Y0);
+                                writer.Write(_NZ);
+                                writer.Write(_GRAMMhorgridsize);
+                                for (int i = _X0; i < _NX; i++)
+                                    for (int j = _Y0; j < _NY; j++)
+                                    {
+                                        dummy = Convert.ToInt16(_Stabclasses[i, j]);
+                                        writer.Write(dummy);
+                                    }
+                            }
                         } // archive
                     } // Zip File
                 } // catch
@@ -389,12 +388,12 @@ namespace GRAL_2001
             }
 
         }
-		
-		public bool close()
-		{
-			_filename = null;
-			return true;
-		}
-		
-	}
+
+        public bool close()
+        {
+            _filename = null;
+            return true;
+        }
+
+    }
 }

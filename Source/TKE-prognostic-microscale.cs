@@ -11,43 +11,40 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices; 
 
 namespace GRAL_2001
 {
     class TKE_PrognosticMicroscale
     {
-    	/// <summary>
-    	/// Momentum equations for the turbulent kinetic energy - k-epsilon model
-    	/// </summary>
+        /// <summary>
+        /// Momentum equations for the turbulent kinetic energy - k-epsilon model
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Calculate(int IS, int JS, float Cmueh, float Ceps, float Ceps1, float Ceps2, float VISHMIN, float VISVMIN, float AREAxy, float building_Z0, float relax, float Ustern_factorX)
         {
             Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
-        	   float[] PIMTURB = new float[Program.KADVMAX + 1];
-               float[] QIMTURB = new float[Program.KADVMAX + 1];
-               float[] PIMTDISS = new float[Program.KADVMAX + 1];
-               float[] QIMTDISS = new float[Program.KADVMAX + 1];
-               float DXK = Program.DXK;
-               float DYK = Program.DYK;
-               float DXK_Rez = 1 / DXK;
-               float DYK_Rez = 1 / DYK;
-               
+                float[] PIMTURB = new float[Program.KADVMAX + 1];
+                float[] QIMTURB = new float[Program.KADVMAX + 1];
+                float[] PIMTDISS = new float[Program.KADVMAX + 1];
+                float[] QIMTDISS = new float[Program.KADVMAX + 1];
+                float DXK = Program.DXK;
+                float DYK = Program.DYK;
+                float DXK_Rez = 1 / DXK;
+                float DYK_Rez = 1 / DYK;
+
                 for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
                 {
                     int j = j1;
                     if (JS == -1) j = Program.NJJ - j1 + 1;
                     int i = i1;
                     if (IS == -1) i = Program.NII - i1 + 1;
-					
+
                     if (Program.ADVDOM[i][j] == 1)
                     {
-                    	float[] TURB_L = Program.TURB[i][j];
+                        float[] TURB_L = Program.TURB[i][j];
                         float[] TURBim_L = Program.TURB[i - 1][j];
                         float[] TURBip_L = Program.TURB[i + 1][j];
                         float[] TURBjm_L = Program.TURB[i][j - 1];
@@ -74,7 +71,7 @@ namespace GRAL_2001
                         float[] WKim_L = Program.WK[i - 1][j];
                         float[] WKjp_L = Program.WK[i][j + 1];
                         float[] WKjm_L = Program.WK[i][j - 1];
-                       
+
                         int KKART = Program.KKART[i][j];
 
                         int KSTART = 1;
@@ -114,7 +111,7 @@ namespace GRAL_2001
                                 DW = 0;
                             if ((Program.ADVDOM[i + 1][j] < 1) || (i == Program.NII - 1))
                                 DE = 0;
-                            
+
 
                             //ADVECTION TERMS
                             float FE = UKip_L[k] * DYKDZK;
