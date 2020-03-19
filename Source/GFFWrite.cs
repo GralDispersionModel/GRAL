@@ -163,7 +163,7 @@ namespace GRAL_2001
                 {
                     using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
                     {
-                        ZipArchiveEntry write_entry = archive.CreateEntry(GRALflowfield);
+                        ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
                         using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
                         {
                             writer.Write((Int32)Program.NKK);
@@ -243,7 +243,7 @@ namespace GRAL_2001
                 {
                     using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
                     {
-                        ZipArchiveEntry write_entry = archive.CreateEntry(GRALflowfield);
+                        ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
                         using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
                         {
                             writer.Write((Int32)(-1) * Program.NKK); // write negative value -> throw an error at old GRAL versions to avoid erroneous wind fields
