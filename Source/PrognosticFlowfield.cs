@@ -66,12 +66,12 @@ namespace GRAL_2001
                     }
                 }
 
-                Program.VerticalIndex = new Int16[NII + 1][];
+                Program.VerticalIndex = new int[NII + 1][];
                 Program.UsternObstaclesHelpterm = new float[NII + 1][];
                 Program.UsternTerrainHelpterm = new float[NII + 1][];
                 for (int i = 1; i < NII + 1; ++i)
                 {
-                    Program.VerticalIndex[i] = new Int16[NJJ + 1];
+                    Program.VerticalIndex[i] = new int[NJJ + 1];
                     Program.UsternObstaclesHelpterm[i] = new float[NJJ + 1];
                     Program.UsternTerrainHelpterm[i] = new float[NJJ + 1];
                 }
@@ -110,13 +110,12 @@ namespace GRAL_2001
             topwind = Math.Max(topwind, 0.01F);
 
             //some variable declarations
-            int IV = 1;
-            float DTIME = (float)(0.5 * Math.Min(DXK, Program.DZK[1]) /
-                Math.Sqrt(Program.Pow2(Program.UK[1][1][Program.KADVMAX]) + Program.Pow2(Program.VK[1][1][Program.KADVMAX])));
+            int IterationLoops = 1;
+            float DTIME = 0.5F * Math.Min(DXK, Program.DZK[1]) / MathF.Sqrt(Program.Pow2(Program.UK[1][1][Program.KADVMAX]) + Program.Pow2(Program.VK[1][1][Program.KADVMAX]));
             DTIME = Math.Min(DTIME, 5);
-            float DELTAUMAX = 0;
-            float DELTALAST = 0;
-            float DELTAFIRST = 0;
+            float DeltaUMax = 0;
+            float DeltaFinish = 0;
+            float DeltaFirst = 0;
 
             float AREAxy = DXK * DYK;
             for (int k = 1; k <= Program.KADVMAX; ++k)
@@ -124,9 +123,9 @@ namespace GRAL_2001
                 AP0[k] = AREAxy * Program.DZK[k] / DTIME;
             }
 
-            int MAXHOEH = Program.VertCellsFF;
+            int MaxProgCellCount = Program.VertCellsFF;
             float building_Z0 = 0.001F;
-            double DELTAMEAN = 0;
+            double DeltaMean = 0;
 
             //constants in the k-eps turbulence model
             float Cmueh = 0.09F;
@@ -135,21 +134,21 @@ namespace GRAL_2001
             float Ceps2 = 1.92F;
 
             //set turbulence model
-            int TURB_MODEL = 1;
+            int TurbulenceModel = 1;
             if (File.Exists("turbulence_model.txt") == true)
             {
                 try
                 {
                     using (StreamReader sr = new StreamReader("turbulence_model.txt"))
                     {
-                        TURB_MODEL = Convert.ToInt32(sr.ReadLine());
+                        TurbulenceModel = Convert.ToInt32(sr.ReadLine());
                     }
                 }
                 catch
                 { }
             }
 
-            if (TURB_MODEL != 1)
+            if (TurbulenceModel != 1)
             {
                 if (Program.TURB.Length < 5) // Arrays already created?
                 {
@@ -170,7 +169,7 @@ namespace GRAL_2001
                 }
             });
 
-            if (TURB_MODEL != 1)
+            if (TurbulenceModel != 1)
             {
                 Parallel.For(1, NII + 1, Program.pOptions, i =>
                 {
@@ -182,8 +181,8 @@ namespace GRAL_2001
                         TDISS_L = Program.TDISS[i][j];
                         for (int k = 1; k <= NKK + 1; ++k)
                         {
-                            TURB_L[k] = (float)0.001;
-                            TDISS_L[k] = (float)0.0000001;
+                            TURB_L[k] = 0.001F;
+                            TDISS_L[k] = 0.0000001F;
                         }
                     }
                 });
@@ -191,22 +190,22 @@ namespace GRAL_2001
 
             //term used to round numbers -> improves steady-state condition
             double Frund = 8000 / topwind;  //no-diffusion
-            if (TURB_MODEL == 1)               //algebraic mixing-length model
+            if (TurbulenceModel == 1)               //algebraic mixing-length model
                 Frund = 8000 / topwind;
-            if (TURB_MODEL == 2)            //k-eps model
+            if (TurbulenceModel == 2)            //k-eps model
                 Frund = 10000 / topwind;
 
             //definition of the minimum and maximum iterations
-            int INTEGRATIONSSCHRITTE_MIN = 100;
-            int INTEGRATIONSSCHRITTE_MAX = 500;
+            int IterationStepsMin = 100;
+            int IterationStepsMax = 500;
             if (File.Exists("Integrationtime.txt") == true)
             {
                 try
                 {
                     using (StreamReader sr = new StreamReader("Integrationtime.txt"))
                     {
-                        INTEGRATIONSSCHRITTE_MIN = Convert.ToInt32(sr.ReadLine());
-                        INTEGRATIONSSCHRITTE_MAX = Convert.ToInt32(sr.ReadLine());
+                        IterationStepsMin = Convert.ToInt32(sr.ReadLine());
+                        IterationStepsMax = Convert.ToInt32(sr.ReadLine());
                     }
                 }
                 catch
@@ -287,7 +286,7 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= NJJ; ++j)
                     {
-                        Program.VerticalIndex[i][j] = (Int16)(Math.Min(NKK - 1, Program.KKART[i][j] + MAXHOEH));
+                        Program.VerticalIndex[i][j] = Math.Min(NKK - 1, Program.KKART[i][j] + MaxProgCellCount);
                     }
                 }
             });
@@ -393,7 +392,7 @@ namespace GRAL_2001
                             varw = (Program.Pow2(Program.Ustern[IUstern][JUstern]) * Program.Pow2(1.15F + 0.1F * MathF.Pow(Program.BdLayHeight / (-Program.Ob[IUstern][JUstern]), 0.67F)) * Program.Pow2(Program.StdDeviationW));
                         else
                             varw = Program.Pow2(Program.Ustern[IUstern][JUstern] * Program.StdDeviationW * 1.25F);
-                        if (TURB_MODEL != 1)
+                        if (TurbulenceModel != 1)
                         {
                             Program.TURB[i][j][k] = (float)(0.5 * (Program.Pow2(U0int) + Program.Pow2(V0int) + varw));
                         }
@@ -408,12 +407,12 @@ namespace GRAL_2001
             //Minimum vertical and horizontal turbulent exchange coefficients in dependence on atmospheric stability
             float VISHMIN = 0.00F;
             float VISVMIN = 0.00F;
-            if (TURB_MODEL == 1)
+            if (TurbulenceModel == 1)
             {
                 VISHMIN = 0.0F;
                 VISVMIN = 0.0F;
             }
-            if (TURB_MODEL == 2)
+            if (TurbulenceModel == 2)
             {
                 VISHMIN = 0.01F;
                 VISVMIN = 0.01F;
@@ -448,7 +447,7 @@ namespace GRAL_2001
                                 if (j == NJJ) Program.VK[i][j + 1][k] = 0;
                                 WK_L[k] = 0;
                                 if (k == Vert_index) WK_L[k + 1] = 0;
-                                if (TURB_MODEL != 1)
+                                if (TurbulenceModel != 1)
                                 {
                                     Program.TURB[i][j][k] = 0;
                                     Program.TDISS[i][j][k] = 0;
@@ -466,13 +465,9 @@ namespace GRAL_2001
         //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS
 
         CONTINUE_SIMULATION:
-
-            int COUNT = 1;
-            int COUNT100 = 1;
-
-            while ((IV <= INTEGRATIONSSCHRITTE_MAX) && (Program.FlowFieldLevel > 1))
+            while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel > 1))
             {
-                if (IV == 1)
+                if (IterationLoops == 1)
                 {
                     Console.WriteLine();
                     Console.WriteLine("ADVECTION");
@@ -641,14 +636,14 @@ namespace GRAL_2001
                 /*PROCEDURE CALCULATING THE PRESSURE CORRECTION
                 EQUATION TDMA (PATANKAR 1980, S125)*/
 
-                //switch the loop to improve convergence
+                //switch the loop to improve convergence - Alternating Direction Implicit (ADI) method 
                 int IA = 2;
                 int IE = NII - 1;
                 int JA = 2;
                 int JE = NJJ - 1;
                 int IS = 1;
                 int JS = 1;
-                if (COUNT == 4)
+                if (IterationLoops % 4 == 0)
                 {
                     IA = NII - 1;
                     IE = 2;
@@ -657,7 +652,7 @@ namespace GRAL_2001
                     IS = -1;
                     JS = 1;
                 }
-                else if (COUNT == 3)
+                else if (IterationLoops % 4 == 1)
                 {
                     IA = NII - 1;
                     IE = 2;
@@ -666,7 +661,7 @@ namespace GRAL_2001
                     IS = -1;
                     JS = -1;
                 }
-                else if (COUNT == 2)
+                else if (IterationLoops % 4 == 2)
                 {
                     IA = 2;
                     IE = NII - 1;
@@ -675,11 +670,11 @@ namespace GRAL_2001
                     IS = 1;
                     JS = -1;
                 }
-
-                DELTAUMAX = 0;
+               
+                DeltaUMax = 0;
                 Parallel.For(2, NJJ, Program.pOptions, j1 =>
                 {
-                    float DELTAUMAX1 = 0;
+                    float DeltaUMaxIntern = 0;
                     Span<float> PIMP = stackalloc float[NKK + 2];
                     Span<float> QIMP = stackalloc float[NKK + 2];
                     float APP;
@@ -735,7 +730,7 @@ namespace GRAL_2001
                                 if (KKART_LL < k)
                                 {
                                     float temp = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                    DELTAUMAX1 = (float)Math.Max(DELTAUMAX1, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
+                                    DeltaUMaxIntern = (float)Math.Max(DeltaUMaxIntern, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
                                     DPM_L[k] = temp;
 
                                     //Pressure field to compute pressure gradients in the momentum equations
@@ -746,8 +741,8 @@ namespace GRAL_2001
                     }
                     lock (obj)
                     {
-                        if (DELTAUMAX1 > DELTAUMAX)
-                            Interlocked.Exchange(ref DELTAUMAX, DELTAUMAX1);
+                        if (DeltaUMaxIntern > DeltaUMax)
+                            Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
                     }
                 });
 
@@ -857,7 +852,7 @@ namespace GRAL_2001
                 //MOMENTUM EQUATION FOR THE TURBULENT KINETIC ENERGY AND DISSIPATION RATE
 
                 //no-diffusion
-                if (TURB_MODEL == 0)
+                if (TurbulenceModel == 0)
                 {
                     Parallel.Invoke(Program.pOptions,
                         () => U_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
@@ -866,7 +861,7 @@ namespace GRAL_2001
                 }
 
                 //algebraic mixing length model
-                if (TURB_MODEL == 1)
+                if (TurbulenceModel == 1)
                 {
                     Parallel.Invoke(Program.pOptions,
                         () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
@@ -875,7 +870,7 @@ namespace GRAL_2001
                 }
 
                 //k-eps model
-                if (TURB_MODEL == 2)
+                if (TurbulenceModel == 2)
                 {
                     Parallel.Invoke(Program.pOptions,
                            () => U_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
@@ -883,44 +878,51 @@ namespace GRAL_2001
                     W_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
                     TKE_PrognosticMicroscale.Calculate(IS, JS, Cmueh, Ceps, Ceps1, Ceps2, VISHMIN, VISVMIN, AREAxy, building_Z0, relax, Ustern_factorX);
                 }
-
+                
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Part 8: " + TIME_dispersion.ToString("0.000"));
                 //Startzeit = Environment.TickCount;
 
                 //Average maximum deviation of wind components between two time steps
-                if (IV == INTEGRATIONSSCHRITTE_MAX) DELTALAST = (float)(DELTAMEAN / Program.Pow2(topwind));
-                if ((COUNT100 == 0) && (IV > 1) && (Program.FlowFieldLevel > 1))
+                if (IterationLoops >= IterationStepsMax) 
                 {
-                    if (IV == 100) DELTAFIRST = (float)(DELTAMEAN / Program.Pow2(topwind));
-                    Console.WriteLine("ITERATION " + IV.ToString() + ": " + (DELTAMEAN / Program.Pow2(topwind)).ToString("0.000"));
-                    if ((DELTAMEAN / Program.Pow2(topwind) < 0.012) && (IV >= INTEGRATIONSSCHRITTE_MIN))
+                    DeltaFinish = (float)(DeltaMean / Program.Pow2(topwind));
+                }
+
+                if ((IterationLoops % 100 == 0) && (IterationLoops > 1) && (Program.FlowFieldLevel > 1))
+                {
+                    double _delta = DeltaMean / Program.Pow2(topwind);
+
+                    if (IterationLoops == 100)
+                    {
+                        DeltaFirst = (float)_delta;
+                    }
+
+                    Console.WriteLine("ITERATION " + IterationLoops.ToString() + ": " + _delta.ToString("0.000"));
+                    
+                    if (_delta < 0.012 && (IterationLoops >= IterationStepsMin))
                         break;
-                    DELTAMEAN = 0;
+                    DeltaMean = 0;
                 }
                 else
                 {
-                    DELTAMEAN += DELTAUMAX;
+                    DeltaMean += DeltaUMax;
                 }
 
                 //ONLINE OUTPUT OF GRAL FLOW FIELDS
-                if ((COUNT100 == 0) && (Program.FlowFieldLevel > 1))
+                if ((IterationLoops % 100 == 0) && (Program.FlowFieldLevel > 1))
                 {
                     GRALONLINE.Output(NII, NJJ, NKK);
                 }
 
-                IV++;
-                COUNT++;
-                COUNT100++;
-                if (COUNT > 4) COUNT = 1;
-                if (COUNT100 >= 100) COUNT100 = 0;
-
+                IterationLoops++;
+                
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Total time: " + TIME_dispersion.ToString("0.000"));
             }
 
             //OUTPUT OF ENCOUNTERED PROBLEMS DURING THE SIMULATION
-            if (DELTALAST > DELTAFIRST)
+            if (DeltaFinish > DeltaFirst)
             {
                 ProgramWriters.LogfileProblemreportWrite("Convergence not fullfilled for flow field: " + Program.IWET.ToString());
             }
@@ -942,7 +944,7 @@ namespace GRAL_2001
                         float[] VK_L = Program.VK[i][j];
                         float[] WK_L = Program.WK[i][j];
                         float limit = (float)(10 * GESCHW_MAX);
-                        for (int k = 1; k <= Math.Min(NKK - 1, Program.KKART[i][j] + MAXHOEH); ++k)
+                        for (int k = 1; k <= Math.Min(NKK - 1, Program.KKART[i][j] + MaxProgCellCount); ++k)
                         {
                             if ((Math.Abs(UK_L[k]) > 55) || (Math.Abs(UK_L[k]) > limit))
                             {
@@ -978,7 +980,7 @@ namespace GRAL_2001
                                             + Zunrealistic.ToString("0.0", ic) + "(" + VKunrealistic.ToString() + ")");
             }
 
-            Console.WriteLine("Total number of iterations: " + IV.ToString());
+            Console.WriteLine("Total number of iterations: " + IterationLoops.ToString());
 
             //OUTPUT FOR VDI TEST CASES
             if (File.Exists("VDI-A1-1.txt") == true)
@@ -1033,7 +1035,7 @@ namespace GRAL_2001
                 catch { }
 
 
-                IV = 1;
+                IterationLoops = 1;
                 goto CONTINUE_SIMULATION;
             }
 
@@ -1420,7 +1422,7 @@ namespace GRAL_2001
                         double varw = Program.Pow2(Program.Ustern[1][1] * Program.StdDeviationW * 1.25);
                         if (Program.Ob[1][1] < 0)
                             varw = Program.Pow2(Program.Ustern[1][1]) * Program.Pow2(1.15 + 0.1 * Math.Pow(Program.BdLayHeight / (-Program.Ob[1][1]), 0.67)) * Program.Pow2(Program.StdDeviationW);
-                        if (TURB_MODEL != 1)
+                        if (TurbulenceModel != 1)
                         {
                             sw.WriteLine(Program.Ustern[1][1].ToString("0.00") + "," + Program.UKS[iA][jA][kA].ToString("0.00") + "," + Program.VKS[iA][jA][kA].ToString("0.00") + "," + Program.TURB[iA][jA][kA].ToString("0.00") + "," +
                                          Program.Ustern[1][1].ToString("0.00") + "," + Program.UKS[iB][jB][kB].ToString("0.00") + "," + Program.VKS[iB][jB][kB].ToString("0.00") + "," + Program.TURB[iB][jB][kB].ToString("0.00") + "," +

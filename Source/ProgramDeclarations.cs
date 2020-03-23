@@ -1015,7 +1015,7 @@ namespace GRAL_2001
         ///<summary>
         ///Minimum cell index up to which calculations are carried out
         ///</summary>
-        public static Int16[][] VerticalIndex = CreateArray<Int16[]>(1, () => new Int16[1]);
+        public static int[][] VerticalIndex = CreateArray<int[]>(1, () => new int[1]);
         ///<summary>
         ///Term used to compute friction velocity near obstacles efficiently
         ///</summary>
