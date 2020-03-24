@@ -1,0 +1,6 @@
+Version 17.01
+y
+0.2
+1,0
+no       ! write steady-state-file
+720      ! Number of original meteo length for GRAMM Sunrise option

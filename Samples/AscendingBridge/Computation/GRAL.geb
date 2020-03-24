@@ -1,0 +1,11 @@
+10               !cell-size for cartesian wind field in GRAL in x-direction
+10               !cell-size for cartesian wind field in GRAL in y-direction
+1.5,1.00,25,1.02,50,1.05,150,1.1,250,1.2                !cell-size for cartesian wind field in GRAL in z-direction, streching factor for increasing cells heights with height
+142                !number of cells for counting grid in GRAL in x-direction
+154                !number of cells for counting grid in GRAL in y-direction
+1                !Number of horizontal slices
+1,                !Source groups to be computed seperated by a comma
+80350                !West border of GRAL model domain [m]
+81770                !East border of GRAL model domain [m]
+228950                !South border of GRAL model domain [m]
+230490                !North border of GRAL model domain [m]

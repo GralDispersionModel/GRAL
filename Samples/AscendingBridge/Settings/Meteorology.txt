@@ -1,0 +1,13 @@
+D:\GRAMM_Original_Windfelder\Windfeld_Unterinntal Zillertal bis IBK 200 20190314\Metfiles\AllSituations_n.met
+,
+.
+10
+24
+8
+0.5
+1
+2
+3
+4
+6
+9

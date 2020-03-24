@@ -1,0 +1,3 @@
+Version_19
+List of all walls within the model domain
+Name, number of vertices, lenght, corner points (x[m],y[m],z[m])

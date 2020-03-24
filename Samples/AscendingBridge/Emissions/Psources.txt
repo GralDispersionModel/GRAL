@@ -1,0 +1,2 @@
+List of all point sources within the model domain Version_19
+Name, x, y, z, exit-velocity [m/s], exit-temp[K], stack-diameter[m], source-group, pollutants(10), deposition parameters, velocity and temperature time series references

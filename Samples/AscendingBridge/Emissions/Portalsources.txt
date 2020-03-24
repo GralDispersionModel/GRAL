@@ -1,0 +1,2 @@
+List of all portal sources within the model domain Version_19
+Name, Height[m], Exit vel.[m/s], Temp.difference [K], Traffic direction, Crosssection [m²], AADT, HDV[%], slope[%], traffic-situation, baseyear, speed of PC [km/h], #of source groups, source-group-pollutants(10),.....,#of corner-points, corner points (x1[m],y1[m],x2[m],y2[m]), deposition data, Height above ground [m], velocity and temperature time series references

@@ -1,0 +1,4 @@
+NOx
+0	 ! Wet deposition cW setting
+0	 ! Wet deposition alphaW setting
+0	 ! Decay rate for all source groups

@@ -1,0 +1,2 @@
+List of all area sources within the model domain Version_19
+Name, z[m], dz[m], raster-size (dx dy[m]), source-group, area[m²],  pollutants(10), corner points (x[m] y[m]), deposition data

@@ -1,0 +1,2 @@
+List of all vegetation areas within the model domain Version_19
+Name, Number of Vertices, Height[m], Area, TrunkZone, Trunk, Crown, Coverage, , Corner Points (x[m],y[m])

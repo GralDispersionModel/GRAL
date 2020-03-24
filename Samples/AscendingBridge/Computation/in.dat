@@ -1,0 +1,17 @@
+100 	 ! Number of released particles per second
+3600 	 ! Dispersion time
+0 	 ! Steady state GRAL mode = 1, Transient GRAL mode = 0
+4 	 ! Meteorology input: inputzr.dat = 0, meteo.all = 1, elimaeki.prn = 2, SONIC.dat = 3, meteopgt.all = 4
+0 	 ! Receptor points: Yes = 1, No = 0
+0.2 	 ! Surface Roughness in [m]
+47 	 ! Latitude
+N 	 ! Meandering Effect Off = J, On = N
+NOx 	 ! Pollutant: not used since version 19.01, new: Pollutant.txt
+3, 	 ! Horizontal slices [m] seperated by a comma (number of slices need to be defined in GRAL.geb!)
+2 	 ! Vertical grid spacing in [m]
+1 	 ! Start the calculation with this weather number
+2,100 	 ! How to take buildings into account? 1 = simple mass conservation, 2 = mass conservation with Poisson equation + advection, Factor for the prognostic sub domain size
+-2 	 ! Stream Output for Soundplan 1 = activated, -2 = write buildings height
+compressed 	 ! Write compressed output files
+WaitForKeyStroke 	 ! Wait for keystroke when exiting GRAL
+ASCiiResults 0 	 ! Additional ASCii result files Yes = 1, No = 0
