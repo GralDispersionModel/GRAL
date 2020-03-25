@@ -264,17 +264,19 @@ namespace GRAL_2001
                                 if (j < Program.NJJ) VKjp_L[k] = 0;
                                 if (k < Program.NKK) WK_L[k + 1] = 0;
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k] + Program.AHMIN, Program.AHK[i][j]);
-                                if (Program.CUTK[i][j] > 0) Program.BUI_HEIGHT[i][j] = (float)Math.Max(Program.AHK[i][j] - Program.AHMIN - zellhoehe, Program.BUI_HEIGHT[i][j]);
-                                Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
-
-                                if (Program.ADVDOM[i][j] > 0)
+                                if (Program.CUTK[i][j] > 0)
                                 {
-                                    lock (obj)
-                                    {
-                                        Program.KADVMAX = Math.Max(Program.KKART[i][j], Program.KADVMAX);
-                                    }
+                                    Program.BUI_HEIGHT[i][j] = (float)Math.Max(Program.AHK[i][j] - Program.AHMIN - zellhoehe, Program.BUI_HEIGHT[i][j]);
                                 }
+                                Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
+                            }
+                        }
 
+                        if (Program.ADVDOM[i][j] > 0)
+                        {
+                            lock (obj)
+                            {
+                                Program.KADVMAX = Math.Max(Program.KKART[i][j], Program.KADVMAX);
                             }
                         }
                     }
@@ -516,7 +518,9 @@ namespace GRAL_2001
 
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
                                 if (Program.ADVDOM[i][j] > 0)
+                                {
                                     KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
+                                }
                                 if ((Program.CUTK[i][j] > 0) && (vertk >= Program.AHKOri[i][j]) && (k > 1))
                                 {
                                     Program.BUI_HEIGHT[i][j] = (float)Math.Max(Program.AHK[i][j] - (Program.HOKART[k - 1] + Program.AHKOriMin), Program.BUI_HEIGHT[i][j]);
@@ -790,21 +794,5 @@ namespace GRAL_2001
                 }
             });
         }
-
-
-        static Func<double, int, double> MyPow = (double num, int exp) =>
-        {
-            double result = 1.0;
-            while (exp > 0)
-            {
-                if (exp % 2 == 1)
-                    result *= num;
-                exp >>= 1;
-                num *= num;
-            };
-            return result;
-        };
-
-
     }
 }
