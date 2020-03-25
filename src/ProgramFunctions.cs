@@ -84,7 +84,7 @@ namespace GRAL_2001
             {
                 Console.WriteLine("Fact  \t Height");
             }
-            for (int i = 2; i <= 2000; i++)
+            for (int i = 2; i <= 3000; i++)
             {
                 if (StretchFF > 0.99)
                 {
