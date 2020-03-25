@@ -156,6 +156,7 @@ namespace GRAL_2001
                        lock (obj) { Program.KADVMAX = Math.Max(Program.KADVMAX, KADVMAX1); }
                });
             obj = null;
+            
             //maximum z-index up to which the microscale flow field is being computed
             Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);
 
