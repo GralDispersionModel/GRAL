@@ -42,11 +42,26 @@ namespace GRAL_2001
             //read vegetation only once
             if (File.Exists("vegetation.dat") == true)
             {
-                //read vegetation only once
+                //read vegetation only one times
                 if (Program.VEG[0][0][0] < 0)
                 {
                     ProgramReaders Readclass = new ProgramReaders();
                     Readclass.ReadVegetationDomain();
+                }
+            }
+
+            // Search the reference point within the prognostic sub domains
+            if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0)
+            {
+                MicroscaleTerrainSearchRefPoint mtsp = new MicroscaleTerrainSearchRefPoint();
+                Program.SubDomainRefPos = mtsp.SearchReferencePoint(Program.ADVDOM);
+                //No prognostic sub array - warning message to the user
+                if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0) 
+                {
+                    Program.SubDomainRefPos = new IntPoint(1, 1);
+                    string err = "Prognostic wind field selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileProblemreportWrite(err);
                 }
             }
 
@@ -379,6 +394,7 @@ namespace GRAL_2001
 
                         for (int k = Program.NKK; k >= 1; k--)
                         {
+                            //vertk = mean absolute Height of the GRAL flow field grid
                             float vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5F + Program.AHKOriMin;
                             int indk = 1;
                             int indz = 1;
@@ -408,12 +424,14 @@ namespace GRAL_2001
                                     zellhoehe_p = Zellhoehe_p[ik];
                                 }
 
+                                // GRAL cell height below GRAMM surface -> break
                                 if (vertk <= Program.AHKOri[i][j] + Program.CUTK[i][j])
                                 {
-                                    indz = 0;
+                                    indz = 0; // GRAL cell below GRAMM surface
                                     indk = ik;
                                     break;
                                 }
+                                // GRAL cell height above GRAMM surface -> generate UK, VK, WK
                                 if (vertk > zellhoehe + Program.CUTK[i][j])
                                 {
                                     indk = ik;
@@ -423,6 +441,7 @@ namespace GRAL_2001
                                 }
                             }
 
+                            // gerenate UK, VK, WK from GRAMM wind field inclusive vertical interpolation of GRAMM wind fields
                             if (indz > 0)
                             {
                                 if (indi > Program.NX) indi = Program.NX;
@@ -463,7 +482,7 @@ namespace GRAL_2001
                                 float ux6 = ux2 + (ux4 - ux2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
                                 UK_L[k] = (float)(ux5 + (ux6 - ux5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //UK_L[k] = (float)(ux1 + (ux2 - ux1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
-
+                               
                                 float vx1 = Program.VWIN[indi][indj][indk] + (Program.VWIN[ixm][indj][indk] - Program.VWIN[indi][indj][indk]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float vx2 = Program.VWIN[indi][iym][indk] + (Program.VWIN[ixm][iym][indk] - Program.VWIN[indi][iym][indk]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 //vertical interpolation
@@ -491,9 +510,13 @@ namespace GRAL_2001
 
 
                                 if (i == 1)
+                                {
                                     Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
+                                }
                                 if (j == 1)
+                                {
                                     Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
+                                }
 
                                 // compute windvector in about 10m
                                 if (vertk < Program.AHKOri[i][j] + 10 + 0.5F * Program.DZK[k] && vec_count[i, j] == false)
@@ -505,7 +528,7 @@ namespace GRAL_2001
                                 }
 
                             }
-                            else
+                            else // below GRAMM surface
                             {
                                 UK_L[k] = 0;
                                 VK_L[k] = 0;
@@ -517,6 +540,8 @@ namespace GRAL_2001
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k] + Program.AHKOriMin, Program.AHK[i][j]);
 
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
+                                
+                                // Inside the prognostic sub domain?
                                 if (Program.ADVDOM[i][j] > 0)
                                 {
                                     KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
@@ -531,7 +556,9 @@ namespace GRAL_2001
                     lock (obj)
                     {
                         if (KADVMAX1 > Program.KADVMAX)
+                        {
                             Program.KADVMAX = Math.Max(Program.KADVMAX, KADVMAX1);
+                        }                 
                         vec_numb += vec_numb_loc;
                         vec_x += vec_x_loc;
                         vec_y += vec_y_loc;
@@ -539,6 +566,8 @@ namespace GRAL_2001
                 });
                 obj = null;
             }
+            //maximum z-index up to the microscale flow field is calculated
+            Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);
 
             //final computation of the minimum elevation of the GRAL orography
             Program.AHMIN = 100000;
@@ -595,9 +624,6 @@ namespace GRAL_2001
                     }
                 }
             }
-
-            //maximum z-index up to which the microscale flow field is being computed
-            Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);
 
             //in case of the diagnostic approach, a boundary layer is established near the obstacle's walls
             if ((Program.FlowFieldLevel == 1) && (Program.BuildingTerrExist == true))

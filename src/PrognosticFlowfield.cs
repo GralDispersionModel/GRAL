@@ -106,13 +106,16 @@ namespace GRAL_2001
             }
 
             //wind velocity at the top of the model domain, needed for scaling the pressure changes for stationarity condition
-            float topwind = (float)Math.Sqrt(Program.Pow2(Program.UK[1][1][NKK - 1]) + Program.Pow2(Program.VK[1][1][NKK - 1]));
+            IntPoint refP = Program.SubDomainRefPos;
+            float topwind = (float)Math.Sqrt(Program.Pow2(Program.UK[refP.X][refP.Y][NKK - 1]) + 
+                                             Program.Pow2(Program.VK[refP.X][refP.Y][NKK - 1]));
             topwind = Math.Max(topwind, 0.01F);
 
             //some variable declarations
             int IterationLoops = 1;
-            float DTIME = 0.5F * Math.Min(DXK, Program.DZK[1]) / MathF.Sqrt(Program.Pow2(Program.UK[1][1][Program.KADVMAX]) + Program.Pow2(Program.VK[1][1][Program.KADVMAX]));
-            DTIME = Math.Min(DTIME, 5);
+            float DTIME = 0.5F * MathF.Min(DXK, Program.DZK[1]) / MathF.Max(0.01f, MathF.Sqrt(Program.Pow2(Program.UK[refP.X][refP.Y][Program.KADVMAX]) + 
+                                                                                              Program.Pow2(Program.VK[refP.X][refP.Y][Program.KADVMAX])));
+            DTIME = MathF.Min(DTIME, 5);
             float DeltaUMax = 0;
             float DeltaFinish = 0;
             float DeltaFirst = 0;

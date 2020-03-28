@@ -410,6 +410,10 @@ namespace GRAL_2001
         ///</summary>
         public static Int32 NKK_Transient = 1;
         ///<summary>
+        ///Point for the reference position inside the prognostic subdomain to get the initial GRAMM wind vector
+        ///</summary>
+        public static IntPoint SubDomainRefPos = new IntPoint();
+        ///<summary>
         ///U-wind component of GRAL wind fields
         ///</summary>
         public static float[][][] UK = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
@@ -438,7 +442,7 @@ namespace GRAL_2001
         ///</summary>
         public static Int16[][] KKART = CreateArray<Int16[]>(1, () => new Int16[1]);
         ///<summary>
-        ///Array defining the GRAL sub-domains for the microscale flow field simulations (prognostic mode) 0 = outside prognostic area 1 = inside prognostic area
+        ///Array defining the GRAL sub-domains for the microscale flow field simulations (prognostic mode - sub domain mask) 0 = outside prognostic area 1 = inside prognostic area
         ///</summary>
         public static Byte[][] ADVDOM = CreateArray<Byte[]>(1, () => new Byte[1]);
         ///<summary>
