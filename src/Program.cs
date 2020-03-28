@@ -151,6 +151,9 @@ namespace GRAL_2001
             NJJ = (int)((EtaMaxGral - EtaMinGral) / DYK);
             AHKOri = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             GralTopofile = ReaderClass.ReadGRALTopography(NII, NJJ); // GRAL Topofile OK?
+            
+            //reading main control file in.dat
+            ReaderClass.ReadInDat();
 
             //Reading building data
             //case 1: complex terrain
@@ -165,10 +168,7 @@ namespace GRAL_2001
                 InitGralFlat();
                 ReaderClass.ReadBuildingsFlat(); //define buildings in GRAL
             }
-
-            //reading main control file in.dat
-            ReaderClass.ReadInDat();
-
+          
             // array declarations for prognostic and diagnostic flow field
             if ((FlowFieldLevel > 0) || (Topo == 1))
             {
