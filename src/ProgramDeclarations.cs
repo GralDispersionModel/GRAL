@@ -73,21 +73,25 @@ namespace GRAL_2001
         ///</summary>
         public static List<int> SourceGroups = new List<int>();
         ///<summary>
+        ///Maximum number of vertical cells in the flow field grid
+        ///</summary>
+        public const int VerticalCellMaxBound = 2048;
+        ///<summary>
         ///Vertical grid size (height dependent)
         ///</summary>
-        public static float[] DZK = new float[2001];
+        public static float[] DZK = new float[VerticalCellMaxBound];
         ///<summary>
         ///Vertical grid size (height dependent) for transient computation
         ///</summary>
-        public static float[] DZK_Trans = new float[2001];
+        public static float[] DZK_Trans = new float[VerticalCellMaxBound];
         ///<summary>
         ///Height above minimum model elevation of the GRAL grid for the flow field simulations
         ///</summary>
-        public static float[] HOKART = new float[2001];
+        public static float[] HOKART = new float[VerticalCellMaxBound];
         ///<summary>
         ///Height above topography of the transient concentration grid
         ///</summary>
-        public static float[] HoKartTrans = new float[2001];
+        public static float[] HoKartTrans = new float[VerticalCellMaxBound];
         ///<summary>
         ///Number of processors used for parallel computation
         ///</summary>
@@ -1093,7 +1097,7 @@ namespace GRAL_2001
         ///</summary>
         public static double[][][] Depo_conz = CreateArray<double[][]>(1, () => CreateArray<double[]>(1, () => new double[1]));
         ///<summary>
-        ///Top of the GRAL domain in [m]
+        ///Top of the GRAL domain in [m] default 800 for flat terrain
         ///</summary>
         public static float ModelTopHeight = 800;
         ///<summary>

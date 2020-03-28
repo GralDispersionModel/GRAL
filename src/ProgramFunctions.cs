@@ -23,15 +23,17 @@ namespace GRAL_2001
         /// <summary>
         /// Generate the vertical Grid for GRAL calculations for flat terrain
         /// </summary>
-        private static void GenerateVerticalGridFlat()
+        private static int GenerateVerticalGridFlat()
         {
+            int nkk = 0; // number of vertical grid cells
             int flexstretchindex = 0;
             float stretching = 1;
+
             if (LogLevel > 0)
             {
                 Console.WriteLine("Fact  \t Height");
             }
-            for (int i = 2; i <= 2000; i++)
+            for (int i = 2; i < VerticalCellMaxBound; i++)
             {
                 if (StretchFF > 0.99)
                 {
@@ -63,20 +65,22 @@ namespace GRAL_2001
                 {
                     Console.WriteLine(HOKART[i].ToString());
                 }
-                if (HOKART[i] >= 800)
+                if (HOKART[i] >= 800)  
                 {
-                    NKK = i;
+                    nkk = i;
                     break;
                 }
             }
-            NKK = Math.Min(NKK, 2000);
+            nkk = Math.Min(nkk, VerticalCellMaxBound - 2);
+            return nkk;
         }
 
         /// <summary>
         /// Generate the vertical Grid for GRAL calculations with terrain
         /// </summary>
-        private static void GenerateVerticalGridTerrain()
+        private static int GenerateVerticalGridTerrain()
         {
+            int nkk = 0; // number of vertical grid cells
             int flexstretchindex = 0;
             float stretching = 1;
 
@@ -84,7 +88,7 @@ namespace GRAL_2001
             {
                 Console.WriteLine("Fact  \t Height");
             }
-            for (int i = 2; i <= 3000; i++)
+            for (int i = 2; i < VerticalCellMaxBound; i++)
             {
                 if (StretchFF > 0.99)
                 {
@@ -116,13 +120,17 @@ namespace GRAL_2001
                 {
                     Console.WriteLine(HOKART[i].ToString());
                 }
+                // 300 m above highest elevation and 800 m above lowest elevation 
                 if ((HOKART[i] >= (AHMAX - AHMIN + 300)) && (HOKART[i] >= 800))
                 {
-                    NKK = i;
-                    ModelTopHeight = HOKART[i] + AHMIN;
+                    nkk = i;
                     break;
                 }
             }
+
+            ModelTopHeight = HOKART[NKK] + AHMIN;
+            nkk = Math.Min(nkk, VerticalCellMaxBound - 2);
+            return nkk;
         }
 
         /// <summary>
@@ -394,6 +402,7 @@ namespace GRAL_2001
         {
             //get the minimum and maximum elevation of the GRAMM orography
             for (int i = 1; i <= NI; i++)
+            {
                 for (int j = 1; j <= NJ; j++)
                 {
                     if ((IKOOA + DDX[1] * i >= XsiMinGral) && (IKOOA + DDX[1] * (i - 1) <= XsiMaxGral) &&
@@ -404,15 +413,16 @@ namespace GRAL_2001
                         AHMAX = Math.Max(AH[i][j], AHMAX);
                     }
                 }
+            }
+            
             //number of grid cells of the GRAL microscale flow field
             NII = (int)((XsiMaxGral - XsiMinGral) / DXK);
             NJJ = (int)((EtaMaxGral - EtaMinGral) / DYK);
             //heights of the grid levels of the GRAL microscale flow field (HOKART[0]=0)
             HOKART[1] = DZK[1];
 
-            GenerateVerticalGridTerrain();
-
-            NKK = Math.Max(SIMD, Math.Min(NKK, 2000)); // at least SIMD vertical cells
+            NKK = GenerateVerticalGridTerrain();
+            NKK = Math.Max(SIMD, Math.Min(NKK, VerticalCellMaxBound - 2)); // at least SIMD vertical cells
                                                        //array declaration block
             Console.WriteLine();
             Console.Write("Array declarations...");
@@ -462,7 +472,7 @@ namespace GRAL_2001
             //heights of the grid levels of the GRAL microscale flow field (HOKART[0]=0)
             HOKART[1] = DZK[1];
 
-            GenerateVerticalGridFlat();
+            NKK = GenerateVerticalGridFlat();
 
             //array declaration block
             Console.WriteLine();

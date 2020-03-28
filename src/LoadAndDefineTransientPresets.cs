@@ -36,7 +36,7 @@ namespace GRAL_2001
             Program.HoKartTrans[1] = Program.DZK_Trans[1];
             float stretching = 1;
             double max = 10;
-            for (int i = 2; i <= 2000; i++)
+            for (int i = 2; i < Program.VerticalCellMaxBound; i++)
             {
                 Program.DZK_Trans[i] = (float)Math.Min(Program.DZK[1] * stretching, max);
                 Program.HoKartTrans[i] = Program.HoKartTrans[i - 1] + Program.DZK_Trans[i];
@@ -78,7 +78,7 @@ namespace GRAL_2001
                     max = 10;
                 }
             }
-            Program.NKK_Transient = Math.Min(Program.NKK_Transient, 2000);
+            Program.NKK_Transient = Math.Min(Program.NKK_Transient, Program.VerticalCellMaxBound - 2);
 
             Program.Conz4d = Program.CreateArray<float[][][]>(Program.NII + 2, () => Program.CreateArray<float[][]>(Program.NJJ + 2, () =>
                 Program.CreateArray<float[]>(Program.NKK_Transient + 2, () => new float[Program.SourceGroups.Count + 1])));
