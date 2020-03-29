@@ -59,9 +59,14 @@ namespace GRAL_2001
                 if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0) 
                 {
                     Program.SubDomainRefPos = new IntPoint(1, 1);
-                    string err = "Prognostic wind field selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains";
+                    string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
                     Console.WriteLine(err);
                     ProgramWriters.LogfileProblemreportWrite(err);
+                    Console.WriteLine("Press a key to continue");
+                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                    {
+                        Console.ReadKey(true);
+                    }
                 }
             }
 

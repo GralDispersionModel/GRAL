@@ -27,61 +27,75 @@ namespace GRAL_2001
         {
             int xmax = subDomainMask.Length;
             int ymax = subDomainMask[1].Length;
+            int searchmax = Math.Min(xmax, ymax) / 2;
 
             int delta = 1;
             int i = 1; int j = 1;
             bool found = false;
 
             // search from border of the domain to the center in a spiral
-            while (!found && delta < xmax / 2)
+            while (!found && delta < searchmax)
             {
                 i = delta;
                 j = delta;
+                
                 while (j < (ymax - delta) && !found)
                 {
+                    //Console.Write(i.ToString()+"/"+j.ToString()+":");
                     if (subDomainMask[i][j] == 1)
                     {
                         found = true;
                     }
                     else
                     {
-                        j += delta;
+                        j ++;
                     }
                 }
                 while (i < (xmax - delta) && !found)
                 {
+                    //Console.Write(i.ToString()+"/"+j.ToString()+":");
                     if (subDomainMask[i][j] == 1)
                     {
                         found = true;
                     }
                     else
                     {
-                        i += delta;
+                        i ++;
                     }
                 }
                 while (j > delta && !found)
                 {
+                    //Console.Write(i.ToString()+"/"+j.ToString()+":");
                     if (subDomainMask[i][j] == 1)
                     {
                         found = true;
                     }
                     else
                     {
-                        j -= delta;
+                        j --;
                     }
                 }
                 while (i > delta && !found)
                 {
+                    //Console.Write(i.ToString()+"/"+j.ToString()+":");
                     if (subDomainMask[i][j] == 1)
                     {
                         found = true;
                     }
                     else
                     {
-                        i -= delta;
+                        i --;
                     }
                 }
-                delta++;
+                // take the next ring to search a sub domain
+                delta++; 
+            }
+
+            //if no prognostic sub domain was found -> set a invalid position for the reference point
+            if (!found)
+            {
+                i = 0;
+                j = 0;
             }
             //Console.WriteLine("Reference Point X:" + i.ToString() + "Y:" + j.ToString());
             return new IntPoint(i, j);
