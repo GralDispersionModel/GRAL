@@ -91,7 +91,7 @@ namespace GRAL_2001
                 delta++; 
             }
 
-            //if no prognostic sub domain was found -> set a invalid position for the reference point
+            //if no prognostic sub domain was found -> set an invalid position for the reference point
             if (!found)
             {
                 i = 0;
