@@ -10,28 +10,38 @@
 ///</remarks>
 #endregion
 
-/// <summary>
-/// Transient Deposition Data Class
-/// </summary>
-public class TransientDeposition
+namespace GRAL_2001
 {
-    /// <summary>
-    /// Average mode for transient deposition 0 = no, 1 = conc + depostion
-    /// </summary>
-    public int DepositionMode { get; set; }
-    /// <summary>
-    /// Average deposition velocity
-    /// </summary>
-    public double Vdep { get; set; }
-    /// <summary>
-    /// Average sedimentation velocity
-    /// </summary>
-    public double Vsed { get; set; }
+	///<summary>
+	///Point structure for integer values
+	///</summary>
+	public struct IntPoint
+	{
+		public int X;
+		public int Y;
 
-    public TransientDeposition()
-    {
-        DepositionMode = 0;
-        Vdep = 0;
-        Vsed = 0;
-    }
+		public IntPoint(int x, int y) 
+		{
+			X = x;
+			Y = y;
+		}
+		
+		public override bool Equals(object obj) 
+		{
+			return obj is IntPoint && this == (IntPoint)obj;
+		}
+		public override int GetHashCode() 
+		{
+			return X.GetHashCode() ^ Y.GetHashCode();
+		}
+		public static bool operator ==(IntPoint a, IntPoint b) 
+		{
+			return a.X == b.X && a.Y == b.Y;
+		}
+		public static bool operator !=(IntPoint a, IntPoint b) 
+		{
+			return !(a == b);
+		}
+	}
+
 }

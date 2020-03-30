@@ -53,7 +53,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        ///Read the GRAL domain area
+        ///Read the GRAL domain area and the source group numbers used for this simulation
         /// </summary>
         public void ReadGRALGeb()
         {
@@ -131,11 +131,17 @@ namespace GRAL_2001
                         ProgramWriters.LogfileProblemreportWrite(err);
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                        {
+                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                            {
+                                ;
+                            }
+                        }
 
                         Environment.Exit(0);
                     }
 
+                    // read the used source groups for this simulation
                     _line++;
                     text = myreader.ReadLine().Split(new char[] { '!', ',', ';' });
                     for (int i = 0; i < text.Length; i++)
@@ -144,7 +150,7 @@ namespace GRAL_2001
                         {
                             text[i] = text[i].Trim();
                             text[i] = text[i].Replace(".", decsep);
-                            Program.SourceGroups.Add(Convert.ToInt32(text[i]));
+                            Program.SourceGroups.Add(Convert.ToInt32(text[i], ic));
                         }
                         catch { }
                     }
@@ -212,7 +218,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }
@@ -278,7 +289,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }
@@ -307,7 +323,9 @@ namespace GRAL_2001
                             for (int j1 = j - jplus; j1 <= j + jplus; j1++)
                             {
                                 if ((i1 <= Program.NII) && (i1 >= 1) && (j1 <= Program.NJJ) && (j1 >= 1))
+                                {
                                     Program.ADVDOM[i1][j1] = 1;
+                                }
                             }
                         });
                     }
@@ -345,7 +363,9 @@ namespace GRAL_2001
                         int nodata = Convert.ToInt32(data[1]);
                         data = new string[nx + 1];
                         if (nx != NII || ny != NJJ)
+                        {
                             throw new ArgumentOutOfRangeException("Microscale terrain grid is not equal to flow field grid");
+                        }
 
                         for (int i = ny; i > 0; i--)
                         {

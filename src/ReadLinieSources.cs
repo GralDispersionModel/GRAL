@@ -24,7 +24,6 @@ namespace GRAL_2001
         public static void Read()
         {
             List<SourceData> LQ = new List<SourceData>();
-
             LQ.Add(new SourceData());
 
             double totalemission = 0;
@@ -32,7 +31,9 @@ namespace GRAL_2001
             double[] emission_sourcegroup = new double[101];
 
             if (Program.IMQ.Count == 0)
+            {
                 Program.IMQ.Add(0);
+            }
 
             Deposition Dep = new Deposition();
 
@@ -76,7 +77,7 @@ namespace GRAL_2001
                                 sd.Y2 = Convert.ToDouble(text[7].Replace(".", Program.Decsep));
                                 sd.Z2 = Convert.ToSingle(text[8].Replace(".", Program.Decsep));
                                 sd.Width = Convert.ToSingle(text[9].Replace(".", Program.Decsep));
-                                sd.Laerm = Convert.ToSingle(text[10].Replace(".", Program.Decsep));
+                                sd.VertExt = Convert.ToSingle(text[10].Replace(".", Program.Decsep));
                                 sd.Mode = 0; // standard mode = concentration only
 
                                 //Conversion of emissions given in kg/h/km in kg/h
@@ -100,7 +101,10 @@ namespace GRAL_2001
                                         Dep.SD = sd;
                                         Dep.SourceData = LQ;
                                         Dep.Text = text;
-                                        if (Dep.Compute() == false) throw new IOException();
+                                        if (Dep.Compute() == false)
+                                        {
+                                            throw new IOException();
+                                        }
                                     }
                                     else // no depositon
                                     {
@@ -119,7 +123,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }
@@ -163,21 +172,26 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         {
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                            {
+                                ;
+                            }
                         }
 
                         Environment.Exit(0);
                     }
                 }
                 else
+                {
                     Program.LS_Absolute_Height[i] = false;
+                }
 
                 Program.LS_Z1[i] = (float)Math.Abs(LQ[i].Z1);
                 Program.LS_X2[i] = LQ[i].X2;
                 Program.LS_Y2[i] = LQ[i].Y2;
                 Program.LS_Z2[i] = (float)Math.Abs(LQ[i].Z2);
                 Program.LS_Width[i] = LQ[i].Width;
-                Program.LS_Laerm[i] = LQ[i].Laerm;
+                Program.LS_Laerm[i] = LQ[i].VertExt;
                 Program.LS_SG[i] = (byte)LQ[i].SG;
                 Program.LS_V_Dep[i] = LQ[i].Vdep;
                 Program.LS_V_sed[i] = LQ[i].Vsed;
@@ -191,7 +205,9 @@ namespace GRAL_2001
 
             string unit = "[kg/h]: ";
             if (Program.Odour == true)
+            {
                 unit = "[MOU/h]: ";
+            }
 
             info = "Total emission " + unit + (totalemission).ToString("0.000");
             Console.Write(info);

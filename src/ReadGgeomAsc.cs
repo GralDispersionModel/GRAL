@@ -24,7 +24,6 @@ namespace GRAL_2001
 {
     public partial class ProgramReaders
     {
-        //read ggeom.asc
         /// <summary>
         ///Read the GRAMM geometry file ggeom.asc
         /// </summary>
@@ -40,7 +39,11 @@ namespace GRAL_2001
                 try
                 {
                     StreamReader reader = new StreamReader("ggeom.asc");
-                    if (Program.RunOnUnix) reader.ReadLine();
+                    if (Program.RunOnUnix)
+                    {
+                        reader.ReadLine();
+                    }
+
                     text[0] = reader.ReadLine();
                     reader.Close();
                     reader.Dispose();
@@ -49,7 +52,9 @@ namespace GRAL_2001
 
                 string path = "ggeom.asc";
                 if (File.Exists(text[0]) == true)
+                {
                     path = text[0];
+                }
 
                 try
                 {
@@ -213,7 +218,12 @@ namespace GRAL_2001
                                 ProgramWriters.LogfileProblemreportWrite(err);
 
                                 if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
-                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                                {
+                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                                    {
+                                        ;
+                                    }
+                                }
 
                                 Environment.Exit(0);        // Exit console
                             }
@@ -337,7 +347,12 @@ namespace GRAL_2001
                                 ProgramWriters.LogfileProblemreportWrite(err);
 
                                 if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
-                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                                {
+                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                                    {
+                                        ;
+                                    }
+                                }
 
                                 Environment.Exit(0);        // Exit console
                             }
@@ -353,7 +368,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }

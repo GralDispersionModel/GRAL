@@ -60,7 +60,10 @@ namespace GRAL_2001
                 {
                     Program.PS_Z[i] -= AHint;
                     if (Program.PS_Z[i] < 0) // if relative height < 0
+                    {
                         Program.PS_Z[i] = 0.1F;
+                    }
+
                     Program.PS_Absolute_Height[i] = false; // correction just one times!
                 }
 
@@ -79,12 +82,17 @@ namespace GRAL_2001
 
                 //stability parameter for plume rise calculation according to Hurley, 2005
                 if ((Program.Ob[1][1] >= 0) && (Program.Ob[1][1] < 100))
+                {
                     Program.PlumeStab = 0.004F;
+                }
                 else if ((Program.Ob[1][1] < 0) && (Program.Ob[1][1] > -100))
+                {
                     Program.PlumeStab = 0.0001F;
+                }
                 else
+                {
                     Program.PlumeStab = 0.00015F;
-
+                }
             }
         }
     }

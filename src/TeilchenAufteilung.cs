@@ -33,16 +33,24 @@ namespace GRAL_2001
 
             // Calculate sum of all emissions
             for (int i = 1; i <= Program.PS_Count; i++) // Point sources
+            {
                 sum_emission += Program.PS_ER[i];
+            }
 
             for (int i = 1; i <= Program.LS_Count; i++) // Line sources
+            {
                 sum_emission += Program.LS_ER[i];
+            }
 
             for (int i = 1; i <= Program.TS_Count; i++) // Portals
+            {
                 sum_emission += Program.TS_ER[i];
+            }
 
             for (int i = 1; i <= Program.AS_Count; i++) // Area sources
+            {
                 sum_emission += Program.AS_ER[i];
+            }
 
             int PS_Min_Particles = Set_Min_Particles_PS_TS(Program.PS_Count);
             int LS_Min_Particles = Set_Min_Particles_LS(Program.LS_Count);
@@ -58,7 +66,9 @@ namespace GRAL_2001
                 Program.PS_PartNumb[i] = Convert.ToInt32(unit * Program.PS_ER[i]);
 
                 if (Program.PS_PartNumb[i] < PS_Min_Particles)
+                {
                     Program.PS_PartNumb[i] = PS_Min_Particles;
+                }
 
                 Program.PS_PartSum += Program.PS_PartNumb[i];
                 sum += Program.PS_PartNumb[i];
@@ -75,7 +85,9 @@ namespace GRAL_2001
                 Program.LS_PartNumb[i] = Convert.ToInt32(unit * Program.LS_ER[i]);
 
                 if (Program.LS_PartNumb[i] < LS_Min_Particles) // avoid Null particle sources
+                {
                     Program.LS_PartNumb[i] = LS_Min_Particles;
+                }
 
                 Program.LS_PartSum += Program.LS_PartNumb[i];
                 sum += Program.LS_PartNumb[i];
@@ -92,7 +104,9 @@ namespace GRAL_2001
                 Program.TS_PartNumb[i] = Convert.ToInt32(unit * Program.TS_ER[i]);
 
                 if (Program.TS_PartNumb[i] < TS_Min_Particles)
+                {
                     Program.TS_PartNumb[i] = TS_Min_Particles;
+                }
 
                 Program.TS_PartSum += Program.TS_PartNumb[i];
                 sum += Program.TS_PartNumb[i];
@@ -109,7 +123,9 @@ namespace GRAL_2001
                 Program.AS_PartNumb[i] = Convert.ToInt32(unit * Program.AS_ER[i]);
 
                 if (Program.AS_PartNumb[i] < AS_Min_Particles) // avoid Null particle sources
+                {
                     Program.AS_PartNumb[i] = AS_Min_Particles;
+                }
 
                 Program.AS_PartSum += Program.AS_PartNumb[i];
                 sum += Program.AS_PartNumb[i];

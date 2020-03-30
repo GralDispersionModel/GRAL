@@ -83,9 +83,9 @@ namespace GRAL_2001
 
                             // sum up the SC values inside the GRAL domain area
                             if (Program.IKOOA + Program.DDX[1] * ix > Program.IKOOAGRAL &&
-                            Program.IKOOA + Program.DDX[1] * ix < Program.IKOOAGRAL + Program.dx * Program.NXL &&
+                            Program.IKOOA + Program.DDX[1] * ix < Program.IKOOAGRAL + Program.GralDx * Program.NXL &&
                             Program.JKOOA + Program.DDY[1] * iy > Program.JKOOAGRAL &&
-                            Program.JKOOA + Program.DDY[1] * iy < Program.JKOOAGRAL + Program.dy * Program.NYL)
+                            Program.JKOOA + Program.DDY[1] * iy < Program.JKOOAGRAL + Program.GralDy * Program.NYL)
                             {
                                 akla_sum += Program.StabClass;
                                 akla_count++;

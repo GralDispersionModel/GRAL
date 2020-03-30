@@ -17,10 +17,21 @@ namespace GRAL_2001
 {
     partial class Zeitschleife
     {
-
         /// <summary>
-        ///Interpolation of the microscale wind field in horizontal and vertical direction 
+        /// Interpolation of the microscale wind field in horizontal and vertical direction 
         /// </summary>
+        /// <param name="IndexI">X pos. of particle in the GRAL flow field grid</param>
+        /// <param name="IndexJ">Y pos. of particle in the GRAL flow field grid</param>
+        /// <param name="IndexId">X pos. of particle in the GRAL conc grid</param>
+        /// <param name="IndexJd">Y pos. of particle in the GRAL conc grid</param>
+        /// <param name="AHint">Height of the surface of the GRAL grid</param>
+        /// <param name="UXint">Return parameter - interpolated wind u component</param>
+        /// <param name="UYint">Return parameter - interpolated wind v component</param>
+        /// <param name="UZint">Return parameter - interpolated wind w component</param>
+        /// <param name="IndexK">Vertical index of the particle within the flow field grid</param>
+        /// <param name="xcoord">Particle x position</param>
+        /// <param name="ycoord">Particle y position</param>
+        /// <param name="zcoord">Particle z position</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public static void IntWindCalculate(int IndexI, int IndexJ, int IndexId, int IndexJd,
                                              float AHint, ref float UXint, ref float UYint, ref float UZint, ref int IndexK,
@@ -147,7 +158,7 @@ namespace GRAL_2001
         /// <summary>
         /// Find the index of a value in HOKART[] that exceeds the value Height - 19.05.25 Ku
         /// </summary>
-        /// <param name="Height">Height to compare</param> 
+        /// <param name="Height">Height to compare with HOKART[]</param> 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public static int BinarySearch(float Height)
         {

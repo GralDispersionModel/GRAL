@@ -46,7 +46,7 @@ namespace GRAL_2001
                 }
 
                 //get index within the TimeSeriesList
-                if (columnName != String.Empty)
+                if (!string.IsNullOrEmpty(columnName))
                 {
                     int i = 0;
                     foreach (TimeSeriesColumn tscol in TSColList)

@@ -24,14 +24,15 @@ namespace GRAL_2001
 {
     public partial class ProgramReaders
     {
-        //read landuse file
         /// <summary>
         /// Read the landuse.asc file
         /// </summary>
         public void ReadLanduseFile()
         {
             if (File.Exists("landuse.asc") == true)
+            {
                 Program.LandUseAvailable = true;
+            }
 
             if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
             {
@@ -62,7 +63,13 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
+
                     Environment.Exit(0);
                 }
             }

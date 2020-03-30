@@ -52,11 +52,11 @@ namespace GRAL_2001
             LogfileGralCoreWrite(err);
             err = "  Concentration grid cell nr. in y-direction: " + Program.NYL.ToString();
             LogfileGralCoreWrite(err);
-            err = "  Concentration grid size in x direction  [m]: " + Program.dx.ToString();
+            err = "  Concentration grid size in x direction  [m]: " + Program.GralDx.ToString();
             LogfileGralCoreWrite(err);
-            err = "  Concentration grid size in y direction  [m]: " + Program.dy.ToString();
+            err = "  Concentration grid size in y direction  [m]: " + Program.GralDy.ToString();
             LogfileGralCoreWrite(err);
-            err = "  Concentration grid size in z direction  [m]: " + Program.dz.ToString();
+            err = "  Concentration grid size in z direction  [m]: " + Program.GralDz.ToString();
             LogfileGralCoreWrite(err);
 
             err = "  Total number of horizontal slices for the concentration grid: " + Program.NS.ToString();

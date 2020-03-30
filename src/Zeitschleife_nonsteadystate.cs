@@ -21,9 +21,19 @@ namespace GRAL_2001
     /// </summary>
     partial class ZeitschleifeNonSteadyState
     {
+        private const float Pi2F = 2F * MathF.PI;
+        private const float RNG_Const = 2.328306435454494e-10F;
         /// <summary>
-        ///Time loop for the particles released from the transient grid 
+        /// Time loop for the particles released from the transient grid  
         /// </summary>
+        /// <param name="i">x grid position within the transient concentration grid</param>
+        /// <param name="j">y grid position within the transient concentration grid</param>
+        /// <param name="k">z grid position within the transient concentration grid</param>
+        /// <param name="SG">Source group</param>
+        /// <param name="conz_trans">Concentration of the transient concentration cell [i][j][k]</param>
+        /// <remarks>
+        /// This class is the particle driver for particles, released by the transient grid in the transient GRAL mode
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int i, int j, int k, int SG, float conz_trans)
         {
@@ -35,11 +45,8 @@ namespace GRAL_2001
             float zahl1 = 0;
             uint u_rg = 0;
             double u1_rg = 0;
-
-            const float Pi2F = 2F * MathF.PI;
-            const float RNG_Const = 2.328306435454494e-10F;
-
-            //transfering grid-concentration into single particle mass and position
+    
+            //transfering grid-concentration and grid position into single particle mass and particle position
             Random rnd = new Random();
             double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25f + (float)(rnd.NextDouble() * 0.5)) * Program.DXK;
             double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25f + (float)(rnd.NextDouble() * 0.5)) * Program.DYK;
@@ -48,10 +55,13 @@ namespace GRAL_2001
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
             double Vol_cart = Program.DXK * Program.DYK * Program.DZK_Trans[k];
             double Area_cart = Program.DXK * Program.DYK;
-            double masse = conz_trans * Vol_ratio / Program.TAUS;  //mass related to the concentration grid, but not for the memory-effect grid
+            double masse = conz_trans * Vol_ratio / Program.TAUS;     //mass related to the concentration grid, but not for the memory-effect grid
             double mass_real = conz_trans * Vol_cart / Program.TAUS;  //mass related to the memory-effect grid
-            if (mass_real == 0) return;
-            if (masse == 0) return;
+            
+            if (mass_real == 0 || masse == 0)
+            {
+                return;
+            }
 
             int SG_nteil = SG;
 
@@ -68,7 +78,7 @@ namespace GRAL_2001
             }
 
             double area_rez_fac = Program.TAUS * Program.GridVolume * 24 / 1000; // conversion factor for particle mass from µg/m³/s to mg per day
-            area_rez_fac = area_rez_fac / (Program.dx * Program.dy);  // conversion to mg/m²
+            area_rez_fac = area_rez_fac / (Program.GralDx * Program.GralDy);     // conversion to mg/m²
 
             float DXK = Program.DXK;
             float DYK = Program.DYK;
@@ -76,11 +86,11 @@ namespace GRAL_2001
             float DYK_rez = 1 / Program.DYK;
             float DDX1_rez = 1 / Program.DDX[1];
             float DDY1_rez = 1 / Program.DDY[1];
-            float dx_rez = 1 / Program.dx;
-            float dy_rez = 1 / Program.dy;
-            float dz_rez = 1 / Program.dz;
-            float dxHalf = Program.dx * 0.5F;
-            float dyHalf = Program.dy * 0.5F;
+            float dx_rez = 1 / Program.GralDx;
+            float dy_rez = 1 / Program.GralDy;
+            float dz_rez = 1 / Program.GralDz;
+            float dxHalf = Program.GralDx * 0.5F;
+            float dyHalf = Program.GralDy * 0.5F;
 
             int IFQ = Program.TS_Count;
             //Program.Sourcetype[0] = 3; 
@@ -329,7 +339,7 @@ namespace GRAL_2001
 
                 //time-step calculation
                 idt = 0.1F * varw / eps;
-                float idtt = (0.5F * Math.Min(Program.dx, DXK) / (windge + MathF.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold))));
+                float idtt = (0.5F * Math.Min(Program.GralDx, DXK) / (windge + MathF.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold))));
                 if (idtt < idt) idt = idtt;
                 Math.Clamp(idt, 0.1F, 4F);
 
@@ -1022,7 +1032,7 @@ namespace GRAL_2001
                                     }
                                 }
                             }
-                            else // use the concentration at the receptor position x +- dx/2 and receptor y +- dy/2
+                            else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
                             {
                                 if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < dxHalf &&
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < dyHalf)
@@ -1071,7 +1081,7 @@ namespace GRAL_2001
                     {
                         for (int II = 1; II < kko.Length; II++)
                         {
-                            float slice = (zcoordRelative - (Program.HorSlices[II] + Program.dz)) * dz_rez;
+                            float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 1; II < kko.Length; II++)
@@ -1088,7 +1098,7 @@ namespace GRAL_2001
                         }
                         for (int II = 1; II < kko.Length; II++)
                         {
-                            float slice = (zcoordRelative - (Program.HorSlices[II] - Program.dz)) * dz_rez;
+                            float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 1; II < kko.Length; II++)

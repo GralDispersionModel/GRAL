@@ -34,7 +34,9 @@ namespace GRAL_2001
             TQ.Add(new SourceData());
 
             if (Program.IMQ.Count == 0)
+            {
                 Program.IMQ.Add(0);
+            }
 
             Deposition Dep = new Deposition();
 
@@ -95,7 +97,10 @@ namespace GRAL_2001
                                     Dep.SD = sd;
                                     Dep.SourceData = TQ;
                                     Dep.Text = text;
-                                    if (Dep.Compute() == false) throw new IOException();
+                                    if (Dep.Compute() == false)
+                                    {
+                                        throw new IOException();
+                                    }
                                 }
                                 else // no depositon
                                 {
@@ -118,7 +123,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }
@@ -166,13 +176,18 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         {
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                            {
+                                ;
+                            }
                         }
                         Environment.Exit(0);
                     }
                 }
                 else
+                {
                     Program.TS_Absolute_Height[i] = false;
+                }
 
                 Program.TS_Z1[i] = (float)Math.Abs(TQ[i].Z1);
                 Program.TS_Z2[i] = (float)Math.Abs(TQ[i].Z2);
@@ -194,7 +209,9 @@ namespace GRAL_2001
 
             string unit = "[kg/h]: ";
             if (Program.Odour == true)
+            {
                 unit = "[MOU/h]: ";
+            }
 
             info = "Total emission " + unit + (totalemission).ToString("0.000");
             Console.Write(info);

@@ -155,6 +155,11 @@ namespace GRAL_2001
         } // write
 
 
+        /// <summary>
+        /// Write the classical *.gff file writing vertcal rows 
+        /// </summary>
+        /// <param name="GRALflowfield">File name</param>
+        /// <returns></returns>
         private static bool WriteCompressedGFFFiles(string GRALflowfield)
         {
             try
@@ -235,6 +240,12 @@ namespace GRAL_2001
                 return false;
             }
         }
+
+        /// <summary>
+        /// Write a stronger compressable *.gff file writing horizontal grids  
+        /// </summary>
+        /// <param name="GRALflowfield">File name</param>
+        /// <returns></returns>
         private static bool WriteStrongCompressedGFFFiles(string GRALflowfield)
         {
             try

@@ -21,7 +21,7 @@ namespace GRAL_2001
     /*  GRAZ LAGRANGIAN PARTICLE MODELL GRAL
         COMPREHENSIVE DESCRIPTION CAN BE FOUND IN OETTL, 2016
         THE GRAL MODEL HAS BEEN  DEVELOPED BY DIETMAR OETTL SINCE AROUND 1999.
-	 */
+     */
     partial class Program
     {
         /*INPUT FILES :
@@ -47,12 +47,12 @@ namespace GRAL_2001
           FOR PROGNOSTIC FLOW FIELD MODEL       Integrationtime.txt
           ROUGHNESS LENGTH FOR OBSTACLES
           FOR PROGNOSTIC FLOW FIELD MODEL       building_roughness.txt
-		  TRANSIENT GRAL MODE CONC.THRESHOLD	GRAL_Trans_Conc_Threshold.txt
-		  POLLUTANT & WET DEPOSITION SETTINGS	Pollutant.txt
-		  WET DEPOSITION PRECIPITATION DATA		Precipitation.txt
-		  CALCULATE 3D CONCENTRATION DATA IN
-		  TRANSIENT GRAL MODE					GRAL_Vert_Conc.txt
-		 */
+          TRANSIENT GRAL MODE CONC.THRESHOLD	GRAL_Trans_Conc_Threshold.txt
+          POLLUTANT & WET DEPOSITION SETTINGS	Pollutant.txt
+          WET DEPOSITION PRECIPITATION DATA		Precipitation.txt
+          CALCULATE 3D CONCENTRATION DATA IN
+          TRANSIENT GRAL MODE					GRAL_Vert_Conc.txt
+         */
 
         static void Main(string[] args)
         {
@@ -128,8 +128,8 @@ namespace GRAL_2001
             }
 
             //horizontal grid sizes of the GRAL concentration grid
-            dx = (float)((XsiMaxGral - XsiMinGral) / (float)NXL);
-            dy = (float)((EtaMaxGral - EtaMinGral) / (float)NYL);
+            GralDx = (float)((XsiMaxGral - XsiMinGral) / (float)NXL);
+            GralDy = (float)((EtaMaxGral - EtaMinGral) / (float)NYL);
 
             //Set the maximum number of threads to be used in each parallelized region
             ReaderClass.ReadMaxNumbProc();
@@ -151,6 +151,9 @@ namespace GRAL_2001
             NJJ = (int)((EtaMaxGral - EtaMinGral) / DYK);
             AHKOri = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             GralTopofile = ReaderClass.ReadGRALTopography(NII, NJJ); // GRAL Topofile OK?
+            
+            //reading main control file in.dat
+            ReaderClass.ReadInDat();
 
             //Reading building data
             //case 1: complex terrain
@@ -165,10 +168,7 @@ namespace GRAL_2001
                 InitGralFlat();
                 ReaderClass.ReadBuildingsFlat(); //define buildings in GRAL
             }
-
-            //reading main control file in.dat
-            ReaderClass.ReadInDat();
-
+          
             // array declarations for prognostic and diagnostic flow field
             if ((FlowFieldLevel > 0) || (Topo == 1))
             {
@@ -186,7 +186,9 @@ namespace GRAL_2001
                         DPM[i][j] = new float[NKK + 2];
                     }
                     if (i % 100 == 0)
+                    {
                         Console.Write(".");
+                    }
                 }
             }
 
@@ -202,20 +204,36 @@ namespace GRAL_2001
 
             //the horizontal standard deviations of wind component fluctuations are dependent on the averaging time (dispersion time)
             if ((IStatistics == 4))
+            {
                 StdDeviationV = (float)Math.Pow(TAUS / 3600, 0.2);
+            }
 
             //for applications in flat terrain, the roughness length is homogenous as defined in the file in.dat
-            if (Topo != 1) Z0Gramm[1][1] = Z0;
+            if (Topo != 1)
+            {
+                Z0Gramm[1][1] = Z0;
+            }
 
             //checking source files
             if (File.Exists("line.dat") == true)
+            {
                 LS_Count = 1;
+            }
+
             if (File.Exists("portals.dat") == true)
+            {
                 TS_Count = 1;
+            }
+
             if (File.Exists("point.dat") == true)
+            {
                 PS_Count = 1;
+            }
+
             if (File.Exists("cadastre.dat") == true)
+            {
                 AS_Count = 1;
+            }
 
             Console.WriteLine();
             Info = "Total number of horizontal slices for concentration grid: " + NS.ToString();
@@ -283,7 +301,7 @@ namespace GRAL_2001
             //total number of particles released for each weather situation
             NTEILMAX = (int)(TAUS * TPS);
             //Volume of the GRAL concentration grid
-            GridVolume = dx * dy * dz;
+            GridVolume = GralDx * GralDy * GralDz;
             //distribution of all particles over all sources according to their source strengths (the higher the emission rate the larger the number of particles)
             NTEILMAX = ParticleManagement.Calculate();
             //Coriolis parameter
@@ -334,8 +352,8 @@ namespace GRAL_2001
             }
 
             /********************************************
-			 * MAIN LOOP OVER EACH WEATHER SITUATION    *
-			 ********************************************/
+             * MAIN LOOP OVER EACH WEATHER SITUATION    *
+             ********************************************/
             Thread ThreadWriteGffFiles = null;
             Thread ThreadWriteConz4dFile = null;
 
@@ -373,7 +391,9 @@ namespace GRAL_2001
                         IDISP = InputMetTimeSeries.SearchWeatherSituation() + 1;
                         IWETstart = IDISP;
                         if (IWET > MeteoTimeSer.Count)
+                        {
                             IEND = 1;
+                        }
                     }
                     else
                     {
@@ -382,8 +402,15 @@ namespace GRAL_2001
                     }
                 }
 
-                if (ISTATIONAER == 0 && IDISP == 0) break; // reached last line in mettimeseries -> exit loop				
-                if (IEND == 1) break; // reached last line in meteopgt.all ->  exit loop
+                if (ISTATIONAER == 0 && IDISP == 0)
+                {
+                    break; // reached last line in mettimeseries -> exit loop				
+                }
+
+                if (IEND == 1)
+                {
+                    break; // reached last line in meteopgt.all ->  exit loop
+                }
 
                 String WindfieldPath = ReadWindfeldTXT();
 
@@ -437,7 +464,7 @@ namespace GRAL_2001
                             };
                             Reader.ReadSclFile();
                             AKL_GRAMM = Reader.Stabclasses;
-                            Reader.close();
+                            Reader.Close();
                         }
                     }
 
@@ -446,7 +473,9 @@ namespace GRAL_2001
 
                     //Check if all weather situations have been computed
                     if (IEND == 1)
+                    {
                         break;
+                    }
 
                     //potential temperature gradient
                     CalculateTemperatureGradient();
@@ -486,14 +515,18 @@ namespace GRAL_2001
 
                     //reset receptor concentrations
                     if (ReceptorsAvailable == 1) // if receptors are acitvated
+                    {
                         ReadReceptors.ReceptorResetConcentration();
+                    }
 
                     if (FirstLoop)
                     {
                         //read receptors
                         ReceptorNumber = 0;
                         if (ReceptorsAvailable == 1) // if receptors are acitvated
+                        {
                             ReadReceptors.ReadReceptor(); // read coordinates of receptors - flow field data needed
+                        }
                         //in case of complex terrain and/or the presence of buildings some data is written for usage in the GUI (visualization of vertical slices)
                         WriteClass.WriteGRALGeometries();
                         //optional: write building heights as utilized in GRAL
@@ -660,7 +693,10 @@ namespace GRAL_2001
                     ZippedFile = IWET.ToString("00000") + ".grz";
                     try
                     {
-                        if (File.Exists(ZippedFile)) File.Delete(ZippedFile); // delete existing files
+                        if (File.Exists(ZippedFile))
+                        {
+                            File.Delete(ZippedFile); // delete existing files
+                        }
                     }
                     catch { }
 
