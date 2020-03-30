@@ -15,8 +15,17 @@
 /// </summary>
 public class TransientDeposition
 {
+    /// <summary>
+    /// Average mode for transient deposition 0 = no, 1 = conc + depostion
+    /// </summary>
     public int DepositionMode { get; set; }
+    /// <summary>
+    /// Average deposition velocity
+    /// </summary>
     public double Vdep { get; set; }
+    /// <summary>
+    /// Average sedimentation velocity
+    /// </summary>
     public double Vsed { get; set; }
 
     public TransientDeposition()

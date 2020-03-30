@@ -28,7 +28,7 @@ namespace GRAL_2001
         ///Check Pollutant.txt and if odour is computed
         /// </summary>
         /// <result>
-        /// True -> Odour calculation
+        /// True -> Odour calculation, false -> Other pollution
         ///</result>
         public bool ReadPollutantTXT()
         {

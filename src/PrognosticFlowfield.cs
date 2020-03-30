@@ -25,8 +25,8 @@ namespace GRAL_2001
         public static float[] AP0 = new float[Program.KADVMAX + 2];
 
         /// <summary>
-	    ///Start the calculation of microscale prognostic flow fields
-	    /// </summary>
+        ///Start the calculation of microscale prognostic flow fields
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Calculate()
         {
@@ -54,7 +54,9 @@ namespace GRAL_2001
                     Program.VKS[i] = new float[NJJ + 2][];
                     Program.WKS[i] = new float[NJJ + 2][];
                     if (i < NII + 1)
+                    {
                         Program.DPMNEW[i] = new float[NJJ + 1][];
+                    }
 
                     for (int j = 1; j < NJJ + 2; ++j)
                     {
@@ -62,7 +64,9 @@ namespace GRAL_2001
                         Program.VKS[i][j] = new float[NKK + 1];
                         Program.WKS[i][j] = new float[NKK + 2];
                         if (i < NII + 1 && j < NJJ + 1)
+                        {
                             Program.DPMNEW[i][j] = new float[Program.KADVMAX + 2];
+                        }
                     }
                 }
 
@@ -193,10 +197,15 @@ namespace GRAL_2001
 
             //term used to round numbers -> improves steady-state condition
             double Frund = 8000 / topwind;  //no-diffusion
-            if (TurbulenceModel == 1)               //algebraic mixing-length model
+            if (TurbulenceModel == 1)       //algebraic mixing-length model
+            {
                 Frund = 8000 / topwind;
-            if (TurbulenceModel == 2)            //k-eps model
+            }
+
+            if (TurbulenceModel == 2)       //k-eps model
+            {
                 Frund = 10000 / topwind;
+            }
 
             //definition of the minimum and maximum iterations
             int IterationStepsMin = 100;
@@ -227,7 +236,6 @@ namespace GRAL_2001
                 }
                 catch
                 { }
-
             }
 
             //relaxation factors for pressure gradient and velocity
@@ -277,7 +285,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-
                 lock (obj) { GESCHW_MAX = Math.Max(Geschw_max1, GESCHW_MAX); }
             });
 
@@ -301,7 +308,9 @@ namespace GRAL_2001
                 {
                     int KSTART = 1;
                     if (Program.CUTK[i][j] == 0)
+                    {
                         KSTART = Program.KKART[i][j] + 1;
+                    }
 
                     int Vert_index = Program.VerticalIndex[i][j];
                     int KKART_L = Program.KKART[i][j];
@@ -318,7 +327,9 @@ namespace GRAL_2001
                             Program.UsternTerrainHelpterm[i][j] = 0.4F / MathF.Log(Program.DZK[k] * 0.5F / Program.Z0Gramm[IUstern][JUstern]);
 
                             if (Program.Z0Gramm[IUstern][JUstern] >= Program.DZK[k] * 0.1)
+                            {
                                 Program.UsternTerrainHelpterm[i][j] = 0.4F / MathF.Log((Program.DZK[k] + Program.DZK[k + 1] * 0.5F) / Program.DZK[k] * 0.1F);
+                            }
                         }
                         else if ((k == KKART_L + 1) && (CUTK_L == 1))
                         {
@@ -328,9 +339,9 @@ namespace GRAL_2001
                 }
             });
 
-            //geostrophic wind
-            float UG = Program.UKS[1][1][NKK - 1];
-            float VG = Program.VKS[1][1][NKK - 1];
+            //geostrophic wind at the reference point
+            float UG = Program.UKS[refP.X][refP.Y][NKK - 1];
+            float VG = Program.VKS[refP.X][refP.Y][NKK - 1];
 
             //initialization of turbulent kinetic energy, dissipation, and potential temperature
             Parallel.For(1, NII + 1, Program.pOptions, i =>
@@ -376,7 +387,9 @@ namespace GRAL_2001
                                 for (int iprof = 1; iprof <= Program.MetProfileNumb; iprof++)
                                 {
                                     if (zhilf > Program.MeasurementHeight[iprof])
+                                    {
                                         ipo = iprof + 1;
+                                    }
                                 }
                                 U0int = Program.U0[ipo - 1] + (Program.U0[ipo] - Program.U0[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
                                     (zhilf - Program.MeasurementHeight[ipo - 1]);
@@ -392,9 +405,14 @@ namespace GRAL_2001
                         }
 
                         if (Program.Ob[IUstern][JUstern] < 0)
+                        {
                             varw = (Program.Pow2(Program.Ustern[IUstern][JUstern]) * Program.Pow2(1.15F + 0.1F * MathF.Pow(Program.BdLayHeight / (-Program.Ob[IUstern][JUstern]), 0.67F)) * Program.Pow2(Program.StdDeviationW));
+                        }
                         else
+                        {
                             varw = Program.Pow2(Program.Ustern[IUstern][JUstern] * Program.StdDeviationW * 1.25F);
+                        }
+
                         if (TurbulenceModel != 1)
                         {
                             Program.TURB[i][j][k] = (float)(0.5 * (Program.Pow2(U0int) + Program.Pow2(V0int) + varw));
@@ -445,11 +463,23 @@ namespace GRAL_2001
                             if (KKART >= k)
                             {
                                 UK_L[k] = 0;
-                                if (i == NII) Program.UK[i + 1][j][k] = 0;
+                                if (i == NII)
+                                {
+                                    Program.UK[i + 1][j][k] = 0;
+                                }
+
                                 VK_L[k] = 0;
-                                if (j == NJJ) Program.VK[i][j + 1][k] = 0;
+                                if (j == NJJ)
+                                {
+                                    Program.VK[i][j + 1][k] = 0;
+                                }
+
                                 WK_L[k] = 0;
-                                if (k == Vert_index) WK_L[k + 1] = 0;
+                                if (k == Vert_index)
+                                {
+                                    WK_L[k + 1] = 0;
+                                }
+
                                 if (TurbulenceModel != 1)
                                 {
                                     Program.TURB[i][j][k] = 0;
@@ -464,10 +494,8 @@ namespace GRAL_2001
                 }
             });
 
-
-        //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS
-
-        CONTINUE_SIMULATION:
+            //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
+            CONTINUE_SIMULATION:
             while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel > 1))
             {
                 if (IterationLoops == 1)
@@ -504,7 +532,9 @@ namespace GRAL_2001
                                     {
                                         float UK_L = Program.UK[iM2][j][k];
                                         if (UK_L >= 0)
+                                        {
                                             Program.UK[iM1][j][k] = UK_L;
+                                        }
 
                                         Program.VK[iM2][j][k] = Program.VK[iM1][j][k];
                                         Program.WK[iM2][j][k] = Program.WK[iM1][j][k];
@@ -514,7 +544,9 @@ namespace GRAL_2001
                                     {
                                         float UK_L = Program.UK[iP2][j][k];
                                         if (UK_L <= 0)
+                                        {
                                             Program.UK[iP1][j][k] = UK_L;
+                                        }
 
                                         Program.VK[iP1][j][k] = VK_L[k];
                                         Program.WK[iP1][j][k] = WK_L[k];
@@ -551,7 +583,9 @@ namespace GRAL_2001
                                     {
                                         float VK_L = Program.VK[i][jM2][k];
                                         if (VK_L >= 0)
+                                        {
                                             Program.VK[i][jM1][k] = VK_L;
+                                        }
 
                                         Program.UK[i][jM2][k] = Program.UK[i][jM1][k];
                                         Program.WK[i][jM2][k] = Program.WK[i][jM1][k];
@@ -561,7 +595,9 @@ namespace GRAL_2001
                                     {
                                         float VK_L = Program.VK[i][jP2][k];
                                         if (VK_L <= 0)
+                                        {
                                             Program.VK[i][jP1][k] = VK_L;
+                                        }
 
                                         Program.UK[i][jP1][k] = UK_L[k];
                                         Program.WK[i][jP1][k] = WK_L[k];
@@ -619,9 +655,13 @@ namespace GRAL_2001
                                 if (KKART_LL < k)
                                 {
                                     if (k > KKART_LL + 1)
+                                    {
                                         DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] + (WK_L[k] - WK_L[k + 1]) * AREAxy;
+                                    }
                                     else
+                                    {
                                         DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] - WK_L[k + 1] * AREAxy;
+                                    }
 
                                     DPM_L[k] = 0;
                                 }
@@ -687,12 +727,18 @@ namespace GRAL_2001
                     float TERMP;
 
                     int j = j1;
-                    if (JS == -1) j = NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = NJJ - j1 + 1;
+                    }
 
                     for (int i1 = 2; i1 <= NII - 1; ++i1)
                     {
                         int i = i1;
-                        if (IS == -1) i = NII - i1 + 1;
+                        if (IS == -1)
+                        {
+                            i = NII - i1 + 1;
+                        }
 
                         if (Program.ADVDOM[i][j] == 1)
                         {
@@ -715,9 +761,13 @@ namespace GRAL_2001
                                     APP = 2F * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + AREAxy / Program.DZK[k]);
 
                                     if (k > 1)
+                                    {
                                         ABP = AREAxy / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                    }
                                     else
+                                    {
                                         ABP = AREAxy / Program.DZK[k];
+                                    }
 
                                     ATP = AREAxy / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
                                     TERMP = 1 / (APP - ATP * PIMP[k + 1]);
@@ -745,7 +795,9 @@ namespace GRAL_2001
                     lock (obj)
                     {
                         if (DeltaUMaxIntern > DeltaUMax)
+                        {
                             Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
+                        }
                     }
                 });
 
@@ -775,15 +827,23 @@ namespace GRAL_2001
                                 float DPM_L_K = DPM_L[k];
 
                                 if (i > 2 && (KKART_LL < k) && (KKARTiM < k))
+                                {
                                     UK_L[k] = (float)(Program.ConvToInt((UK_L[k] + (DPMim_L[k] - DPM_L_K) / DXK * DTIME) * Frund) / Frund);
+                                }
 
                                 if (j > 2 && (KKART_LL < k) && (KKARTjM < k))
+                                {
                                     VK_L[k] = (float)(Program.ConvToInt((VK_L[k] + (DPMjm_L[k] - DPM_L_K) / DYK * DTIME) * Frund) / Frund);
+                                }
 
                                 if (KKART_LL_P1 < k)
+                                {
                                     WK_L[k] = (float)(Program.ConvToInt((WK_L[k] + (DPM_L[k - 1] - DPM_L_K) / (Program.DZK[k] + Program.DZK[k - 1]) * 2 * DTIME) * Frund) / Frund);
+                                }
                                 else
+                                {
                                     WK_L[k] = 0;
+                                }
                             }
                         }
                     }
@@ -819,7 +879,9 @@ namespace GRAL_2001
 
                             int KSTART = 1;
                             if (Program.CUTK[i][j] == 0)
+                            {
                                 KSTART = KKART_LL_P1;
+                            }
 
                             for (int k = KSTART; k <= Vert_index; ++k)
                             {
@@ -829,10 +891,19 @@ namespace GRAL_2001
                                     VKS_L[k] = 0.5F * (VK_L[k] + VKjp_L[k]);
                                 }
                                 if (KKART_LL_P1 < k)
+                                {
                                     WKS_L[k] = 0.5F * (WK_L[k] + WK_L[k + 1]);
+                                }
 
-                                if (j == 2) Program.UKS[i][1][k] = Program.UKS[i][2][k];
-                                if (j == NJJ - 1) Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];
+                                if (j == 2)
+                                {
+                                    Program.UKS[i][1][k] = Program.UKS[i][2][k];
+                                }
+
+                                if (j == NJJ - 1)
+                                {
+                                    Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];
+                                }
                             }
                         }
                     }
@@ -904,7 +975,10 @@ namespace GRAL_2001
                     Console.WriteLine("ITERATION " + IterationLoops.ToString() + ": " + _delta.ToString("0.000"));
                     
                     if (_delta < 0.012 && (IterationLoops >= IterationStepsMin))
+                    {
                         break;
+                    }
+
                     DeltaMean = 0;
                 }
                 else
@@ -1424,7 +1498,10 @@ namespace GRAL_2001
                         U0int5 = Math.Max(U0int5, 0.3);
                         double varw = Program.Pow2(Program.Ustern[1][1] * Program.StdDeviationW * 1.25);
                         if (Program.Ob[1][1] < 0)
+                        {
                             varw = Program.Pow2(Program.Ustern[1][1]) * Program.Pow2(1.15 + 0.1 * Math.Pow(Program.BdLayHeight / (-Program.Ob[1][1]), 0.67)) * Program.Pow2(Program.StdDeviationW);
+                        }
+
                         if (TurbulenceModel != 1)
                         {
                             sw.WriteLine(Program.Ustern[1][1].ToString("0.00") + "," + Program.UKS[iA][jA][kA].ToString("0.00") + "," + Program.VKS[iA][jA][kA].ToString("0.00") + "," + Program.TURB[iA][jA][kA].ToString("0.00") + "," +

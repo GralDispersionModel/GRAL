@@ -59,7 +59,12 @@ namespace GRAL_2001
                             ProgramWriters.LogfileProblemreportWrite(err);
 
                             if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                                while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                            {
+                                while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                                {
+                                    ;
+                                }
+                            }
 
                             Environment.Exit(0);
                         }
@@ -107,7 +112,7 @@ namespace GRAL_2001
 
                         _line++;
                         text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                        Program.dz = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                        Program.GralDz = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
 
                         _line++;
                         text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
@@ -202,7 +207,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }
@@ -215,7 +225,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }

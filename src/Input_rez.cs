@@ -76,18 +76,18 @@ namespace GRAL_2001
                                     Program.ReceptorName.Add("Rec." + block.ToString());
                                 }
 
-                                if (Program.ReceptorZ[block] < Program.dz * 0.5F)
+                                if (Program.ReceptorZ[block] < Program.GralDz * 0.5F)
                                 {
-                                    Program.ReceptorZ[block] = Program.dz * 0.5F;
+                                    Program.ReceptorZ[block] = Program.GralDz * 0.5F;
                                 }
 
                                 double xsi = Program.ReceptorX[block] - Program.IKOOAGRAL;
                                 double eta = Program.ReceptorY[block] - Program.JKOOAGRAL;
 
                                 //receptor indices in the GRAL concentration grid
-                                Program.ReceptorIInd[block] = (int)(xsi / Program.dx) + 1;
-                                Program.ReceptorJInd[block] = (int)(eta / Program.dy) + 1;
-                                Program.ReceptorKInd[block] = (int)(Program.ReceptorZ[block] / Program.dz);
+                                Program.ReceptorIInd[block] = (int)(xsi / Program.GralDx) + 1;
+                                Program.ReceptorJInd[block] = (int)(eta / Program.GralDy) + 1;
+                                Program.ReceptorKInd[block] = (int)(Program.ReceptorZ[block] / Program.GralDz);
 
                                 if (Program.ReceptorIInd[block] > Program.NXL) Program.ReceptorIInd[block] = Program.NXL;
                                 if (Program.ReceptorJInd[block] > Program.NYL) Program.ReceptorJInd[block] = Program.NYL;
@@ -118,8 +118,8 @@ namespace GRAL_2001
                                     if (Program.ReceptorJIndFF[block] < 1) Program.ReceptorJIndFF[block] = 1;
 
                                     // check, if a building higher than the receptor is nearby the receptor or the receptor is at the border
-                                    int dx = (int)(Program.dx / Program.DXK);
-                                    int dy = (int)(Program.dy / Program.DYK);
+                                    int dx = (int)(Program.GralDx / Program.DXK);
+                                    int dy = (int)(Program.GralDy / Program.DYK);
                                     for (int i = Program.ReceptorIIndFF[block] - dx; i <= Program.ReceptorIIndFF[block] + dx; i++)
                                     {
                                         for (int j = Program.ReceptorJIndFF[block] - dy; j <= Program.ReceptorJIndFF[block] + dy; j++)
@@ -129,7 +129,7 @@ namespace GRAL_2001
                                                 if (Program.CUTK[i][j] > Program.ReceptorZ[block])
                                                 {
                                                     // in case of equal flow field and concetration raster, otherwise a volume correction is applied
-                                                    if (Program.dx == Program.DXK && Program.dy == Program.DYK)
+                                                    if (Program.GralDx == Program.DXK && Program.GralDy == Program.DYK)
                                                     {
                                                         Program.ReceptorNearbyBuilding[block] = true;
                                                     }

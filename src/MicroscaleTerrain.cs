@@ -20,10 +20,10 @@ namespace GRAL_2001
 {
     public class MicroscaleTerrain
     {
-
         /// <summary>
         /// Get the microscale terrain from GRAL_topofile.txt or interpolate GRAMM terrain
         /// </summary>
+        /// <param name="firstloop">True if the calculation starts with the first weather situation</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Calculate(bool firstloop)
         {
@@ -39,7 +39,7 @@ namespace GRAL_2001
             bool[,] vec_count = new bool[Program.NII + 2, Program.NJJ + 2];
             Array.Clear(vec_count, 0, vec_count.Length);
 
-            //read vegetation only once
+            //read vegetation only one times
             if (File.Exists("vegetation.dat") == true)
             {
                 //read vegetation only one times
@@ -77,11 +77,13 @@ namespace GRAL_2001
 
                 object obj = new object();
 
+                //Interpolation of the coarse GRAMM topography grid to the finer GRAL grid and
+                //interpolation of the GRAMM wind field to the GRAL wind field
                 Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
                 {
                     double vec_x_loc = 0; double vec_y_loc = 0; int vec_numb_loc = 0;
-                    Span<float> Zellhoehe = stackalloc float[Program.NK + 1];
-                    Span<float> Zellhoehe_p = stackalloc float[Program.NK + 1];
+                    Span<float> CellHeight = stackalloc float[Program.NK + 1];
+                    Span<float> CellHeightPlus = stackalloc float[Program.NK + 1];
 
                     for (int j = 1; j <= Program.NJJ; j++)
                     {
@@ -143,14 +145,14 @@ namespace GRAL_2001
 
                                 float gew = r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10 + r11 + r12 + r13 + r14 + r15 + r16;
 
-                                Zellhoehe[ik] = (AHE_L[ik] * r1 + AHEJP_L[ik] * r2 + AHEIPJP[ik] * r3 +
+                                CellHeight[ik] = (AHE_L[ik] * r1 + AHEJP_L[ik] * r2 + AHEIPJP[ik] * r3 +
                                     AHEIP[ik] * r4 + Program.AHE[indi - 1][indj - 1][ik] * r5 + AHEIJM[ik] * r6 +
                                     AHEIPJM[ik] * r7 + AHEIP2JM[ik] * r8 + AHEIP2J[ik] * r9 +
                                     AHEIP2JP[ik] * r10 + AHEIP2JP2[ik] * r11 + AHEIPJP2[ik] * r12 +
                                     AHEIJP2[ik] * r13 + AHEIMJP2[ik] * r14 + AHEIMJP[ik] * r15 +
                                     AHEIMJ[ik] * r16) / gew - Program.AHMIN;
 
-                                Zellhoehe_p[ik] = (AHE_L[ik_p] * r1 + AHEJP_L[ik_p] * r2 + AHEIPJP[ik_p] * r3 +
+                                CellHeightPlus[ik] = (AHE_L[ik_p] * r1 + AHEJP_L[ik_p] * r2 + AHEIPJP[ik_p] * r3 +
                                     AHEIP[ik_p] * r4 + Program.AHE[indi - 1][indj - 1][ik_p] * r5 + AHEIJM[ik_p] * r6 +
                                     AHEIPJM[ik_p] * r7 + AHEIP2JM[ik_p] * r8 + AHEIP2J[ik_p] * r9 +
                                     AHEIP2JP[ik_p] * r10 + AHEIP2JP2[ik_p] * r11 + AHEIPJP2[ik_p] * r12 +
@@ -165,8 +167,8 @@ namespace GRAL_2001
                             int indk = 0;
                             int indk_p = 0;
                             int ik_p = 0;
-                            float zellhoehe = 0;
-                            float zellhoehe_p = 0;
+                            float _cellHeight = 0;
+                            float _cellHeightPlus = 0;
                             float delta_z = 0;
 
                             for (int ik = Program.NK; ik >= 1; ik--)
@@ -174,33 +176,42 @@ namespace GRAL_2001
                                 ik_p = Math.Min(ik + 1, Program.NK);
                                 if ((indi > Program.NX - 1) || (indi < 2))
                                 {
-                                    zellhoehe = AHE_L[ik] - Program.AHMIN;
-                                    zellhoehe_p = AHE_L[ik_p] - Program.AHMIN;
+                                    _cellHeight = AHE_L[ik] - Program.AHMIN;
+                                    _cellHeightPlus = AHE_L[ik_p] - Program.AHMIN;
                                 }
                                 else if ((indj > Program.NY - 1) || (indj < 2))
                                 {
-                                    zellhoehe = AHE_L[ik] - Program.AHMIN;
-                                    zellhoehe_p = AHE_L[ik_p] - Program.AHMIN;
+                                    _cellHeight = AHE_L[ik] - Program.AHMIN;
+                                    _cellHeightPlus = AHE_L[ik_p] - Program.AHMIN;
                                 }
                                 else
                                 {
-                                    zellhoehe = Zellhoehe[ik];
-                                    zellhoehe_p = Zellhoehe_p[ik];
+                                    _cellHeight = CellHeight[ik];
+                                    _cellHeightPlus = CellHeightPlus[ik];
                                 }
 
-                                if (vertk - Program.AHMIN > zellhoehe + Program.CUTK[i][j])
+                                if (vertk - Program.AHMIN > _cellHeight + Program.CUTK[i][j])
                                 {
                                     indk = ik;
                                     indk_p = Math.Min(indk + 1, Program.NK);
-                                    delta_z = (float)(vertk - Program.AHMIN) - (zellhoehe + Program.CUTK[i][j]);
+                                    delta_z = (float)(vertk - Program.AHMIN) - (_cellHeight + Program.CUTK[i][j]);
                                     break;
                                 }
                             }
 
+                            // cell height above terrain and buildings
                             if (indk > 0)
                             {
-                                if (indi > Program.NX) indi = Program.NX;
-                                if (indj > Program.NY) indj = Program.NY;
+                                if (indi > Program.NX)
+                                {
+                                    indi = Program.NX;
+                                }
+
+                                if (indj > Program.NY)
+                                {
+                                    indj = Program.NY;
+                                }
+
                                 int ixm = 0;
                                 int iym = 0;
                                 if (xwert < DDX1 * 0.5)
@@ -233,8 +244,8 @@ namespace GRAL_2001
                                 //vertical interpolation
                                 float ux3 = Program.UWIN[indi][indj][indk_p] + (Program.UWIN[ixm][indj][indk_p] - Program.UWIN[indi][indj][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float ux4 = Program.UWIN[indi][iym][indk_p] + (Program.UWIN[ixm][iym][indk_p] - Program.UWIN[indi][iym][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
-                                float ux5 = ux1 + (ux3 - ux1) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
-                                float ux6 = ux2 + (ux4 - ux2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
+                                float ux5 = ux1 + (ux3 - ux1) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
+                                float ux6 = ux2 + (ux4 - ux2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 UK_L[k] = (float)(ux5 + (ux6 - ux5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //UK_L[k] = (float)(ux1 + (ux2 - ux1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
 
@@ -243,8 +254,8 @@ namespace GRAL_2001
                                 //vertical interpolation
                                 float vx3 = Program.VWIN[indi][indj][indk_p] + (Program.VWIN[ixm][indj][indk_p] - Program.VWIN[indi][indj][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float vx4 = Program.VWIN[indi][iym][indk_p] + (Program.VWIN[ixm][iym][indk_p] - Program.VWIN[indi][iym][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
-                                float vx5 = vx1 + (vx3 - vx1) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
-                                float vx6 = vx2 + (vx4 - vx2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
+                                float vx5 = vx1 + (vx3 - vx1) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
+                                float vx6 = vx2 + (vx4 - vx2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 VK_L[k] = (float)(vx5 + (vx6 - vx5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //VK_L[k] = (float)(vx1 + (vx2 - vx1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
 
@@ -253,8 +264,8 @@ namespace GRAL_2001
                                 //vertical interpolation
                                 float wx3 = Program.WWIN[indi][indj][indk_p] + (Program.WWIN[ixm][indj][indk_p] - Program.WWIN[indi][indj][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float wx4 = Program.WWIN[indi][iym][indk_p] + (Program.WWIN[ixm][iym][indk_p] - Program.WWIN[indi][iym][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
-                                float wx5 = wx1 + (wx3 - wx1) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
-                                float wx6 = wx2 + (wx4 - wx2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
+                                float wx5 = wx1 + (wx3 - wx1) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
+                                float wx6 = wx2 + (wx4 - wx2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 WK_L[k] = (float)(wx5 + (wx6 - wx5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //WK_L[k] = (float)(wx1 + (wx2 - wx1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
 
@@ -268,25 +279,50 @@ namespace GRAL_2001
                                 }
 
                                 if (i > 1)
-                                    if (k <= Program.KKART[i - 1][j]) UK_L[k] = 0;
+                                {
+                                    if (k <= Program.KKART[i - 1][j])
+                                    {
+                                        UK_L[k] = 0;
+                                    }
+                                }
+
                                 if (j > 1)
-                                    if (k <= Program.KKART[i][j - 1]) VK_L[k] = 0;
+                                {
+                                    if (k <= Program.KKART[i][j - 1])
+                                    {
+                                        VK_L[k] = 0;
+                                    }
+                                }
 
                                 Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
                                 Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
                             }
                             else
                             {
+                                // cell height below terrain and buildings -> wind speed = 0
                                 UK_L[k] = 0;
                                 VK_L[k] = 0;
                                 WK_L[k] = 0;
-                                if (i < Program.NII) UKip_L[k] = 0;
-                                if (j < Program.NJJ) VKjp_L[k] = 0;
-                                if (k < Program.NKK) WK_L[k + 1] = 0;
+                                if (i < Program.NII)
+                                {
+                                    UKip_L[k] = 0;
+                                }
+
+                                if (j < Program.NJJ)
+                                {
+                                    VKjp_L[k] = 0;
+                                }
+
+                                if (k < Program.NKK)
+                                {
+                                    WK_L[k + 1] = 0;
+                                }
+
+                                //calculate the surface height, the rasterized building height and the surface index KKART
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k] + Program.AHMIN, Program.AHK[i][j]);
                                 if (Program.CUTK[i][j] > 0)
                                 {
-                                    Program.BUI_HEIGHT[i][j] = (float)Math.Max(Program.AHK[i][j] - Program.AHMIN - zellhoehe, Program.BUI_HEIGHT[i][j]);
+                                    Program.BUI_HEIGHT[i][j] = (float)Math.Max(Program.AHK[i][j] - Program.AHMIN - _cellHeight, Program.BUI_HEIGHT[i][j]);
                                 }
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
                             }
@@ -302,6 +338,7 @@ namespace GRAL_2001
                     }
                     lock (obj)
                     {
+                        //Calculate the mean wind vectors in 10 m above ground
                         vec_numb += vec_numb_loc;
                         vec_x += vec_x_loc;
                         vec_y += vec_y_loc;
@@ -314,12 +351,15 @@ namespace GRAL_2001
             {
                 Program.KADVMAX = 1;
                 object obj = new object();
+
+                //Interpolation of the coarse GRAMM topography grid to the finer GRAL grid and
+                //interpolation of the GRAMM wind field to the GRAL wind field
                 Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
                 {
                     int KADVMAX1 = 1;
                     double vec_x_loc = 0; float vec_y_loc = 0; int vec_numb_loc = 0;
-                    Span<float> Zellhoehe = stackalloc float[Program.NK + 1];
-                    Span<float> Zellhoehe_p = stackalloc float[Program.NK + 1];
+                    Span<float> CellHeight = stackalloc float[Program.NK + 1];
+                    Span<float> CellHeightPlus = stackalloc float[Program.NK + 1];
 
                     for (int j = 1; j <= Program.NJJ; j++)
                     {
@@ -381,14 +421,14 @@ namespace GRAL_2001
 
                                 float gew = r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10 + r11 + r12 + r13 + r14 + r15 + r16;
 
-                                Zellhoehe[ik] = (AHE_L[ik] * r1 + AHEJP_L[ik] * r2 + AHEIPJP[ik] * r3 +
+                                CellHeight[ik] = (AHE_L[ik] * r1 + AHEJP_L[ik] * r2 + AHEIPJP[ik] * r3 +
                                     AHEIP[ik] * r4 + Program.AHE[indi - 1][indj - 1][ik] * r5 + AHEIJM[ik] * r6 +
                                     AHEIPJM[ik] * r7 + AHEIP2JM[ik] * r8 + AHEIP2J[ik] * r9 +
                                     AHEIP2JP[ik] * r10 + AHEIP2JP2[ik] * r11 + AHEIPJP2[ik] * r12 +
                                     AHEIJP2[ik] * r13 + AHEIMJP2[ik] * r14 + AHEIMJP[ik] * r15 +
                                     AHEIMJ[ik] * r16) / gew;
 
-                                Zellhoehe_p[ik] = (AHE_L[ik_p] * r1 + AHEJP_L[ik_p] * r2 + AHEIPJP[ik_p] * r3 +
+                                CellHeightPlus[ik] = (AHE_L[ik_p] * r1 + AHEJP_L[ik_p] * r2 + AHEIPJP[ik_p] * r3 +
                                     AHEIP[ik_p] * r4 + Program.AHE[indi - 1][indj - 1][ik_p] * r5 + AHEIJM[ik_p] * r6 +
                                     AHEIPJM[ik_p] * r7 + AHEIP2JM[ik_p] * r8 + AHEIP2J[ik_p] * r9 +
                                     AHEIP2JP[ik_p] * r10 + AHEIP2JP2[ik_p] * r11 + AHEIPJP2[ik_p] * r12 +
@@ -405,9 +445,9 @@ namespace GRAL_2001
                             int indz = 1;
                             int ik_p = 0;
                             int indk_p = 0;
-                            float zellhoehe_p = 0;
+                            float _cellHeightPlus = 0;
                             float delta_z = 0;
-                            float zellhoehe = 0;
+                            float _cellHeight = 0;
 
                             for (int ik = Program.NK; ik >= 1; ik--)
                             {
@@ -415,18 +455,18 @@ namespace GRAL_2001
 
                                 if ((indi > Program.NX - 1) || (indi < 2))
                                 {
-                                    zellhoehe = AHE_L[ik] - Program.AHMIN;
-                                    zellhoehe_p = AHE_L[ik_p] - Program.AHMIN;
+                                    _cellHeight = AHE_L[ik] - Program.AHMIN;
+                                    _cellHeightPlus = AHE_L[ik_p] - Program.AHMIN;
                                 }
                                 else if ((indj > Program.NY - 1) || (indj < 2))
                                 {
-                                    zellhoehe = AHE_L[ik] - Program.AHMIN;
-                                    zellhoehe_p = AHE_L[ik_p] - Program.AHMIN;
+                                    _cellHeight = AHE_L[ik] - Program.AHMIN;
+                                    _cellHeightPlus = AHE_L[ik_p] - Program.AHMIN;
                                 }
                                 else
                                 {
-                                    zellhoehe = Zellhoehe[ik];
-                                    zellhoehe_p = Zellhoehe_p[ik];
+                                    _cellHeight = CellHeight[ik];
+                                    _cellHeightPlus = CellHeightPlus[ik];
                                 }
 
                                 // GRAL cell height below GRAMM surface -> break
@@ -437,20 +477,28 @@ namespace GRAL_2001
                                     break;
                                 }
                                 // GRAL cell height above GRAMM surface -> generate UK, VK, WK
-                                if (vertk > zellhoehe + Program.CUTK[i][j])
+                                if (vertk > _cellHeight + Program.CUTK[i][j])
                                 {
                                     indk = ik;
                                     indk_p = Math.Min(indk + 1, Program.NK);
-                                    delta_z = vertk - (zellhoehe + Program.CUTK[i][j]);
+                                    delta_z = vertk - (_cellHeight + Program.CUTK[i][j]);
                                     break;
                                 }
                             }
 
-                            // gerenate UK, VK, WK from GRAMM wind field inclusive vertical interpolation of GRAMM wind fields
+                            // gerenate GRAL wind vectors UK, VK, WK from GRAMM wind field inclusive vertical interpolation of GRAMM wind fields
                             if (indz > 0)
                             {
-                                if (indi > Program.NX) indi = Program.NX;
-                                if (indj > Program.NY) indj = Program.NY;
+                                if (indi > Program.NX)
+                                {
+                                    indi = Program.NX;
+                                }
+
+                                if (indj > Program.NY)
+                                {
+                                    indj = Program.NY;
+                                }
+
                                 int ixm = 0;
                                 int iym = 0;
                                 if (xwert < DDX1 * 0.5F)
@@ -483,8 +531,8 @@ namespace GRAL_2001
                                 //vertical interpolation
                                 float ux3 = Program.UWIN[indi][indj][indk_p] + (Program.UWIN[ixm][indj][indk_p] - Program.UWIN[indi][indj][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float ux4 = Program.UWIN[indi][iym][indk_p] + (Program.UWIN[ixm][iym][indk_p] - Program.UWIN[indi][iym][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
-                                float ux5 = ux1 + (ux3 - ux1) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
-                                float ux6 = ux2 + (ux4 - ux2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
+                                float ux5 = ux1 + (ux3 - ux1) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
+                                float ux6 = ux2 + (ux4 - ux2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 UK_L[k] = (float)(ux5 + (ux6 - ux5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //UK_L[k] = (float)(ux1 + (ux2 - ux1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                
@@ -493,8 +541,8 @@ namespace GRAL_2001
                                 //vertical interpolation
                                 float vx3 = Program.VWIN[indi][indj][indk_p] + (Program.VWIN[ixm][indj][indk_p] - Program.VWIN[indi][indj][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float vx4 = Program.VWIN[indi][iym][indk_p] + (Program.VWIN[ixm][iym][indk_p] - Program.VWIN[indi][iym][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
-                                float vx5 = vx1 + (vx3 - vx1) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
-                                float vx6 = vx2 + (vx4 - vx2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
+                                float vx5 = vx1 + (vx3 - vx1) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
+                                float vx6 = vx2 + (vx4 - vx2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 VK_L[k] = (float)(vx5 + (vx6 - vx5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //VK_L[k] = (float)(vx1 + (vx2 - vx1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
 
@@ -503,16 +551,26 @@ namespace GRAL_2001
                                 //vertical interpolation
                                 float wx3 = Program.WWIN[indi][indj][indk_p] + (Program.WWIN[ixm][indj][indk_p] - Program.WWIN[indi][indj][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float wx4 = Program.WWIN[indi][iym][indk_p] + (Program.WWIN[ixm][iym][indk_p] - Program.WWIN[indi][iym][indk_p]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
-                                float wx5 = wx1 + (wx3 - wx1) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
-                                float wx6 = wx2 + (wx4 - wx2) / (Math.Max(zellhoehe_p - zellhoehe, 0.1F)) * delta_z;
+                                float wx5 = wx1 + (wx3 - wx1) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
+                                float wx6 = wx2 + (wx4 - wx2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 WK_L[k] = (float)(wx5 + (wx6 - wx5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //WK_L[k] = (float)(wx1 + (wx2 - wx1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
 
                                 if (i > 1)
-                                    if (k <= Program.KKART[i - 1][j]) UK_L[k] = 0;
-                                if (j > 1)
-                                    if (k <= Program.KKART[i][j - 1]) VK_L[k] = 0;
+                                {
+                                    if (k <= Program.KKART[i - 1][j])
+                                    {
+                                        UK_L[k] = 0;
+                                    }
+                                }
 
+                                if (j > 1)
+                                {
+                                    if (k <= Program.KKART[i][j - 1])
+                                    {
+                                        VK_L[k] = 0;
+                                    }
+                                }
 
                                 if (i == 1)
                                 {
@@ -538,15 +596,26 @@ namespace GRAL_2001
                                 UK_L[k] = 0;
                                 VK_L[k] = 0;
                                 WK_L[k] = 0;
-                                if (i < Program.NII) UKip_L[k] = 0;
-                                if (j < Program.NJJ) VKjp_L[k] = 0;
-                                if (k < Program.NKK) WK_L[k + 1] = 0;
+                                if (i < Program.NII)
+                                {
+                                    UKip_L[k] = 0;
+                                }
 
+                                if (j < Program.NJJ)
+                                {
+                                    VKjp_L[k] = 0;
+                                }
+
+                                if (k < Program.NKK)
+                                {
+                                    WK_L[k + 1] = 0;
+                                }
+
+                                //calculate the surface height, the rasterized building height and the surface index KKART
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k] + Program.AHKOriMin, Program.AHK[i][j]);
-
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
-                                
-                                // Inside the prognostic sub domain?
+
+                                // Inside the prognostic sub domain? -> store the maximum surface index within prognostic sub domains
                                 if (Program.ADVDOM[i][j] > 0)
                                 {
                                     KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
@@ -560,10 +629,12 @@ namespace GRAL_2001
                     }
                     lock (obj)
                     {
+                        // store the maximum surface index within prognostic sub domains
                         if (KADVMAX1 > Program.KADVMAX)
                         {
                             Program.KADVMAX = Math.Max(Program.KADVMAX, KADVMAX1);
-                        }                 
+                        }
+                        //Calculate the mean wind vectors in 10 m above ground
                         vec_numb += vec_numb_loc;
                         vec_x += vec_x_loc;
                         vec_y += vec_y_loc;
@@ -571,7 +642,8 @@ namespace GRAL_2001
                 });
                 obj = null;
             }
-            //maximum z-index up to the microscale flow field is calculated
+
+            //maximum vertical index up to the microscale flow field is calculated
             Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);
 
             //final computation of the minimum elevation of the GRAL orography
@@ -586,12 +658,19 @@ namespace GRAL_2001
 
             Program.WindDirGramm = (float)(Math.Atan2(vec_x, vec_y) * 180 / Math.PI + 180);
             if (Program.WindDirGramm < 0)
+            {
                 Program.WindDirGramm += 360;
+            }
+
             if (Program.WindDirGramm > 360)
+            {
                 Program.WindDirGramm -= 360;
+            }
 
             if (vec_numb > 0)
+            {
                 Program.WindVelGramm = (float)Math.Sqrt(Math.Pow(vec_x, 2) + Math.Pow(vec_y, 2)) / vec_numb;
+            }
 
             //optional: write GRAL orography
             if (Program.IDISP == 1 || firstloop)
@@ -662,40 +741,56 @@ namespace GRAL_2001
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > KKART))
+                                {
                                     entf = Math.Abs((i - ig) * DXK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind1 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards east for obstacles
                             for (int ig = i + IGEB; ig >= i + 1; ig--)
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > KKART))
+                                {
                                     entf = Math.Abs((i - ig) * DXK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind2 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards south for obstacles
                             for (int jg = j - IGEB; jg < j; jg++)
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > KKART))
+                                {
                                     entf = Math.Abs((j - jg) * DYK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind3 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards north for obstacles
                             for (int jg = j + IGEB; jg >= j + 1; jg--)
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > KKART))
+                                {
                                     entf = Math.Abs((j - jg) * DYK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind4 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards north/east for obstacles
                             for (int ig = i + IGEB; ig >= i + 1; ig--)
@@ -703,10 +798,14 @@ namespace GRAL_2001
                                 int jg = j + ig - i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind5 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards south/west for obstacles
                             for (int ig = i - IGEB; ig < i; ig++)
@@ -714,10 +813,14 @@ namespace GRAL_2001
                                 int jg = j + ig - i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind6 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards south/east for obstacles
                             for (int ig = i + IGEB; ig >= i + 1; ig--)
@@ -725,10 +828,14 @@ namespace GRAL_2001
                                 int jg = j - ig + i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind7 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards north/west for obstacles
                             for (int ig = i - IGEB; ig < i; ig++)
@@ -736,10 +843,14 @@ namespace GRAL_2001
                                 int jg = j - ig + i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind8 *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             abmind = abmind1 * abmind2 * abmind3 * abmind4 * abmind5 * abmind6 * abmind7 * abmind8;
 
@@ -766,9 +877,13 @@ namespace GRAL_2001
 
             //Final mass conservation using poisson equation for pressure
             if (Program.FlowFieldLevel == 1)
+            {
                 Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
+            }
             else if (Program.FlowFieldLevel == 0)
+            {
                 Console.WriteLine("DIAGNOSTIC WIND FIELD CALCULATION");
+            }
 
             DiagnosticFlowfield.Calculate();
 
@@ -795,29 +910,49 @@ namespace GRAL_2001
                         if (k > KKART)
                         {
                             if (k <= Program.KKART[i - 1][j])
+                            {
                                 fwo1 = 0;
+                            }
                             else
+                            {
                                 fwo1 = Program.DZK[k] * DYK * UK_L[k];
+                            }
 
                             if (k <= Program.KKART[i + 1][j])
+                            {
                                 fwo2 = 0;
+                            }
                             else
+                            {
                                 fwo2 = Program.DZK[k] * DYK * UKi_L[k];
+                            }
 
                             if (k <= Program.KKART[i][j - 1])
+                            {
                                 fsn1 = 0;
+                            }
                             else
+                            {
                                 fsn1 = Program.DZK[k] * DYK * VK_L[k];
+                            }
 
                             if (k <= Program.KKART[i][j + 1])
+                            {
                                 fsn2 = 0;
+                            }
                             else
+                            {
                                 fsn2 = Program.DZK[k] * DYK * VKj_L[k];
+                            }
 
                             if ((k <= KKART + 1) || (k == 1))
+                            {
                                 fbt1 = 0;
+                            }
                             else
+                            {
                                 fbt1 = DXK * DYK * WK_L[k];
+                            }
 
                             WK_L[k + 1] = (float)((fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (DXK * DYK));
                         }

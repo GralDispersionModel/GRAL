@@ -156,12 +156,12 @@ namespace GRAL_2001
                                 int IndexK = 1;
                                 float UXint = 0, UYint = 0, UZint = 0, U0int = 0, V0int = 0;
                                 float W0int = 0;
-                                double xco = Convert.ToDouble((float)i * Program.dx - 0.5 * Program.dx + Program.IKOOAGRAL);
-                                double yco = Convert.ToDouble((float)j * Program.dy - 0.5 * Program.dy + Program.JKOOAGRAL);
+                                double xco = Convert.ToDouble((float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL);
+                                double yco = Convert.ToDouble((float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL);
 
                                 //horizontal cell indices
-                                double xsi1 = (float)i * Program.dx - 0.5 * Program.dx + Program.IKOOAGRAL - Program.IKOOA;
-                                double eta1 = (float)j * Program.dy - 0.5 * Program.dy + Program.JKOOAGRAL - Program.JKOOA;
+                                double xsi1 = (float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL - Program.IKOOA;
+                                double eta1 = (float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL - Program.JKOOA;
                                 if (Program.Topo == 1)
                                 {
                                     double xsi = xco - Program.IKOOAGRAL;
@@ -320,8 +320,8 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        float xp1 = i * Program.dx - Program.dx * 0.5F;
-                        float yp1 = j * Program.dy - Program.dy * 0.5F;
+                        float xp1 = i * Program.GralDx - Program.GralDx * 0.5F;
+                        float yp1 = j * Program.GralDy - Program.GralDy * 0.5F;
                         float xxx = xp1 + Program.IKOOAGRAL;
                         float yyy = yp1 + Program.JKOOAGRAL;
 
@@ -363,8 +363,8 @@ namespace GRAL_2001
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
                 sw.Write(Program.JKOOAGRAL);
-                sw.Write(Program.dx);
-                sw.Write(Program.dy);
+                sw.Write(Program.GralDx);
+                sw.Write(Program.GralDy);
 
                 int[] Start = new int[2];
                 float[] Remember = new float[Program.NYL + 5];
@@ -430,8 +430,8 @@ namespace GRAL_2001
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
                 sw.Write(Program.JKOOAGRAL);
-                sw.Write(Program.dx);
-                sw.Write(Program.dy);
+                sw.Write(Program.GralDx);
+                sw.Write(Program.GralDy);
                 sw.Write(Program.NXL);
                 sw.Write(Program.NYL);
 
@@ -465,8 +465,8 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        float xp1 = i * Program.dx - Program.dx * 0.5F;
-                        float yp1 = j * Program.dy - Program.dy * 0.5F;
+                        float xp1 = i * Program.GralDx - Program.GralDx * 0.5F;
+                        float yp1 = j * Program.GralDy - Program.GralDy * 0.5F;
                         float xxx = xp1 + Program.IKOOAGRAL;
                         float yyy = yp1 + Program.JKOOAGRAL;
 
@@ -508,8 +508,8 @@ namespace GRAL_2001
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
                 sw.Write(Program.JKOOAGRAL);
-                sw.Write(Program.dx);
-                sw.Write(Program.dy);
+                sw.Write(Program.GralDx);
+                sw.Write(Program.GralDy);
 
                 int[] Start = new int[2];
                 float[] Remember = new float[Program.NYL + 2];
@@ -519,8 +519,8 @@ namespace GRAL_2001
                     int count = 0;
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        // float xp1 = i * Program.dx - Program.dx * 0.5F;
-                        // float yp1 = j * Program.dy - Program.dy * 0.5F;
+                        // float xp1 = i * Program.GralDx - Program.GralDx * 0.5F;
+                        // float yp1 = j * Program.GralDy - Program.GralDy * 0.5F;
                         // double xxx = xp1 + Program.IKOOAGRAL;
                         // double yyy = yp1 + Program.JKOOAGRAL;
                         float _value = Program.Conz3d[i][j][II][IQ];
@@ -599,8 +599,8 @@ namespace GRAL_2001
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
                 sw.Write(Program.JKOOAGRAL);
-                sw.Write(Program.dx);
-                sw.Write(Program.dy);
+                sw.Write(Program.GralDx);
+                sw.Write(Program.GralDy);
                 sw.Write(Program.NXL);
                 sw.Write(Program.NYL);
 
@@ -637,7 +637,7 @@ namespace GRAL_2001
                     myWriter.WriteLine("nrows         " + Convert.ToString(Program.NYL, ic));
                     myWriter.WriteLine("xllcorner     " + Convert.ToString(Program.GralWest, ic));
                     myWriter.WriteLine("yllcorner     " + Convert.ToString(Program.GralSouth, ic));
-                    myWriter.WriteLine("cellsize      " + Convert.ToString(Program.dx, ic));
+                    myWriter.WriteLine("cellsize      " + Convert.ToString(Program.GralDx, ic));
                     myWriter.WriteLine("NODATA_value  -9999");
 
                     for (int j = Program.NYL; j > 0; j--)
@@ -675,7 +675,7 @@ namespace GRAL_2001
                     myWriter.WriteLine("nrows         " + Convert.ToString(Program.NYL, ic));
                     myWriter.WriteLine("xllcorner     " + Convert.ToString(Program.GralWest, ic));
                     myWriter.WriteLine("yllcorner     " + Convert.ToString(Program.GralSouth, ic));
-                    myWriter.WriteLine("cellsize      " + Convert.ToString(Program.dx, ic));
+                    myWriter.WriteLine("cellsize      " + Convert.ToString(Program.GralDx, ic));
                     myWriter.WriteLine("NODATA_value  -9999");
 
                     for (int j = Program.NYL; j > 0; j--)
@@ -712,8 +712,8 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        float xp1 = i * Program.dx - Program.dx * 0.5F;
-                        float yp1 = j * Program.dy - Program.dy * 0.5F;
+                        float xp1 = i * Program.GralDx - Program.GralDx * 0.5F;
+                        float yp1 = j * Program.GralDy - Program.GralDy * 0.5F;
                         float xxx = xp1 + Program.IKOOAGRAL;
                         float yyy = yp1 + Program.JKOOAGRAL;
 
@@ -760,8 +760,8 @@ namespace GRAL_2001
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
                 sw.Write(Program.JKOOAGRAL);
-                sw.Write(Program.dx);
-                sw.Write(Program.dy);
+                sw.Write(Program.GralDx);
+                sw.Write(Program.GralDy);
 
                 int[] Start = new int[2];
                 float[] Remember = new float[Program.NYL * 4 + 5];
@@ -833,8 +833,8 @@ namespace GRAL_2001
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
                 sw.Write(Program.JKOOAGRAL);
-                sw.Write(Program.dx);
-                sw.Write(Program.dy);
+                sw.Write(Program.GralDx);
+                sw.Write(Program.GralDy);
                 sw.Write(Program.NXL);
                 sw.Write(Program.NYL);
 

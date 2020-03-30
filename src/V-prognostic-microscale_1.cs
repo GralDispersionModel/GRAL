@@ -31,9 +31,18 @@ namespace GRAL_2001
         static readonly Vector<float> Vect_100 = new Vector<float>(100);
         static readonly Vector<float> Vect_0001 = new Vector<float>(0.0001F);
         static readonly int SIMD = Vector<float>.Count;
+
         /// <summary>
-    	/// Momentum equations for the v wind component - algebraic mixing lenght model
-    	/// </summary>        
+        /// Momentum equations for the v wind component - algebraic mixing lenght model
+        /// </summary>   
+        /// <param name="IS">ADI direction for x cells</param>
+        /// <param name="JS">ADI direction for y cells</param>
+        /// <param name="Cmueh">Constant</param>
+        /// <param name="VISHMIN">Minimum horizontal turbulent exchange coefficients </param>
+        /// <param name="AREAxy">Area of a flow field cell</param>
+        /// <param name="VG">Geostrophic wind</param>
+        /// <param name="building_Z0">Roughness of buildings</param>
+        /// <param name="relax">Relaxation factor</param>
         public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, Single VG, float building_Z0, float relax)
         {
             float DXK = Program.DXK; float DYK = Program.DYK;

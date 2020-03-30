@@ -226,6 +226,10 @@ namespace GRAL_2001
             return true;
         }
 
+        /// <summary>
+        /// Clone a source data class for a new created source
+        /// </summary>
+        /// <param name="sd"></param>
         private void Clone(SourceData sd)
         {
             sd.ER = _sd.ER;
@@ -243,12 +247,19 @@ namespace GRAL_2001
             sd.Vsed = _sd.Vsed;
             sd.Vdep = _sd.Vdep;
             sd.Mode = _sd.Mode;
-            sd.Laerm = _sd.Laerm;
+            sd.VertExt = _sd.VertExt;
             sd.Width = _sd.Width;
             sd.TimeSeriesTemperature = _sd.TimeSeriesTemperature;
             sd.TimeSeriesVelocity = _sd.TimeSeriesVelocity;
         }
 
+        /// <summary>
+        /// Calculate the sedimentation velocity
+        /// </summary>
+        /// <param name="temp">absolute temperature [K]</param>
+        /// <param name="dm">diameter of particle [µm]</param>
+        /// <param name="dns_mat">density of particle [kg/m³]</param>
+        /// <returns></returns>
         private float SedimentationVelocity(double temp, double dm, double dns_mat)
         {
             // temp = absolute temperature [K]

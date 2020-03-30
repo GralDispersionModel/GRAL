@@ -32,8 +32,9 @@ namespace GRAL_2001
         {
             if (Program.TS_Count > 0)
             {
-                Program.TUN_ENTR = Program.CreateArray<Int16[]>(Program.NII + 2, () => new Int16[Program.NJJ + 2]);
-                Program.OPP_LANE = Program.CreateArray<Int16[]>(Program.NII + 2, () => new Int16[Program.NJJ + 2]);
+                Program.TUN_ENTR = Program.CreateArray<byte[]>(Program.NII + 2, () => new byte[Program.NJJ + 2]);
+                Program.OPP_LANE = Program.CreateArray<byte[]>(Program.NII + 2, () => new byte[Program.NJJ + 2]);
+
                 if (File.Exists("Opposite_lane.txt") == true)
                 {
                     Program.TunnelOppLane = true;
@@ -58,7 +59,9 @@ namespace GRAL_2001
                                 IXCUT = (int)((ci - Program.XsiMinGral) / Program.DXK) + 1;
                                 IYCUT = (int)((cj - Program.EtaMinGral) / Program.DYK) + 1;
                                 if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
+                                {
                                     Program.OPP_LANE[IXCUT][IYCUT] = 1;
+                                }
                             }
                         }
                     }
@@ -69,7 +72,12 @@ namespace GRAL_2001
                         ProgramWriters.LogfileProblemreportWrite(err);
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                        {
+                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                            {
+                                ;
+                            }
+                        }
 
                         Environment.Exit(0);
                     }
@@ -99,7 +107,9 @@ namespace GRAL_2001
                                 IXCUT = (int)((ci - Program.XsiMinGral) / Program.DXK) + 1;
                                 IYCUT = (int)((cj - Program.EtaMinGral) / Program.DYK) + 1;
                                 if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
+                                {
                                     Program.TUN_ENTR[IXCUT][IYCUT] = 1;
+                                }
                             }
                         }
                     }
@@ -110,7 +120,12 @@ namespace GRAL_2001
                         ProgramWriters.LogfileProblemreportWrite(err);
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                        {
+                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                            {
+                                ;
+                            }
+                        }
 
                         Environment.Exit(0);
                     }

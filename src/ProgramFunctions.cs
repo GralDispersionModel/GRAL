@@ -265,6 +265,7 @@ namespace GRAL_2001
         /// <summary>
         /// Check SIMD status
         /// </summary>
+        /// <returns>Number of elements stroed in a float vector</returns>
         private static int CheckSIMD()
         {
             int SIMD = Vector<float>.Count;
@@ -322,8 +323,10 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Find internal Source Group Index by external SG Number
+        /// Find internal Source Group Index by external SG Number -> just sources with source groups defined in Program.SourceGroups are used in the simulation
         /// </summary>
+        /// <param name="Real_SG_Number">Source group number as used in the GUI and input/output files</param>
+        /// <returns>Internal contiguous source group number, starting with 0</returns>
         public static int Get_Internal_SG_Number(int Real_SG_Number)
         {
             int SG_Internal = -1; // if SG is not indicated to be computed
@@ -336,6 +339,7 @@ namespace GRAL_2001
             }
             return SG_Internal;
         }
+
         /// <summary>
         /// Initialze a jagged array
         /// </summary>
@@ -398,6 +402,7 @@ namespace GRAL_2001
         /// <summary>
         /// Init GRAL settings for a calculation in complex terrain
         /// </summary>
+        /// <param name="SIMD">Nukber of float values within a vector</param>
         private static void InitGralTopography(int SIMD)
         {
             //get the minimum and maximum elevation of the GRAMM orography
@@ -797,13 +802,13 @@ namespace GRAL_2001
             {
                 ProgramHelper prgH = new ProgramHelper();
 
-                if (dx != DXK || dy != DYK) // if flow field grid is smaller than the concentration grid
+                if (GralDx != DXK || GralDy != DYK) // if flow field grid is smaller than the concentration grid
                 {
                     prgH.VolumeConcCorrection(Conz3d, 0);
                     if (Program.Odour == true)
                     {
-                        prgH.VolumeConcCorrection(Conz3dm, -Program.dz);
-                        prgH.VolumeConcCorrection(Conz3dp, Program.dz);
+                        prgH.VolumeConcCorrection(Conz3dm, -Program.GralDz);
+                        prgH.VolumeConcCorrection(Conz3dp, Program.GralDz);
                     }
 
                     // Correction for all receptors
@@ -811,13 +816,13 @@ namespace GRAL_2001
                     {
                         for (int irec = 1; irec < ReceptorNearbyBuilding.Length; irec++)
                         {
-                            double x0 = Program.ReceptorX[irec] - Program.IKOOAGRAL - dx * 0.5;
-                            double xmax = x0 + dx;
+                            double x0 = Program.ReceptorX[irec] - Program.IKOOAGRAL - GralDx * 0.5;
+                            double xmax = x0 + GralDx;
                             double VolumeReduction = 0;
-                            float HMin = Program.ReceptorZ[irec] - dz * 0.5F;
-                            float HMax = Program.ReceptorZ[irec] + dz * 0.5F;
-                            double y0 = Program.ReceptorY[irec] - Program.JKOOAGRAL - dy * 0.5;
-                            double ymax = y0 + dy;
+                            float HMin = Program.ReceptorZ[irec] - GralDz * 0.5F;
+                            float HMax = Program.ReceptorZ[irec] + GralDz * 0.5F;
+                            double y0 = Program.ReceptorY[irec] - Program.JKOOAGRAL - GralDy * 0.5;
+                            double ymax = y0 + GralDy;
 
                             // loop over all flow field cells inside the receptor cell
                             for (double xi = x0; xi < xmax; xi += DXK)
@@ -856,8 +861,8 @@ namespace GRAL_2001
                     prgH.VolumeConcCorrection2(Conz3d, 0);
                     if (Program.Odour == true)
                     {
-                        prgH.VolumeConcCorrection2(Conz3dm, -Program.dz);
-                        prgH.VolumeConcCorrection2(Conz3dp, Program.dz);
+                        prgH.VolumeConcCorrection2(Conz3dm, -Program.GralDz);
+                        prgH.VolumeConcCorrection2(Conz3dp, Program.GralDz);
                     }
 
                     // Correction for all receptors
@@ -871,15 +876,15 @@ namespace GRAL_2001
                                 int IndexJ = ReceptorJInd[irec];
                                 if (IndexJ > 0 && IndexJ < NJJ + 1)
                                 {
-                                    float HMin = Program.ReceptorZ[irec] - Program.dz * 0.5F;
-                                    float HMax = Program.ReceptorZ[irec] + Program.dz * 0.5F - 0.2F;
+                                    float HMin = Program.ReceptorZ[irec] - Program.GralDz * 0.5F;
+                                    float HMax = Program.ReceptorZ[irec] + Program.GralDz * 0.5F - 0.2F;
 
                                     float buidingheight = BUI_HEIGHT[IndexI][IndexJ];
 
                                     if (buidingheight > HMin && buidingheight < HMax)
                                     {
                                         // Limit factor to 10, because in these cases, just a small portion of volume is left
-                                        float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.dz / (Program.dz - (buidingheight - HMin))));
+                                        float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.GralDz / (Program.GralDz - (buidingheight - HMin))));
                                         if (VolumeReduction > 0)
                                         {
                                             for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
@@ -926,7 +931,7 @@ namespace GRAL_2001
     class ProgramHelper
     {
         /// <summary>
-        /// Volume correction for a concentration array if dx != DXK || dy != DYK
+        /// Volume correction for a concentration array if GralDx != DXK || GralDy != DYK
         /// </summary>
         /// <param name="Conc">Concentration array</param>
         /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
@@ -936,8 +941,8 @@ namespace GRAL_2001
             // loop over all concentration cells
             Parallel.For(0, Program.NXL, Program.pOptions, i =>
             {
-                double x0 = i * Program.dx;
-                double xmax = x0 + Program.dx;
+                double x0 = i * Program.GralDx;
+                double xmax = x0 + Program.GralDx;
 
                 Span<double> VolumeReduction = stackalloc double[Program.NS + 1];
                 Span<float> HMin = stackalloc float[Program.NS + 1];
@@ -945,14 +950,14 @@ namespace GRAL_2001
 
                 for (int k = 1; k < HMin.Length; k++)
                 {
-                    HMin[k] = Program.HorSlices[k] - Program.dz * 0.5F + DeltaH;
-                    HMax[k] = Program.HorSlices[k] + Program.dz * 0.5F + DeltaH;
+                    HMin[k] = Program.HorSlices[k] - Program.GralDz * 0.5F + DeltaH;
+                    HMax[k] = Program.HorSlices[k] + Program.GralDz * 0.5F + DeltaH;
                 }
 
                 for (int j = 0; j < Program.NYL; ++j)
                 {
-                    double y0 = j * Program.dy;
-                    double ymax = y0 + Program.dy;
+                    double y0 = j * Program.GralDy;
+                    double ymax = y0 + Program.GralDy;
                     VolumeReduction.Clear();
 
                     // loop over all flow field cells inside the concentration cell
@@ -1009,7 +1014,7 @@ namespace GRAL_2001
             //     myWriter.WriteLine("nrows         " + Convert.ToString(Program.NYL, CultureInfo.InvariantCulture));
             //     myWriter.WriteLine("xllcorner     " + Convert.ToString(Program.GralWest, CultureInfo.InvariantCulture));
             //     myWriter.WriteLine("yllcorner     " + Convert.ToString(Program.GralSouth, CultureInfo.InvariantCulture));
-            //     myWriter.WriteLine("cellsize      " + Convert.ToString(Program.dx, CultureInfo.InvariantCulture));
+            //     myWriter.WriteLine("cellsize      " + Convert.ToString(Program.GralDx, CultureInfo.InvariantCulture));
             //     myWriter.WriteLine("NODATA_value  -9999");
 
             //     for (int j = Program.NYL; j > 0; j--)
@@ -1028,7 +1033,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Volume correction for a concentration array if dx == DXK || dy == DYK
+        /// Volume correction for a concentration array if GralDx == DXK || GralDy == DYK
         /// </summary>
         /// <param name="Conc">Concentration array</param>
         /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
@@ -1044,8 +1049,8 @@ namespace GRAL_2001
 
                 for (int k = 1; k < HMin.Length; k++)
                 {
-                    HMin[k] = Program.HorSlices[k] - Program.dz * 0.5F + DeltaH;
-                    HMax[k] = Program.HorSlices[k] + Program.dz * 0.5F + DeltaH - 0.2F;
+                    HMin[k] = Program.HorSlices[k] - Program.GralDz * 0.5F + DeltaH;
+                    HMax[k] = Program.HorSlices[k] + Program.GralDz * 0.5F + DeltaH - 0.2F;
                 }
 
                 for (int j = 0; j < Program.NYL; ++j)
@@ -1058,7 +1063,7 @@ namespace GRAL_2001
                         if (buidingheight > HMin[k] && buidingheight < HMax[k])
                         {
                             // Limit factor to 10, because in these cases, just a small portion of volume is left
-                            float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.dz / (Program.dz - (buidingheight - HMin[k]))));
+                            float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.GralDz / (Program.GralDz - (buidingheight - HMin[k]))));
                             for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
                                 Conc[i][j][k][IQ] *= VolumeReduction;
@@ -1078,7 +1083,7 @@ namespace GRAL_2001
             //     myWriter.WriteLine("nrows         " + Convert.ToString(Program.NYL, CultureInfo.InvariantCulture));
             //     myWriter.WriteLine("xllcorner     " + Convert.ToString(Program.GralWest, CultureInfo.InvariantCulture));
             //     myWriter.WriteLine("yllcorner     " + Convert.ToString(Program.GralSouth, CultureInfo.InvariantCulture));
-            //     myWriter.WriteLine("cellsize      " + Convert.ToString(Program.dx, CultureInfo.InvariantCulture));
+            //     myWriter.WriteLine("cellsize      " + Convert.ToString(Program.GralDx, CultureInfo.InvariantCulture));
             //     myWriter.WriteLine("NODATA_value  -9999");
 
             //     for (int j = Program.NYL; j > 0; j--)

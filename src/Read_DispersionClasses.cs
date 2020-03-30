@@ -24,7 +24,7 @@ using System.IO.Compression;
 namespace GRAL_2001
 {
     /// <summary>
-    /// Read the GRAMM local stability class
+    /// Read the GRAMM local stability classes
     /// </summary>
     public class ReadSclUstOblClasses
     {
@@ -54,6 +54,10 @@ namespace GRAL_2001
         private float[,] _Ustar;
         public float[,] Ustar { set { _Ustar = value; } get { return _Ustar; } }
 
+        /// <summary>
+        /// Read a *.scl file
+        /// </summary>
+        /// <returns></returns>
         public bool ReadSclFile() // read complete file to _Stabclasses, _MO_Lenght and _Ustar
         {
             try
@@ -103,7 +107,9 @@ namespace GRAL_2001
                     }
                 }
                 else
+                {
                     throw new FileNotFoundException(_filename + @"not found");
+                }
 
                 return true; // Reading OK
             }
@@ -151,9 +157,13 @@ namespace GRAL_2001
             }
         }
 
+
         /// <summary>
         /// Read the stability class 
         /// </summary>
+        /// <param name="stability">Binary reader to read from</param>
+        /// <param name="Scl_Array">Array to store the stability class data</param>
+        /// <returns></returns>
         private bool ReadValues(BinaryReader stability, ref int[,] Scl_Array)
         {
             try
@@ -187,7 +197,13 @@ namespace GRAL_2001
             }
         }
 
-        public int ReadSclFile(int x, int y) // read one value from *.scl
+        /// <summary>
+        /// Read one value on position x/y from *.scl file
+        /// </summary>
+        /// <param name="x">x raster position</param>
+        /// <param name="y">y raster position</param>
+        /// <returns></returns>
+        public int ReadSclFile(int x, int y) // read one value from *.scl file
         {
             try
             {
@@ -218,7 +234,9 @@ namespace GRAL_2001
                                             // Seek doesn't work in zipped files
                                             // stability.BaseStream.Seek(position, SeekOrigin.Begin);
                                             for (int i = 0; i < position; i++) // seek manually
+                                            {
                                                 stability.ReadInt16();
+                                            }
 
                                             temp = stability.ReadInt16(); // read this value
                                         }
@@ -251,7 +269,9 @@ namespace GRAL_2001
                     }
                 }
                 else
+                {
                     throw new FileNotFoundException(_filename + @"not found");
+                }
 
                 return temp; // Reading OK
             }
@@ -261,8 +281,13 @@ namespace GRAL_2001
             }
         }
 
+        /// <summary>
+        /// read a mean (3x3) value from *.scl file (Filename needed) and return the stability class
+        /// </summary>
+        /// <param name="x">x raster position</param>
+        /// <param name="y">y raster position</param>
+        /// <returns>stability class</returns>
         public int ReadSclMean(int x, int y) // read a mean (3x3) value from *.scl file and return the stability class
-                                             // define Filename!
         {
             int SCL = 0;
             if (ReadSclFile()) // read complete file
@@ -273,6 +298,12 @@ namespace GRAL_2001
             return SCL; // return mean stability class
         }
 
+        /// <summary>
+        /// Calculate a mean SCL class of a 3x3 matrix
+        /// </summary>
+        /// <param name="x">x raster position</param>
+        /// <param name="y">y raster position</param>
+        /// <returns>Mean SCl class</returns>
         public int SclMean(int x, int y)
         {
             int counter = 0;
@@ -300,13 +331,19 @@ namespace GRAL_2001
             catch { }
 
             if (counter > 0)
+            {
                 return (int)Math.Round(sum / counter); // compute nearest value
+            }
             else
+            {
                 return 0;
-
-
+            }
         }
 
+        /// <summary>
+        /// Export a scl file
+        /// </summary>
+        /// <returns>File writing OK</returns>
         public bool ExportSclFile() //output, export for stability classes, friction velocity, and Obukhov length
         {
             try
@@ -334,11 +371,13 @@ namespace GRAL_2001
                                 writer.Write(_NZ);
                                 writer.Write(_GRAMMhorgridsize);
                                 for (int i = _X0; i < _NX; i++)
+                                {
                                     for (int j = _Y0; j < _NY; j++)
                                     {
                                         dummy = Convert.ToInt16(_Ustar[i, j]);
                                         writer.Write(dummy);
                                     }
+                                }
                             }
 
                             string obukhovfilename = (Path.GetFileNameWithoutExtension(_filename) + ".obl");
@@ -351,11 +390,13 @@ namespace GRAL_2001
                                 writer.Write(_NZ);
                                 writer.Write(_GRAMMhorgridsize);
                                 for (int i = _X0; i < _NX; i++)
+                                {
                                     for (int j = _Y0; j < _NY; j++)
                                     {
                                         dummy = Convert.ToInt16(_MOlength[i, j]);
                                         writer.Write(dummy);
                                     }
+                                }
                             }
 
                             //computation and ouput of stability classes
@@ -369,11 +410,13 @@ namespace GRAL_2001
                                 writer.Write(_NZ);
                                 writer.Write(_GRAMMhorgridsize);
                                 for (int i = _X0; i < _NX; i++)
+                                {
                                     for (int j = _Y0; j < _NY; j++)
                                     {
                                         dummy = Convert.ToInt16(_Stabclasses[i, j]);
                                         writer.Write(dummy);
                                     }
+                                }
                             }
                         } // archive
                     } // Zip File
@@ -386,10 +429,13 @@ namespace GRAL_2001
             {
                 return false;
             }
-
         }
 
-        public bool close()
+        /// <summary>
+        /// Close the class
+        /// </summary>
+        /// <returns></returns>
+        public bool Close()
         {
             _filename = null;
             return true;

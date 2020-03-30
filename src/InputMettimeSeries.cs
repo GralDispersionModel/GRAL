@@ -20,6 +20,9 @@ namespace GRAL_2001
     class InputMettimeSeries
     {
         private List<WindData> _winddata;
+        /// <summary>
+        /// Wind data class
+        /// </summary>
         public List<WindData> WindData { set { _winddata = value; } get { return _winddata; } }
 
         /// <summary>
@@ -123,7 +126,7 @@ namespace GRAL_2001
 
 
         /// <summary>
-    	/// Search the meteo situation from mettimeseries.txt in meteopgt.all
+    	/// Search the corresponding meteo situation for one line in mettimeseries.txt in meteopgt.all
     	/// </summary> 
         /// <result>
         /// Returns the line number in Meteopgt[], -1 if last line in MetTimeSer[] has been reached, -3 if no match could be found
@@ -167,7 +170,7 @@ namespace GRAL_2001
 
                         float err = MathF.Sqrt(MathF.Pow((u_Meteopgt - u_Mettime), 2) + MathF.Pow((v_Meteopgt - v_Mettime), 2));
 
-                        if (err < error_min) // find situation with the lowest error value
+                        if (err < error_min) // found a situation with a lower error value
                         {
                             error_min = err;
                             iwet = n;

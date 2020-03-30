@@ -46,117 +46,118 @@ namespace GRAL_2001
                 }
             });
 
+            //Set initial wind components of the GRAL wind field
             object obj = new object();
             //Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
             Parallel.ForEach(Partitioner.Create(1, Program.NII + 1, Math.Max(4, (int)(Program.NII / Program.pOptions.MaxDegreeOfParallelism))), range =>
-               {
-                   int KADVMAX1 = 1;
+            {
+                int KADVMAX1 = 1;
 
-                   for (int i = range.Item1; i < range.Item2; i++)
-                   {
-                       for (int j = 1; j <= Program.NJJ; j++)
-                       {
-                           Program.AHK[i][j] = 0;
-                           Program.KKART[i][j] = 0;
+                for (int i = range.Item1; i < range.Item2; i++)
+                {
+                    for (int j = 1; j <= Program.NJJ; j++)
+                    {
+                        Program.AHK[i][j] = 0;
+                        Program.KKART[i][j] = 0;
 
                         //Pointers (to speed up the computations)
                         float[] UK_L = Program.UK[i][j];
-                           float[] VK_L = Program.VK[i][j];
-                           float[] UKi_L = Program.UK[i + 1][j];
-                           float[] VKj_L = Program.VK[i][j + 1];
-                           double UXint;
-                           double UYint;
-                           double vertk;
-                           double exponent;
-                           double dumfac;
+                        float[] VK_L = Program.VK[i][j];
+                        float[] UKi_L = Program.UK[i + 1][j];
+                        float[] VKj_L = Program.VK[i][j + 1];
+                        double UXint;
+                        double UYint;
+                        double vertk;
+                        double exponent;
+                        double dumfac;
 
-                           for (int k = Program.NKK; k >= 1; k--)
-                           {
-                               vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5;
-                               if (vertk > Program.CUTK[i][j])
-                               {
+                        for (int k = Program.NKK; k >= 1; k--)
+                        {
+                            vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5;
+                            if (vertk > Program.CUTK[i][j])
+                            {
                                 //interpolation between observations
                                 if (vertk <= Program.MeasurementHeight[1])
-                                   {
-                                       if (Program.Ob[1][1] <= 0)
-                                           exponent = Math.Max(0.35 - 0.4 * Math.Pow(Math.Abs(Program.Ob[1][1]), -0.15), 0.05);
-                                       else
-                                           exponent = 0.56 * Math.Pow(Program.Ob[1][1], -0.15);
+                                {
+                                    if (Program.Ob[1][1] <= 0)
+                                        exponent = Math.Max(0.35 - 0.4 * Math.Pow(Math.Abs(Program.Ob[1][1]), -0.15), 0.05);
+                                    else
+                                        exponent = 0.56 * Math.Pow(Program.Ob[1][1], -0.15);
 
-                                       dumfac = Math.Pow(vertk / Program.MeasurementHeight[1], exponent);
-                                       UXint = Program.UX[1] * dumfac;
-                                       UYint = Program.UY[1] * dumfac;
-                                   }
-                                   else if (vertk > Program.MeasurementHeight[inumm])
-                                   {
-                                       if (inumm == 1)
-                                       {
-                                           if (Program.Ob[1][1] <= 0)
-                                               exponent = Math.Max(0.35 - 0.4 * Math.Pow(Math.Abs(Program.Ob[1][1]), -0.15), 0.05);
-                                           else
-                                               exponent = 0.56 * Math.Pow(Program.Ob[1][1], -0.15);
+                                    dumfac = Math.Pow(vertk / Program.MeasurementHeight[1], exponent);
+                                    UXint = Program.UX[1] * dumfac;
+                                    UYint = Program.UY[1] * dumfac;
+                                }
+                                else if (vertk > Program.MeasurementHeight[inumm])
+                                {
+                                    if (inumm == 1)
+                                    {
+                                        if (Program.Ob[1][1] <= 0)
+                                            exponent = Math.Max(0.35 - 0.4 * Math.Pow(Math.Abs(Program.Ob[1][1]), -0.15), 0.05);
+                                        else
+                                            exponent = 0.56 * Math.Pow(Program.Ob[1][1], -0.15);
 
-                                           dumfac = Math.Pow(vertk / Program.MeasurementHeight[inumm], exponent);
-                                           UXint = Program.UX[inumm] * dumfac;
-                                           UYint = Program.UY[inumm] * dumfac;
-                                       }
-                                       else
-                                       {
-                                           UXint = Program.UX[inumm];
-                                           UYint = Program.UY[inumm];
-                                       }
-                                   }
-                                   else
-                                   {
-                                       int ipo = 1;
-                                       for (int iprof = 1; iprof <= inumm; iprof++)
-                                       {
-                                           if (vertk > Program.MeasurementHeight[iprof])
-                                               ipo = iprof + 1;
-                                       }
-                                       UXint = Program.UX[ipo - 1] + (Program.UX[ipo] - Program.UX[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
-                                        (vertk - Program.MeasurementHeight[ipo - 1]);
-                                       UYint = Program.UY[ipo - 1] + (Program.UY[ipo] - Program.UY[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
-                                        (vertk - Program.MeasurementHeight[ipo - 1]);
-                                   }
+                                        dumfac = Math.Pow(vertk / Program.MeasurementHeight[inumm], exponent);
+                                        UXint = Program.UX[inumm] * dumfac;
+                                        UYint = Program.UY[inumm] * dumfac;
+                                    }
+                                    else
+                                    {
+                                        UXint = Program.UX[inumm];
+                                        UYint = Program.UY[inumm];
+                                    }
+                                }
+                                else
+                                {
+                                    int ipo = 1;
+                                    for (int iprof = 1; iprof <= inumm; iprof++)
+                                    {
+                                        if (vertk > Program.MeasurementHeight[iprof])
+                                            ipo = iprof + 1;
+                                    }
+                                    UXint = Program.UX[ipo - 1] + (Program.UX[ipo] - Program.UX[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
+                                     (vertk - Program.MeasurementHeight[ipo - 1]);
+                                    UYint = Program.UY[ipo - 1] + (Program.UY[ipo] - Program.UY[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
+                                     (vertk - Program.MeasurementHeight[ipo - 1]);
+                                }
 
                                 //finally get wind speeds outside obstacles
                                 UK_L[k] = (float)UXint;
-                                   VK_L[k] = (float)UYint;
-                                   if (i > 1)
-                                   {
-                                       if (vertk <= Program.CUTK[i - 1][j])
-                                           UK_L[k] = 0;
-                                   }
-                                   if (j > 1)
-                                   {
-                                       if (vertk <= Program.CUTK[i][j - 1])
-                                           VK_L[k] = 0;
-                                   }
-                                   Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
-                                   Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
-                               }
-                               else
-                               {
+                                VK_L[k] = (float)UYint;
+                                if (i > 1)
+                                {
+                                    if (vertk <= Program.CUTK[i - 1][j])
+                                        UK_L[k] = 0;
+                                }
+                                if (j > 1)
+                                {
+                                    if (vertk <= Program.CUTK[i][j - 1])
+                                        VK_L[k] = 0;
+                                }
+                                Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
+                                Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
+                            }
+                            else
+                            {
                                 //set wind speed zero inside obstacles
                                 UK_L[k] = 0;
-                                   if (i < Program.NII) UKi_L[k] = 0;
-                                   VK_L[k] = 0;
-                                   if (j < Program.NJJ) VKj_L[k] = 0;
-                                   Program.AHK[i][j] = Math.Max(Program.HOKART[k], Program.AHK[i][j]);
-                                   Program.BUI_HEIGHT[i][j] = Program.AHK[i][j];
-                                   Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
-                                   if (Program.CUTK[i][j] > 0)
-                                       KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
-                               }
-                           }
-                       }
-                   }
-                   if (KADVMAX1 > Program.KADVMAX)
-                       lock (obj) { Program.KADVMAX = Math.Max(Program.KADVMAX, KADVMAX1); }
-               });
+                                if (i < Program.NII) UKi_L[k] = 0;
+                                VK_L[k] = 0;
+                                if (j < Program.NJJ) VKj_L[k] = 0;
+                                Program.AHK[i][j] = Math.Max(Program.HOKART[k], Program.AHK[i][j]);
+                                Program.BUI_HEIGHT[i][j] = Program.AHK[i][j];
+                                Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
+                                if (Program.CUTK[i][j] > 0)
+                                    KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
+                            }
+                        }
+                    }
+                }
+                if (KADVMAX1 > Program.KADVMAX)
+                    lock (obj) { Program.KADVMAX = Math.Max(Program.KADVMAX, KADVMAX1); }
+            });
             obj = null;
-            
+
             //maximum z-index up to which the microscale flow field is being computed
             Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);
 
@@ -271,11 +272,14 @@ namespace GRAL_2001
             //computing flow field either with diagnostic or prognostic approach
             if (Program.FlowFieldLevel > 0)
             {
+                //diagnostic approach
                 if (Program.FlowFieldLevel == 1)
                 {
                     Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
                     DiagnosticFlowfield.Calculate();
                 }
+
+                //prognostic approach
                 if (Program.FlowFieldLevel == 2)
                 {
                     //read vegetation only once
@@ -292,7 +296,9 @@ namespace GRAL_2001
 
                 //Final mass conservation using poisson equation for pressure after advection has been computed with level 2
                 if (Program.FlowFieldLevel == 2)
+                {
                     DiagnosticFlowfield.Calculate();
+                }
             }
 
             //in diagnostic mode mass-conservation is finally achieved by adjusting the vertical velocity in each cell
@@ -351,20 +357,5 @@ namespace GRAL_2001
                 });
             }
         }
-
-        static Func<double, int, double> MyPow = (double num, int exp) =>
-        {
-            double result = 1.0;
-            while (exp > 0)
-            {
-                if (exp % 2 == 1)
-                    result *= num;
-                exp >>= 1;
-                num *= num;
-            };
-            return result;
-        };
-
-
     }
 }

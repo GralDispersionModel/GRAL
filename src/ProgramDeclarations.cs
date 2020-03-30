@@ -31,7 +31,7 @@ namespace GRAL_2001
         ///<summary>
         ///Flag to take orography into account - 0: no terrain 1:complex terrain
         ///</summary>
-        public static Int32 Topo = 0;
+        public static int Topo = 0;
         ///<summary>
         ///Header in *con files to mark new file format for the GUI
         ///</summary>
@@ -47,7 +47,7 @@ namespace GRAL_2001
         ///<summary>
         ///Stability class (1=extremly convective,...,7=extremly stable)
         ///</summary>
-        public static Int32 StabClass = 0;
+        public static int StabClass = 0;
         ///<summary>
         ///Mean GRAMM wind speed at anemometer height in [m/s]
         ///</summary>
@@ -63,11 +63,11 @@ namespace GRAL_2001
         ///<summary>
         ///Flag, determining which output format for *con files is used above 0: soundplan below and equal to 0: GRAL GUI formats
         ///</summary>
-        public static Int32 IOUTPUT = 0;
+        public static int IOUTPUT = 0;
         ///<summary>
         ///Number of cells in vertical direction used for the prognostic wind field calculations
         ///</summary>
-        public static Int32 VertCellsFF = 40;
+        public static int VertCellsFF = 40;
         ///<summary>
         ///Number of used source groups
         ///</summary>
@@ -95,7 +95,7 @@ namespace GRAL_2001
         ///<summary>
         ///Number of processors used for parallel computation
         ///</summary>
-        public static Int32 IPROC = 1;
+        public static int IPROC = 1;
         ///<summary>
         ///Horizontal grid size for the flow field computation in x-direction
         ///</summary>
@@ -115,45 +115,45 @@ namespace GRAL_2001
         ///<summary>
         ///Number of cells in x-direction of the concentration grid
         ///</summary>
-        public static Int32 NXL = 1;
+        public static int NXL = 1;
         ///<summary>
         ///Number of cells in y-direction of the concentration grid
         ///</summary>
-        public static Int32 NYL = 1;
+        public static int NYL = 1;
         ///<summary>
         ///Number of horizontal concentration result grids
         ///</summary>
-        public static Int32 NS = 1;
+        public static int NS = 1;
         ///<summary>
-        ///Western border of the GRAL domain
+        ///Western border of the GRAL domain relative coordinates
         ///</summary>
         public static double XsiMinGral = 0;
         ///<summary>
-        ///Eastern border of the GRAL domain
+        ///Eastern border of the GRAL domain relative coordinates
         ///</summary>
         public static double XsiMaxGral = 0;
         ///<summary>
-        ///Southern border of the GRAL domain
+        ///Southern border of the GRAL domain relative coordinates
         ///</summary>
         public static double EtaMinGral = 0;
         ///<summary>
-        ///Northern border of the GRAL domain
+        ///Northern border of the GRAL domain relative coordinates
         ///</summary>
         public static double EtaMaxGral = 0;
         ///<summary>
-        ///Western border of the GRAL domain
+        ///Western border of the GRAL domain real world coordinates
         ///</summary>
         public static double GralWest = 0;
         ///<summary>
-        ///Eastern border of the GRAL domain
+        ///Eastern border of the GRAL domain real world coordinates
         ///</summary>
         public static double GralEast = 0;
         ///<summary>
-        ///Southern border of the GRAL domain
+        ///Southern border of the GRAL domain real world coordinates
         ///</summary>
         public static double GralSouth = 0;
         ///<summary>
-        ///Northern border of the GRAL domain
+        ///Northern border of the GRAL domain real world coordinates
         ///</summary>
         public static double GralNorth = 0;
         ///<summary>
@@ -171,15 +171,18 @@ namespace GRAL_2001
         ///<summary>
         ///Number of cells in x-direction of the GRAMM grid as read from ggeom.asc
         ///</summary>
-        public static Int32 NI = 1;
+        public static int NI = 1;
         ///<summary>
         ///Number of cells in y-direction of the GRAMM grid as read from ggeom.asc
         ///</summary>
-        public static Int32 NJ = 1;
+        public static int NJ = 1;
         ///<summary>
         ///Number of cells in z-direction of the GRAMM grid as read from ggeom.asc
         ///</summary>
-        public static Int32 NK = 1;
+        public static int NK = 1;
+        ///<summary>
+        ///Western border of the GRAMM domain (optional)
+        ///</summary>
         public static double XsiMinGramm = 0;
         ///<summary>
         ///Eastern border of the GRAMM domain (optional)
@@ -220,15 +223,15 @@ namespace GRAL_2001
         ///<summary>
         ///Horizontal grid-size of the GRAL concentration grid in x-direction
         ///</summary>
-        public static float dx = 1;
+        public static float GralDx = 1;
         ///<summary>
         ///Horizontal grid-size of the GRAL concentration grid in y-direction
         ///</summary>
-        public static float dy = 1;
+        public static float GralDy = 1;
         ///<summary>
         ///Horizontal grid-size of the GRAL concentration grid in z-direction
         ///</summary>
-        public static float dz = 1;
+        public static float GralDz = 1;
         ///<summary>
         ///Number of dispersion situation from which onward the simulation will be launched
         ///</summary>
@@ -236,7 +239,7 @@ namespace GRAL_2001
         ///<summary>
         ///Number of cells near the walls of obstacles for which a boundary layer is computed in the diagnostic flow-field approach
         ///</summary>
-        public static Int32 IGEB = 1;
+        public static int IGEB = 1;
         ///<summary>
         ///2D concentration separated into source groups and horizontal slices
         ///</summary>
@@ -246,11 +249,11 @@ namespace GRAL_2001
         ///</summary>
         public static float[] MeasurementHeight = new float[100];
         ///<summary>
-        ///Distance of GRAMM grid cell centre from eastern domain border
+        ///Distance of GRAMM grid cell centre from the eastern domain border
         ///</summary>
         public static double[] XKO = new double[1];
         ///<summary>
-        ///Distance of GRAMM grid cell centre from southern domain border
+        ///Distance of GRAMM grid cell centre from the southern domain border
         ///</summary>
         public static double[] YKO = new double[1];
         ///<summary>
@@ -352,39 +355,39 @@ namespace GRAL_2001
         ///<summary>
         ///Western border of the GRAMM domain
         ///</summary>
-        public static Int32 IKOOA;
+        public static int IKOOA;
         ///<summary>
         ///Southern border of the GRAMM domain
         ///</summary>
-        public static Int32 JKOOA;
+        public static int JKOOA;
         ///<summary>
         ///Western border of the GRAL domain
         ///</summary>
-        public static Int32 IKOOAGRAL;
+        public static int IKOOAGRAL;
         ///<summary>
         ///Southern border of the GRAL domain
         ///</summary>
-        public static Int32 JKOOAGRAL;
+        public static int JKOOAGRAL;
         ///<summary>
         ///Flag indicating the existance of buildings in the presence of complex terrain
         ///</summary>
-        public static Boolean BuildingTerrExist = false;
+        public static bool BuildingTerrExist = false;
         ///<summary>
         ///Flag indicating the existance of buildings in flat terrain applications
         ///</summary>
-        public static Boolean BuildingFlatExist = false;
+        public static bool BuildingFlatExist = false;
         ///<summary>
         ///Flag indicating the existance of vegetation
         ///</summary>
-        public static Boolean VegetationExist = false;
+        public static bool VegetationExist = false;
         ///<summary>
         ///Flag indicating the existance of an area where the jet stream out of a tunnel is destroyed due to traffic on the opposite lanes
         ///</summary>
-        public static Boolean TunnelOppLane = false;
+        public static bool TunnelOppLane = false;
         ///<summary>
         ///Flag indicating the existance of an area where pollutants are sucked into a tunnel entrance
         ///</summary>
-        public static Boolean TunnelEntr = false;
+        public static bool TunnelEntr = false;
         ///<summary>
         ///Minimum elevation of the GRAMM orography
         ///</summary>
@@ -396,19 +399,19 @@ namespace GRAL_2001
         ///<summary>
         ///Number of cells in x-direction of the flow field grid
         ///</summary>
-        public static Int32 NII = 1;
+        public static int NII = 1;
         ///<summary>
         ///Number of cells in y-direction of the flow field grid
         ///</summary>
-        public static Int32 NJJ = 1;
+        public static int NJJ = 1;
         ///<summary>
         ///Number of cells in z-direction of the flow field grid
         ///</summary>
-        public static Int32 NKK = 1;
+        public static int NKK = 1;
         ///<summary>
         ///Number of cells in z-direction of the transient concentration grid
         ///</summary>
-        public static Int32 NKK_Transient = 1;
+        public static int NKK_Transient = 1;
         ///<summary>
         ///Point for the reference position inside the prognostic subdomain to get the initial GRAMM wind vector
         ///</summary>
@@ -454,7 +457,7 @@ namespace GRAL_2001
         ///</summary>
         public static float[][][] TDISS = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
-        ///Array used for Buildings - building height
+        ///Array used for Buildings - relative building height above ground
         ///</summary>
         public static float[][] CUTK = CreateArray<float[]>(1, () => new float[1]);
         ///<summary>
@@ -462,7 +465,7 @@ namespace GRAL_2001
         ///</summary>
         public static float[][] BUI_HEIGHT = CreateArray<float[]>(1, () => new float[1]);
         ///<summary>
-        ///Array used for Vegetation 
+        ///Array used for Vegetation
         ///</summary>
         public static float[][][] VEG = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
@@ -472,7 +475,7 @@ namespace GRAL_2001
         ///<summary>
         ///Steady-state (1) or transient (0) simulation mode
         ///</summary>
-        public static Int32 ISTATIONAER = 0;
+        public static int ISTATIONAER = 0;
         ///<summary>
         ///Released particles per second per weather situation
         ///</summary>
@@ -487,11 +490,11 @@ namespace GRAL_2001
 		/// 2: friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components
 		/// 3: velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters
         ///</summary>
-        public static Int32 IStatistics = 4;
+        public static int IStatistics = 4;
         ///<summary>
         ///Flag determining if receptor points are included or not
         ///</summary>
-        public static Int32 ReceptorsAvailable = 0;
+        public static int ReceptorsAvailable = 0;
         ///<summary>
         ///Default roughness length in [m]
         ///</summary>
@@ -511,15 +514,15 @@ namespace GRAL_2001
         ///<summary>
         ///Defines the method to take buildings into account: diagnostic (=1), prognostic (=2), no buildings (=0)
         ///</summary>
-        public static Int32 FlowFieldLevel = 0;
+        public static int FlowFieldLevel = 0;
         ///<summary>
         ///Defines the factor for the calculation of prognostic sub-domains, default = 15
         ///</summary>
-        public static Int32 PrognosticSubDomainFactor = 15;
+        public static int PrognosticSubDomainFactor = 15;
         ///<summary>
         ///Number of Receptor points
         ///</summary>
-        public static Int32 ReceptorNumber = 0;
+        public static int ReceptorNumber = 0;
         ///<summary>
         ///x-coordinate of receptor points
         ///</summary>
@@ -543,27 +546,27 @@ namespace GRAL_2001
         ///<summary>
         ///x-index of receptor points in the GRAL concentration grid
         ///</summary>
-        public static Int32[] ReceptorIInd = new Int32[1];
+        public static int[] ReceptorIInd = new int[1];
         ///<summary>
         ///y-index of receptor points in the GRAL concentration grid
         ///</summary>
-        public static Int32[] ReceptorJInd = new Int32[1];
+        public static int[] ReceptorJInd = new int[1];
         ///<summary>
         ///Z-index of receptor points in the GRAL concentration grid
         ///</summary>
-        public static Int32[] ReceptorKInd = new Int32[1];
+        public static int[] ReceptorKInd = new int[1];
         ///<summary>
         ///x-index of receptor points in the GRAL flow-field grid
         ///</summary>
-        public static Int32[] ReceptorIIndFF = new Int32[1];
+        public static int[] ReceptorIIndFF = new int[1];
         ///<summary>
         ///y-index of receptor points in the GRAL flow-field grid
         ///</summary>
-        public static Int32[] ReceptorJIndFF = new Int32[1];
+        public static int[] ReceptorJIndFF = new int[1];
         ///<summary>
         ///Z-index of receptor points in the GRAL flow-field grid
         ///</summary>
-        public static Int32[] ReceptorKIndFF = new Int32[1];
+        public static int[] ReceptorKIndFF = new int[1];
         ///<summary>
         ///Array containing concentrations at receptor points
         ///</summary>
@@ -587,27 +590,27 @@ namespace GRAL_2001
         ///<summary>
         ///Flag set when line source data is provided
         ///</summary>
-        public static Int32 LS_Count = 0;
+        public static int LS_Count = 0;
         ///<summary>
         ///Flag set when tunnel portal source data is provided
         ///</summary>
-        public static Int32 TS_Count = 0;
+        public static int TS_Count = 0;
         ///<summary>
         ///Flag set when point source data is provided
         ///</summary>
-        public static Int32 PS_Count = 0;
+        public static int PS_Count = 0;
         ///<summary>
         ///Flag set when area source data is provided
         ///</summary>
-        public static Int32 AS_Count = 0;
+        public static int AS_Count = 0;
         ///<summary>
         ///2D Array defining areas where the tunnel jet stream is destroyed due to traffic on the opposite lanes of highways
         ///</summary>
-        public static Int16[][] OPP_LANE = CreateArray<Int16[]>(1, () => new Int16[1]);
+        public static byte[][] OPP_LANE = CreateArray<byte[]>(1, () => new byte[1]);
         ///<summary>
         ///2D Array defining areas where the tunnel jet stream is destroyed due to traffic on the opposite lanes of highways
         ///</summary>
-        public static Int16[][] TUN_ENTR = CreateArray<Int16[]>(1, () => new Int16[1]);
+        public static byte[][] TUN_ENTR = CreateArray<byte[]>(1, () => new byte[1]);
         ///<summary>
         ///Emission rates of point sources
         ///</summary>
@@ -891,15 +894,15 @@ namespace GRAL_2001
         ///<summary>
         ///Total number of particles released in each weather situation
         ///</summary>
-        public static Int32 NTEILMAX = 0;
+        public static int NTEILMAX = 0;
         ///<summary>
         ///Each particle is assigned a specific source number
         ///</summary>
-        public static Int32[] ParticleSource = new Int32[1];
+        public static int [] ParticleSource = new int[1];
         ///<summary>
         ///Each particle is assigned a specific source type (0: point, 1: portal, 2: line, 3: area)
         ///</summary>
-        public static byte[] SourceType = new Byte[1];
+        public static byte[] SourceType = new byte[1];
         ///<summary>
         ///Each particle is assigned a source group
         ///</summary>
@@ -959,7 +962,7 @@ namespace GRAL_2001
         ///<summary>
         ///Flag indicating whether land-use data is available or not
         ///</summary>
-        public static Boolean LandUseAvailable = false;
+        public static bool LandUseAvailable = false;
         ///<summary>
         ///Total number of meteo observations of a profile
         ///</summary>
@@ -991,7 +994,7 @@ namespace GRAL_2001
         ///<summary>
         ///Maximum cell index in z-direction up to which a microscale flow field is computed in every column
         ///</summary>
-        public static Int32 KADVMAX = 1;
+        public static int KADVMAX = 1;
         ///<summary>
         ///Total mass divergence in each cell
         ///</summary>
@@ -1127,7 +1130,7 @@ namespace GRAL_2001
         ///<summary>
         ///Exists file emissions_timeseries.txt for transient simulation
         ///</summary>
-        public static Boolean EmissionTimeseriesExist = false;
+        public static bool EmissionTimeseriesExist = false;
         ///<summary>
         ///Check if high-resolution topography for GRAL simulations exists
         ///</summary>
