@@ -22,9 +22,13 @@ namespace GRAL_2001
         private const float sqrtPiF = 1.77245385090552F;
 
         /// <summary>
-        ///Time loop for all released particles - the particles are tracked until they leave the domain area (steady state mode)
-        ///or until the dispersion time has expired (transient mode)
+        ///Time loop for all released particles - the particles are tracked until they leave the domain area(steady state mode)
+        ///or until the dispersion time has expired (transient mode) 
         /// </summary>
+        /// <param name="nteil">Particle number</param>
+        /// /// <remarks>
+        /// This class is the particle driver for particles, released by a source in steady state and transient GRAL mode
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int nteil)
         {
@@ -64,7 +68,7 @@ namespace GRAL_2001
             float vsed = Program.ParticleVsed[nteil];
             float vdep = Program.ParticleVdep[nteil];
             double area_rez_fac = Program.TAUS * Program.GridVolume * 24 / 1000; // conversion factor for particle mass from µg/m³/s to mg per day
-            area_rez_fac = area_rez_fac / (Program.dx * Program.dy);  // conversion to mg/m²
+            area_rez_fac = area_rez_fac / (Program.GralDx * Program.GralDy);  // conversion to mg/m²
 
             double xtun = 0;
             double ytun = 0;
@@ -81,11 +85,11 @@ namespace GRAL_2001
             float DYK_rez = 1 / Program.DYK;
             float DDX1_rez = 1 / Program.DDX[1];
             float DDY1_rez = 1 / Program.DDY[1];
-            float dx_rez = 1 / Program.dx;
-            float dy_rez = 1 / Program.dy;
-            float dz_rez = 1 / Program.dz;
-            float dxHalf = Program.dx * 0.5F;
-            float dyHalf = Program.dy * 0.5F;
+            float dx_rez = 1 / Program.GralDx;
+            float dy_rez = 1 / Program.GralDy;
+            float dz_rez = 1 / Program.GralDz;
+            float dxHalf = Program.GralDx * 0.5F;
+            float dyHalf = Program.GralDy * 0.5F;
 
             int IFQ = Program.TS_Count;
             int Kenn_NTeil = Program.ParticleSource[nteil];       // number of source
@@ -527,11 +531,11 @@ namespace GRAL_2001
                     //in case plume rise the time step shall not exceed 0.2s in the first 20 seconds
                     if (SourceType == 0 && auszeit < 20) idt = MathF.Min(0.2F, idt);
 
-                    float idtt = 0.5F * Math.Min(Program.dx, DXK) / (windge + MathF.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold)));
+                    float idtt = 0.5F * Math.Min(Program.GralDx, DXK) / (windge + MathF.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold)));
                     if (idtt < idt) idt = idtt;
                     Math.Clamp(idt, 0.1F, 4F);
                     /*
-					idt = (float)Math.Min(idt, 0.5F * Math.Min(Program.dx, DXK) / (windge + Math.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold))));
+					idt = (float)Math.Min(idt, 0.5F * Math.Min(Program.GralDx, DXK) / (windge + Math.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold))));
 					idt = (float)Math.Min(4, idt);
                     idt = (float)Program.fl_max(0.1F, idt);
                      */
@@ -871,10 +875,10 @@ namespace GRAL_2001
                     UYint = UYneu;
 
                     //maximum time step
-                    idt = Program.dx / (tunpa + 0.05F) * 0.5F;
+                    idt = Program.GralDx / (tunpa + 0.05F) * 0.5F;
                     Math.Clamp(idt, 0.05F, 0.5F);
 
-                    //idt = (float)Math.Min(Program.dx / (tunpa + 0.05F) * 0.5F, 0.5);
+                    //idt = (float)Math.Min(Program.GralDx / (tunpa + 0.05F) * 0.5F, 0.5);
                     float tunpao = tunpa;
 
                     //dispersion time of each particle
@@ -1291,7 +1295,7 @@ namespace GRAL_2001
                                         float AHK = Program.AHK[IndexIDelta][IndexJDelta];
                                         float AHKold = Program.AHK[IndexIalt][IndexJalt];
 
-                                        if (Math.Abs(AHK - AHKold) > Program.dx * 0.5F) // vertical step > Concentration raster / 2
+                                        if (Math.Abs(AHK - AHKold) > Program.GralDx * 0.5F) // vertical step > Concentration raster / 2
                                         {
                                             float faktor = Math.Abs(zcoord_nteil - Program.AHK[IndexI][IndexJ]) / Program.DZK[KKARTNew];
                                             if (faktor < 3) // avoid overflow and increase perf.
@@ -1825,7 +1829,7 @@ namespace GRAL_2001
                                     }
                                 }
                             }
-                            else // use the concentration at the receptor position x +- dx/2 and receptor y +- dy/2
+                            else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
                             {
                                 if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < dxHalf &&
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < dyHalf)
@@ -1877,7 +1881,7 @@ namespace GRAL_2001
                     {
                         for (int II = 1; II < kko.Length; II++)
                         {
-                            float slice = (zcoordRelative - (Program.HorSlices[II] + Program.dz)) * dz_rez;
+                            float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 1; II < kko.Length; II++)
@@ -1894,7 +1898,7 @@ namespace GRAL_2001
                         }
                         for (int II = 1; II < kko.Length; II++)
                         {
-                            float slice = (zcoordRelative - (Program.HorSlices[II] - Program.dz)) * dz_rez;
+                            float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 1; II < kko.Length; II++)

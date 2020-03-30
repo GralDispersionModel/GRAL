@@ -16,9 +16,19 @@ namespace GRAL_2001
 {
     class TransientConcentration
     {
+
         /// <summary>
-	    ///Store the particle concentration in the transient grid
-	    /// </summary>
+        ///Store the particle concentration in the transient grid
+        /// </summary>
+        /// <param name="reflexion_flag">No reflection = 0</param>
+        /// <param name="zcoord_nteil">Particle z coordinate</param>
+        /// <param name="AHint">Surface height at this cell</param>
+        /// <param name="masse">Mass (of emission) of this source particle</param>
+        /// <param name="Area_cart">Area of one flow field cell</param>
+        /// <param name="idt">Advection time step</param>
+        /// <param name="xsi">Particle x position</param>
+        /// <param name="eta">Particle y position</param>
+        /// <param name="SG_nteil">internal source group number of this particle</param>
         public void Conz5dZeitschleife(int reflexion_flag, float zcoord_nteil, float AHint, double masse, double Area_cart, float idt, double xsi, double eta, int SG_nteil)
         {
             if (reflexion_flag == 0)
@@ -35,6 +45,18 @@ namespace GRAL_2001
             }
         }
 
+        /// <summary>
+        /// Store the particle concentration in the transient grid
+        /// </summary>
+        /// <param name="reflexion_flag">No reflection = 0</param>
+        /// <param name="zcoord_nteil">Particle z coordinate</param>
+        /// <param name="AHint">Surface height at this cell</param>
+        /// <param name="mass_real">Mass (of emission) of this transient particle</param>
+        /// <param name="Area_cart">Area of one flow field cell</param>
+        /// <param name="idt">Advection time step</param>
+        /// <param name="xsi">Particle x position</param>
+        /// <param name="eta">Particle y position</param>
+        /// <param name="SG_nteil">internal source group number of this particle</param>
         public void Conz5dZeitschleifeTransient(int reflexion_flag, float zcoord_nteil, float AHint, double mass_real, double Area_cart, float idt, double xsi, double eta, int SG_nteil)
         {
             if (reflexion_flag == 0)

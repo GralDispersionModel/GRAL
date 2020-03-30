@@ -23,6 +23,11 @@ namespace GRAL_2001
     ///</summary>
     public class MicroscaleTerrainSearchRefPoint
     {
+        /// <summary>
+        /// Search a reference point within the sub domain mask
+        /// </summary>
+        /// <param name="subDomainMask">Array defining the prognostic sub domains</param>
+        /// <returns></returns>
         public IntPoint SearchReferencePoint(byte[][] subDomainMask)
         {
             int xmax = subDomainMask.Length;

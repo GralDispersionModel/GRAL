@@ -17,6 +17,17 @@ namespace GRAL_2001
 {
     partial class Zeitschleife
     {
+        /// <summary>
+        ///Vertical interpolation of the horizontal standard deviations of wind component fluctuations
+        /// </summary>
+        /// <param name="nteil">Particle number</param>
+        /// <param name="IUstern">X pos. of particle in the GRAMM grid</param>
+        /// <param name="JUstern">Y pos. of particle in the GRAMM grid</param>
+        /// <param name="DiffBuilding">Height of particle</param>
+        /// <param name="windge">GRAL wind velocity</param>
+        /// <param name="sigmauhurly">Sigma for plume rise</param>
+        /// <param name="U0int">Return parameter - standard deviation of u wind fluctuation</param>
+        /// <param name="V0int">Return parameter - standard deviation of v wind fluctuation</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IntStandCalculate(int nteil, int IUstern, int JUstern, float DiffBuilding, float windge, float sigmauhurly, ref float U0int, ref float V0int)
         {
@@ -45,7 +56,7 @@ namespace GRAL_2001
                     V0int = Program.V0[ipo - 1] + (Program.V0[ipo] - Program.V0[ipo - 1]) * help;
                 }
             }
-            else
+            else // Wind speed, wind direction, stability class - default case when using meteopgt.all
             {
                 U0int = windge * (0.2F * MathF.Pow(windge, -0.9F) + 0.32F * Program.Z0Gramm[IUstern][JUstern] + 0.18F);
                 U0int = Program.FloatMax(U0int, 0.3F) * Program.StdDeviationV;
@@ -57,8 +68,8 @@ namespace GRAL_2001
             {
                 //U0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));
                 //V0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));
-                U0int += Math.Abs(sigmauhurly);
-                V0int += Math.Abs(sigmauhurly);
+                U0int += MathF.Abs(sigmauhurly);
+                V0int += MathF.Abs(sigmauhurly);
             }
         }
 
