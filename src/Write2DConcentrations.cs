@@ -36,9 +36,9 @@ namespace GRAL_2001
                         {
                             for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
-                                for (int II = 1; II <= Program.NS; II++)
+                                for (int II = 0; II < Program.NS; II++)
                                 {
-                                    string fname = Program.IWET.ToString("00000") + "-" + II.ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                                    string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
 
                                     if (Program.WriteASCiiResults) // aditional ASCii Output
                                     {
@@ -64,7 +64,7 @@ namespace GRAL_2001
                                     }
 
                                     // Write deposition
-                                    if (II == 1 && (Program.DepositionExist || Program.WetDeposition))
+                                    if (II == 0 && (Program.DepositionExist || Program.WetDeposition))
                                     {
                                         fname = Program.IWET.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
                                         write_entry = archive.CreateEntry(fname);
@@ -94,9 +94,9 @@ namespace GRAL_2001
                 {
                     for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                     {
-                        for (int II = 1; II <= Program.NS; II++)
+                        for (int II = 0; II < Program.NS; II++)
                         {
-                            string fname = Program.IWET.ToString("00000") + "-" + II.ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                            string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
 
                             if (Program.WriteASCiiResults) // aditional ASCii Output
                             {
@@ -109,7 +109,7 @@ namespace GRAL_2001
                             }
 
                             // Write deposition
-                            if (II == 1 && (Program.DepositionExist || Program.WetDeposition))
+                            if (II == 0 && (Program.DepositionExist || Program.WetDeposition))
                             {
                                 fname = Program.IWET.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
                                 using (BinaryWriter sw = new BinaryWriter(File.Open(fname, FileMode.Create)))
@@ -136,7 +136,7 @@ namespace GRAL_2001
 
                 for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                 {
-                    for (int II = 1; II <= Program.NS; II++)
+                    for (int II = 0; II < Program.NS; II++)
                     {
                         Object thisLock = new Object();
 
@@ -285,7 +285,7 @@ namespace GRAL_2001
             //reset concentrations
             for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
             {
-                for (int II = 1; II <= Program.NS; II++)
+                for (int II = 0; II < Program.NS; II++)
                 {
                     for (int i = 1; i <= Program.NXL; i++)
                     {

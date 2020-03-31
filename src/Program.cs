@@ -118,7 +118,7 @@ namespace GRAL_2001
             //Lowest grid level of the prognostic flow field model grid
             HOKART[0] = 0;
 
-            //read main GRAL domain file "GRAL.geb" and check if the file "UseOrigTopography.txt" exists
+            //read main GRAL domain file "GRAL.geb" and check if the file "UseOrigTopography.txt" exists -> needed to read In.Dat!
             ReaderClass.ReadGRALGeb();
 
             //optional: read GRAMM file ggeom.asc
@@ -243,7 +243,7 @@ namespace GRAL_2001
             {
                 try
                 {
-                    Info = "  Slice height above ground [m]: " + HorSlices[i + 1].ToString();
+                    Info = "  Slice height above ground [m]: " + HorSlices[i].ToString();
                     Console.WriteLine(Info);
                 }
                 catch

@@ -25,7 +25,7 @@ namespace GRAL_2001
     public partial class ProgramReaders
     {
         /// <summary>
-        ///Read the main control file in.dat
+        ///Read the main control file in.dat - Gral.geb must be read before this routine!
         /// </summary>
         public void ReadInDat()
         {
@@ -99,13 +99,13 @@ namespace GRAL_2001
 
                         _line++;
                         text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                        for (int i = 0; i <= Program.NS; i++)
+                        for (int i = 0; i < Program.NS; i++)
                         {
                             try
                             {
                                 text[i] = text[i].Trim();
                                 text[i] = text[i].Replace(".", decsep);
-                                Program.HorSlices[i + 1] = Convert.ToSingle(text[i]);
+                                Program.HorSlices[i] = Convert.ToSingle(text[i]);
                             }
                             catch { }
                         }
