@@ -98,7 +98,7 @@ namespace GRAL_2001
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
-            Span<int> kko = stackalloc int[Program.NS + 1];
+            Span<int> kko = stackalloc int[Program.NS];
             double[] ReceptorConcentration = new double[Program.ReceptorNumber + 1];
             float a3 = 1.1F;
 
@@ -114,8 +114,8 @@ namespace GRAL_2001
             TransientConcentration trans_conz = new TransientConcentration();
 
             /*
-			 *   INITIIALIZING PARTICLE PROPERTIES -> DEPEND ON SOURCE CATEGORY
-			 */
+             *   INITIIALIZING PARTICLE PROPERTIES -> DEPEND ON SOURCE CATEGORY
+             */
             int IUstern = 1, JUstern = 1;
             float AHint = 0;
             float AHintold = 0;
@@ -274,8 +274,8 @@ namespace GRAL_2001
                     goto REMOVE_PARTICLE;
 
                 /*
-				 *   VERTICAL DIFFUSION ACCORING TO FRANZESE, 1999
-				 */
+                 *   VERTICAL DIFFUSION ACCORING TO FRANZESE, 1999
+                 */
 
                 //dissipation
                 float ObLength = Program.Ob[IUstern][JUstern];
@@ -432,8 +432,8 @@ namespace GRAL_2001
                 float cory = velyold * idt;
 
                 /*
-				 *    HORIZONTAL DIFFUSION ACCORDING TO ANFOSSI ET AL. (2006)
-				 */
+                 *    HORIZONTAL DIFFUSION ACCORDING TO ANFOSSI ET AL. (2006)
+                 */
 
                 //vertical interpolation of horizontal standard deviations of wind speed components
                 Zeitschleife.IntStandCalculate(0, IUstern, JUstern, diff_building, windge, sigmauhurly, ref U0int, ref V0int);
@@ -975,7 +975,7 @@ namespace GRAL_2001
                 {
                     zcoordRelative = zcoord_nteil - AHint;
                 }
-                for (int II = 1; II < kko.Length; II++)
+                for (int II = 0; II < kko.Length; II++)
                 {
                     float slice = (zcoordRelative - Program.HorSlices[II]) * dz_rez;
                     if (Math.Abs(slice) > Int16.MaxValue)
@@ -1048,7 +1048,7 @@ namespace GRAL_2001
                     }
 
                     //compute 2D - concentrations
-                    for (int II = 1; II < kko.Length; II++)
+                    for (int II = 0; II < kko.Length; II++)
                     {
                         if ((kko[II] == 0) && (reflexion_flag == 0))
                         {
@@ -1079,12 +1079,12 @@ namespace GRAL_2001
                     //ODOUR Dispersion requires the concentration fields above and below the acutal layer
                     if (Program.Odour == true)
                     {
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             if ((kko[II] == 0) && (reflexion_flag == 0))
                             {
@@ -1096,12 +1096,12 @@ namespace GRAL_2001
                                 }
                             }
                         }
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             if ((kko[II] == 0) && (reflexion_flag == 0))
                             {

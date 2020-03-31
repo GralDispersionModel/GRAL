@@ -99,7 +99,7 @@ namespace GRAL_2001
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
-            Span<int> kko = stackalloc int[Program.NS + 1];
+            Span<int> kko = stackalloc int[Program.NS];
             double[] ReceptorConcentration = new double[Program.ReceptorNumber + 1];
             float a1 = 0.05F, a2 = 1.7F, a3 = 1.1F;
 
@@ -1771,7 +1771,7 @@ namespace GRAL_2001
                 {
                     zcoordRelative = zcoord_nteil - AHint;
                 }
-                for (int II = 1; II < kko.Length; II++)
+                for (int II = 0; II < kko.Length; II++)
                 {
                     float slice = (zcoordRelative - Program.HorSlices[II]) * dz_rez;
                     if (Math.Abs(slice) > Int16.MaxValue)
@@ -1845,7 +1845,7 @@ namespace GRAL_2001
                     }
 
                     //compute 2D - concentrations
-                    for (int II = 1; II < kko.Length; II++)
+                    for (int II = 0; II < kko.Length; II++)
                     {
                         if ((kko[II] == 0) && (reflexion_flag == 0))
                         {
@@ -1879,12 +1879,12 @@ namespace GRAL_2001
                     //ODOUR Dispersion requires the concentration fields above and below the acutal layer
                     if (Program.Odour == true)
                     {
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             if ((kko[II] == 0) && (reflexion_flag == 0))
                             {
@@ -1896,12 +1896,12 @@ namespace GRAL_2001
                                 }
                             }
                         }
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * dz_rez;
                             kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
                         }
-                        for (int II = 1; II < kko.Length; II++)
+                        for (int II = 0; II < kko.Length; II++)
                         {
                             if ((kko[II] == 0) && (reflexion_flag == 0))
                             {

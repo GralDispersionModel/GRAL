@@ -137,7 +137,6 @@ namespace GRAL_2001
                                 ;
                             }
                         }
-
                         Environment.Exit(0);
                     }
 

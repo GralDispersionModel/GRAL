@@ -124,11 +124,11 @@ namespace GRAL_2001
                 if ((HOKART[i] >= (AHMAX - AHMIN + 300)) && (HOKART[i] >= 800))
                 {
                     nkk = i;
+                    ModelTopHeight = HOKART[i] + AHMIN;
                     break;
                 }
             }
-
-            ModelTopHeight = HOKART[NKK] + AHMIN;
+             
             nkk = Math.Min(nkk, VerticalCellMaxBound - 2);
             return nkk;
         }
@@ -365,7 +365,7 @@ namespace GRAL_2001
             NX2 = NX + 2;
             NY2 = NY + 2;
             NZ2 = NZ + 2;
-            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS + 1, () => new float[Program.SourceGroups.Count + 1])));
+            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1])));
             XKO = new double[NX2];
             YKO = new double[NY2];
             ZKO = new double[NZ2];
@@ -379,7 +379,7 @@ namespace GRAL_2001
             WWIN = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
             TKE = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
             DISS = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
-            HorSlices = new float[NS + 1];
+            HorSlices = new float[NS];
             Z0Gramm = CreateArray<float[]>(NX1, () => new float[NY1]);
             Ustern = CreateArray<float[]>(NX1, () => new float[NY1]);
             Ob = CreateArray<float[]>(NX1, () => new float[NY1]);
@@ -389,10 +389,10 @@ namespace GRAL_2001
             //create additional concentration arrays for calculating concentration gradients used for odour-hour modelling
             if (Odour == true)
             {
-                Conz3dp = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS + 1, () => new float[Program.SourceGroups.Count + 1])));
-                Conz3dm = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS + 1, () => new float[Program.SourceGroups.Count + 1])));
-                Q_cv0 = CreateArray<float[]>(NS + 1, () => new float[Program.SourceGroups.Count + 1]);
-                DisConcVar = CreateArray<float[]>(NS + 1, () => new float[Program.SourceGroups.Count + 1]);
+                Conz3dp = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1])));
+                Conz3dm = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1])));
+                Q_cv0 = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1]);
+                DisConcVar = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1]);
             }
 
             //array for computing deposition
@@ -944,11 +944,11 @@ namespace GRAL_2001
                 double x0 = i * Program.GralDx;
                 double xmax = x0 + Program.GralDx;
 
-                Span<double> VolumeReduction = stackalloc double[Program.NS + 1];
-                Span<float> HMin = stackalloc float[Program.NS + 1];
-                Span<float> HMax = stackalloc float[Program.NS + 1];
+                Span<double> VolumeReduction = stackalloc double[Program.NS];
+                Span<float> HMin = stackalloc float[Program.NS];
+                Span<float> HMax = stackalloc float[Program.NS];
 
-                for (int k = 1; k < HMin.Length; k++)
+                for (int k = 0; k < HMin.Length; k++)
                 {
                     HMin[k] = Program.HorSlices[k] - Program.GralDz * 0.5F + DeltaH;
                     HMax[k] = Program.HorSlices[k] + Program.GralDz * 0.5F + DeltaH;
@@ -973,7 +973,7 @@ namespace GRAL_2001
                                 {
                                     float buidingheight = Program.BUI_HEIGHT[IndexI][IndexJ];
                                     // loop over all slices
-                                    for (int k = 1; k < HMin.Length; k++)
+                                    for (int k = 0; k < HMin.Length; k++)
                                     {
                                         if (buidingheight > HMin[k])
                                         {
@@ -988,7 +988,7 @@ namespace GRAL_2001
                     int iko = i + 1;
                     int jko = j + 1;
                     // Correction of the concentration
-                    for (int k = 1; k < HMin.Length; k++)
+                    for (int k = 0; k < HMin.Length; k++)
                     {
                         if (VolumeReduction[k] > 0)
                         {
@@ -1044,10 +1044,10 @@ namespace GRAL_2001
             // loop over all concentration cells
             Parallel.For(0, Program.NXL, Program.pOptions, i =>
             {
-                Span<float> HMin = stackalloc float[Program.NS + 1];
-                Span<float> HMax = stackalloc float[Program.NS + 1];
+                Span<float> HMin = stackalloc float[Program.NS];
+                Span<float> HMax = stackalloc float[Program.NS];
 
-                for (int k = 1; k < HMin.Length; k++)
+                for (int k = 0; k < HMin.Length; k++)
                 {
                     HMin[k] = Program.HorSlices[k] - Program.GralDz * 0.5F + DeltaH;
                     HMax[k] = Program.HorSlices[k] + Program.GralDz * 0.5F + DeltaH - 0.2F;
@@ -1058,7 +1058,7 @@ namespace GRAL_2001
                     float buidingheight = Program.BUI_HEIGHT[i][j];
 
                     // loop over all slices
-                    for (int k = 1; k < HMin.Length; k++)
+                    for (int k = 0; k < HMin.Length; k++)
                     {
                         if (buidingheight > HMin[k] && buidingheight < HMax[k])
                         {
