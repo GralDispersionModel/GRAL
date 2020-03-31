@@ -124,11 +124,11 @@ namespace GRAL_2001
                 if ((HOKART[i] >= (AHMAX - AHMIN + 300)) && (HOKART[i] >= 800))
                 {
                     nkk = i;
+                    ModelTopHeight = HOKART[i] + AHMIN;
                     break;
                 }
             }
 
-            ModelTopHeight = HOKART[NKK] + AHMIN;
             nkk = Math.Min(nkk, VerticalCellMaxBound - 2);
             return nkk;
         }
