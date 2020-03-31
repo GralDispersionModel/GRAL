@@ -112,8 +112,7 @@ namespace GRAL_2001
             int IndexJ3d = 1;
             int IndexK3d = 1;
             Boolean emission_timeseries = Program.EmissionTimeseriesExist;
-            int SG_MaxNumb = Program.SourceGroups.Count;
-
+            
             double Area_cart = Program.DXK * Program.DYK;
 
             int reflexion_number = 0; 		  // counter to limit max. number of reflexions

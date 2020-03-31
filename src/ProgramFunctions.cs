@@ -365,7 +365,7 @@ namespace GRAL_2001
             NX2 = NX + 2;
             NY2 = NY + 2;
             NZ2 = NZ + 2;
-            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1])));
+            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
             XKO = new double[NX2];
             YKO = new double[NY2];
             ZKO = new double[NZ2];
@@ -389,14 +389,14 @@ namespace GRAL_2001
             //create additional concentration arrays for calculating concentration gradients used for odour-hour modelling
             if (Odour == true)
             {
-                Conz3dp = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1])));
-                Conz3dm = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1])));
-                Q_cv0 = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1]);
-                DisConcVar = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count + 1]);
+                Conz3dp = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
+                Conz3dm = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
+                Q_cv0 = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count]);
+                DisConcVar = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count]);
             }
 
             //array for computing deposition
-            Depo_conz = CreateArray<double[][]>(NXL + 2, () => CreateArray<double[]>(NYL + 2, () => new double[Program.SourceGroups.Count + 1]));
+            Depo_conz = CreateArray<double[][]>(NXL + 2, () => CreateArray<double[]>(NYL + 2, () => new double[Program.SourceGroups.Count]));
         }
 
         /// <summary>
