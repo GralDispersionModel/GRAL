@@ -128,7 +128,7 @@ namespace GRAL_2001
                     break;
                 }
             }
-             
+
             nkk = Math.Min(nkk, VerticalCellMaxBound - 2);
             return nkk;
         }
