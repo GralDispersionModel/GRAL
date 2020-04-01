@@ -154,6 +154,10 @@ namespace GRAL_2001
             
             //reading main control file in.dat
             ReaderClass.ReadInDat();
+            //total number of particles released for each weather situation
+            NTEILMAX = (int)(TAUS * TPS);
+            //Volume of the GRAL concentration grid
+            GridVolume = GralDx * GralDy * GralDz;
 
             //Reading building data
             //case 1: complex terrain
@@ -298,10 +302,6 @@ namespace GRAL_2001
                 ReadAreaSources.Read();
             }
 
-            //total number of particles released for each weather situation
-            NTEILMAX = (int)(TAUS * TPS);
-            //Volume of the GRAL concentration grid
-            GridVolume = GralDx * GralDy * GralDz;
             //distribution of all particles over all sources according to their source strengths (the higher the emission rate the larger the number of particles)
             NTEILMAX = ParticleManagement.Calculate();
             //Coriolis parameter
