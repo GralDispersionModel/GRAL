@@ -234,7 +234,7 @@ namespace GRAL_2001
                         Program.DisConcVar[II][IQ] /= (float)Nhor;
 
                         //output of several quantities needed to run the concentration variance model subsequently
-                        string fname = Program.IWET.ToString("00000") + "-" + II.ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".odr";
+                        string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".odr";
                         try
                         {
                             if (Program.ResultFileZipped)
