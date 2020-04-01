@@ -93,7 +93,7 @@ namespace GRAL_2001
                 Program.ConzSsum = Program.CreateArray<float[][]>(Program.NII + 2, () => Program.CreateArray<float[]>(Program.NJJ + 2, () => new float[Program.NKK_Transient + 2]));
             }
 
-            Program.EmissionPerSG = new double[Program.SourceGroups.Count + 1];
+            Program.EmissionPerSG = new double[Program.SourceGroups.Count];
 
             if (Program.IWETstart == 1) // search and read an exising temporarily conz_sum() file and conz4d file in transient mode
             {

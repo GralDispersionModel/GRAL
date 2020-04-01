@@ -42,9 +42,9 @@ namespace GRAL_2001
                             Program.ReceptorNumber = Convert.ToInt32(text[0]);
 
                             //array declarations
-                            Program.ReceptorConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count + 1]);
-                            Program.ReceptorParticleMaxConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count + 1]);
-                            Program.ReceptorTotalConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count + 1]);
+                            Program.ReceptorConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count]);
+                            Program.ReceptorParticleMaxConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count]);
+                            Program.ReceptorTotalConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count]);
                             Program.ReceptorX = new double[Program.ReceptorNumber + 1];
                             Program.ReceptorY = new double[Program.ReceptorNumber + 1];
                             Program.ReceptorZ = new float[Program.ReceptorNumber + 1];

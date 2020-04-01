@@ -89,7 +89,7 @@ namespace GRAL_2001
                                 }
                             }
                             // write emission per source group
-                            for (int IQ = 0; IQ <= Program.SourceGroups.Count; IQ++)
+                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
                                 bw.Write((double)(Program.EmissionPerSG[IQ]));
                             }

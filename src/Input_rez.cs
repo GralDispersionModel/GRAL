@@ -48,9 +48,9 @@ namespace GRAL_2001
                                 if (block > Program.ReceptorNumber)
                                 {
                                     Program.ReceptorNumber = block;
-                                    Program.ReceptorConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count + 1]);
-                                    Program.ReceptorParticleMaxConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count + 1]);
-                                    Program.ReceptorTotalConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count + 1]);
+                                    Program.ReceptorConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count]);
+                                    Program.ReceptorParticleMaxConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count]);
+                                    Program.ReceptorTotalConc = Program.CreateArray<double[]>(Program.ReceptorNumber + 1, () => new double[Program.SourceGroups.Count]);
                                     Array.Resize(ref Program.ReceptorX, Program.ReceptorNumber + 1);
                                     Array.Resize(ref Program.ReceptorX, Program.ReceptorNumber + 1);
                                     Array.Resize(ref Program.ReceptorY, Program.ReceptorNumber + 1);

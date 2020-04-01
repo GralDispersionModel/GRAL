@@ -274,14 +274,16 @@ namespace GRAL_2001
                             }
 
                             // read emission per source group
-                            for (int IQ = 0; IQ <= Program.SourceGroups.Count; IQ++)
+                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
                                 Program.EmissionPerSG[IQ] = rb.ReadDouble();
                             }
 
-                            string err = "Reading Transient_Concentrations.tmp successful";
+                            string err = "Reading Transient_Concentrations.tmp successful! Already calculated emission rates:";
                             Console.WriteLine(err);
                             ProgramWriters.LogfileGralCoreWrite(err);
+                            //Write already calculated emission rate
+                            ProgramWriters.ShowEmissionRate();
                         }
                         else
                         {

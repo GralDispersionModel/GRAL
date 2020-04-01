@@ -540,16 +540,16 @@ namespace GRAL_2001
             // Transient Mode: calculate average deposition settings for each source group one times (if Transient_Depo == null)
             if (Program.ISTATIONAER == 0 && Program.TransientDepo == null)
             {
-                Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count + 1];
-                for (int i = 0; i <= Program.SourceGroups.Count; i++)
+                Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count];
+                for (int i = 0; i < Program.SourceGroups.Count; i++)
                 {
                     Program.TransientDepo[i] = new TransientDeposition();
                 }
 
-                int[] mode = new int[Program.SourceGroups.Count + 1];
-                int[] counter = new int[Program.SourceGroups.Count + 1];
-                double[] vsed = new double[Program.SourceGroups.Count + 1];
-                double[] vdep = new double[Program.SourceGroups.Count + 1];
+                int[] mode = new int[Program.SourceGroups.Count];
+                int[] counter = new int[Program.SourceGroups.Count];
+                double[] vsed = new double[Program.SourceGroups.Count];
+                double[] vdep = new double[Program.SourceGroups.Count];
 
                 // loop over all particles
                 for (int nteil = 1; nteil < Program.NTEILMAX + 1; nteil++)
