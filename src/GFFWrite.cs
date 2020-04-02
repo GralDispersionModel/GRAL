@@ -282,32 +282,66 @@ namespace GRAL_2001
                                     // loop unroll for better performance
                                     int km = k - 1;
                                     int bytecounter = 0;
+                                    float _val = 0;
+                                    Int16 _valInt16 = 0;
                                     for (int j = 1; j < Program.NJJ + 2; j++)
                                     {
-                                        Int16 _value = (Int16)(
-                                             Math.Max(Int16.MinValue,
-                                                      Math.Min(Int16.MaxValue, UK_L[j][km] * 100)));
-
-                                        writeData[bytecounter++] = (byte)((_value & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_value & 0x0000FF00) >> 8);
+                                        _val = UK_L[j][km] * 100;
+                                        if (_val > Int16.MaxValue)
+                                        {
+                                            _valInt16 = Int16.MaxValue;
+                                        }
+                                        else if (_val < Int16.MinValue)
+                                        {
+                                            _valInt16 = Int16.MinValue;
+                                        }
+                                        else
+                                        {
+                                            _valInt16 = (Int16) _val;
+                                        }
+                                        
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
 
                                     for (int j = 1; j < Program.NJJ + 2; j++)
                                     {
-                                        Int16 _value = (Int16)(
-                                            Math.Max(Int16.MinValue,
-                                                     Math.Min(Int16.MaxValue, VK_L[j][km] * 100)));
-                                        writeData[bytecounter++] = (byte)((_value & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_value & 0x0000FF00) >> 8);
+                                        _val = VK_L[j][km] * 100;
+                                        if (_val > Int16.MaxValue)
+                                        {
+                                            _valInt16 = Int16.MaxValue;
+                                        }
+                                        else if (_val < Int16.MinValue)
+                                        {
+                                            _valInt16 = Int16.MinValue;
+                                        }
+                                        else
+                                        {
+                                            _valInt16 = (Int16) _val;
+                                        }
+                                        
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
 
                                     for (int j = 1; j < Program.NJJ + 2; j++)
                                     {
-                                        Int16 _value = (Int16)(
-                                            Math.Max(Int16.MinValue,
-                                                     Math.Min(Int16.MaxValue, WK_L[j][k] * 100)));
-                                        writeData[bytecounter++] = (byte)((_value & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_value & 0x0000FF00) >> 8);
+                                        _val = WK_L[j][k] * 100;
+                                        if (_val > Int16.MaxValue)
+                                        {
+                                            _valInt16 = Int16.MaxValue;
+                                        }
+                                        else if (_val < Int16.MinValue)
+                                        {
+                                            _valInt16 = Int16.MinValue;
+                                        }
+                                        else
+                                        {
+                                            _valInt16 = (Int16) _val;
+                                        }
+                                        
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
                                     writer.Write(writeData); // write buffer
                                 }
