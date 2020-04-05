@@ -311,7 +311,7 @@ namespace GRAL_2001
                         Console.WriteLine("LOGLEVEL02");
                         Console.WriteLine("");
                     }
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL03") == true) // Loglevel 2
+                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL03") == true) // Loglevel 3
                     {
                         LogLevel = 3;
                         Console.WriteLine("LOGLEVEL03");
