@@ -18,7 +18,7 @@ namespace GRAL_2001
     partial class Zeitschleife
     {
         /// <summary>
-        /// Interpolation of the microscale wind field in horizontal and vertical direction 
+        /// Interpolation of the microscale wind field in horizontal and vertical direction on the staggered grid 
         /// </summary>
         /// <param name="IndexI">X pos. of particle in the GRAL flow field grid</param>
         /// <param name="IndexJ">Y pos. of particle in the GRAL flow field grid</param>
