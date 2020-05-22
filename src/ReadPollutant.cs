@@ -131,7 +131,9 @@ namespace GRAL_2001
                         {
                             string txt = myreader.ReadLine();
                             if (txt.ToLower().Contains("odour"))
+                            {
                                 odour = true;
+                            }
                         }
                     }
                     catch { }
