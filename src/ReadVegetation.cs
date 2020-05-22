@@ -77,7 +77,7 @@ namespace GRAL_2001
                                 crown_LAD = Convert.ToDouble(text[4], ic);
                                 COV = Convert.ToDouble(text[5], ic) * 0.01;
                             }
-                            else if (text.Length > 1) // Coordinates
+                            else if (text.Length > 1 && crown_height > 1) // Coordinates
                             {
                                 double cic = Convert.ToDouble(text[0], ic);
                                 double cjc = Convert.ToDouble(text[1], ic);
@@ -132,7 +132,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }
@@ -146,9 +151,9 @@ namespace GRAL_2001
 
 
         /// <summary>
-        /// Read the vegetation.dat domain
+        /// Read the vegetation.dat domain or the vegetation height
         /// </summary>	
-        public void ReadVegetationDomain()
+        public void ReadVegetationDomain(float[][] VegHeight)
         {
             CultureInfo ic = CultureInfo.InvariantCulture;
 
@@ -175,7 +180,7 @@ namespace GRAL_2001
                             block++;
                             text = text1.Split(new char[] { '\t', ',' });
 
-                            if (text[0].Contains("D") && text.Length > 5) // Data line
+                            if (text[0].Contains("D") && text.Length > 4) // Data line
                             {
                                 czo = Convert.ToDouble(text[1], ic);
                             }
@@ -189,20 +194,31 @@ namespace GRAL_2001
 
                                 if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
                                 {
-                                    //compute sub-domains of GRAL for the prognostic wind-field simulations
-                                    int iplus = (int)(Program.PrognosticSubDomainFactor * czo / Program.DXK);
-                                    int jplus = (int)(Program.PrognosticSubDomainFactor * czo / Program.DYK);
-                                    //for (int i1 = IXCUT - iplus; i1 <= IXCUT + iplus; i1++)
-                                    Parallel.For(IXCUT - iplus, IXCUT + iplus + 1, Program.pOptions, i1 =>
+                                    if (VegHeight == null)
                                     {
-                                        for (int j1 = IYCUT - jplus; j1 <= IYCUT + jplus; j1++)
+                                        if (czo > 1) // filter low vegetation areas -> they are used for roughness only
                                         {
-                                            if ((i1 <= Program.NII) && (i1 >= 1) && (j1 <= Program.NJJ) && (j1 >= 1))
+                                            //compute sub-domains of GRAL for the prognostic wind-field simulations
+                                            int iplus = (int)(Program.PrognosticSubDomainFactor * czo / Program.DXK);
+                                            int jplus = (int)(Program.PrognosticSubDomainFactor * czo / Program.DYK);
+                                            //for (int i1 = IXCUT - iplus; i1 <= IXCUT + iplus; i1++)
+                                            Parallel.For(IXCUT - iplus, IXCUT + iplus + 1, Program.pOptions, i1 =>
                                             {
-                                                Program.ADVDOM[i1][j1] = 1;
-                                            }
+                                                for (int j1 = IYCUT - jplus; j1 <= IYCUT + jplus; j1++)
+                                                {
+                                                    if ((i1 <= Program.NII) && (i1 >= 1) && (j1 <= Program.NJJ) && (j1 >= 1))
+                                                    {
+                                                        Program.ADVDOM[i1][j1] = 1;
+                                                    }
+                                                }
+                                            });
                                         }
-                                    });
+                                    }
+                                    else
+                                    {
+                                        // read vegetation height
+                                        VegHeight[IXCUT][IYCUT] = (float)Math.Max(czo, VegHeight[IXCUT][IYCUT]);
+                                    }
                                 }
                             }
                         }
@@ -215,7 +231,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }
