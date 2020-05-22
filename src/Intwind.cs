@@ -22,23 +22,20 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="IndexI">X pos. of particle in the GRAL flow field grid</param>
         /// <param name="IndexJ">Y pos. of particle in the GRAL flow field grid</param>
-        /// <param name="IndexId">X pos. of particle in the GRAL conc grid</param>
-        /// <param name="IndexJd">Y pos. of particle in the GRAL conc grid</param>
         /// <param name="AHint">Height of the surface of the GRAL grid</param>
-        /// <param name="UXint">Return parameter - interpolated wind u component</param>
-        /// <param name="UYint">Return parameter - interpolated wind v component</param>
-        /// <param name="UZint">Return parameter - interpolated wind w component</param>
         /// <param name="IndexK">Vertical index of the particle within the flow field grid</param>
         /// <param name="xcoord">Particle x position</param>
         /// <param name="ycoord">Particle y position</param>
         /// <param name="zcoord">Particle z position</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public static void IntWindCalculate(int IndexI, int IndexJ, int IndexId, int IndexJd,
-                                             float AHint, ref float UXint, ref float UYint, ref float UZint, ref int IndexK,
-                                            double xcoord, double ycoord, float zcoord)
+        public static (float, float, float, int) IntWindCalculate(int IndexI, int IndexJ, float AHint, double xcoord, double ycoord, float zcoord)
         {
             float DXK = Program.DXK;
             float DYK = Program.DYK;
+            float UXint = 0;
+            float UYint = 0;
+            float UZint = 0;
+            int IndexK = 0;
 
             if (Program.Topo == 1)
             {
@@ -57,9 +54,7 @@ namespace GRAL_2001
                 float w1 = WK_L[IndexK];
                 float w2 = WK_L[IndexK + 1];
                 UZint = w1 + (w2 - w1) / Program.DZK[IndexK] * (f1 - Program.HOKART[IndexK - 1]); //19.05.25 Ku: use f1 instead of zcoord - (Program.AHMIN + Program.HOKART[IndexK - 1])
-
                 //mean wind-speed component gradients are not computed as there is no significant change in computed concentrations, even though the well-mixed criterion (Anfossi et al., 2009) is not met
-
             }
             else if (Program.Topo == 0)
             {
@@ -67,7 +62,7 @@ namespace GRAL_2001
                 int NKK = Program.NKK;
 
                 //no obstacles
-                if (Program.BuildingFlatExist == false)
+                if (Program.BuildingsExist == false)
                 {
                     //interpolation between observations
                     float exponent;
@@ -83,9 +78,8 @@ namespace GRAL_2001
                             exponent = 0.56F * MathF.Pow(Program.Ob[1][1], -0.15F);
                         }
                         dumfac = MathF.Pow(zcoord / Program.MeasurementHeight[1], exponent);
-                        UXint = Program.UX[1] * dumfac;
-                        UYint = Program.UY[1] * dumfac;
-                        UZint = 0;
+                        UXint = Program.ObsWindU[1] * dumfac;
+                        UYint = Program.ObsWindV[1] * dumfac;
                     }
                     else if (zcoord >= Program.MeasurementHeight[inumm])
                     {
@@ -101,15 +95,13 @@ namespace GRAL_2001
                             }
 
                             dumfac = MathF.Pow(zcoord / Program.MeasurementHeight[inumm], exponent);
-                            UXint = Program.UX[inumm] * dumfac;
-                            UYint = Program.UY[inumm] * dumfac;
-                            UZint = 0;
+                            UXint = Program.ObsWindU[inumm] * dumfac;
+                            UYint = Program.ObsWindV[inumm] * dumfac;
                         }
                         else
                         {
-                            UXint = Program.UX[inumm];
-                            UYint = Program.UY[inumm];
-                            UZint = 0;
+                            UXint = Program.ObsWindU[inumm];
+                            UYint = Program.ObsWindV[inumm];
                         }
                     }
                     else
@@ -118,40 +110,46 @@ namespace GRAL_2001
                         for (int iprof = 1; iprof <= inumm; iprof++)
                         {
                             if (zcoord > Program.MeasurementHeight[iprof])
+                            {
                                 ipo = iprof + 1;
+                            }
                         }
                         float help = 1 / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) * (zcoord - Program.MeasurementHeight[ipo - 1]);
-                        UXint = Program.UX[ipo - 1] + (Program.UX[ipo] - Program.UX[ipo - 1]) * help;
-                        UYint = Program.UY[ipo - 1] + (Program.UY[ipo] - Program.UY[ipo - 1]) * help;
-                        UZint = 0;
+                        UXint = Program.ObsWindU[ipo - 1] + (Program.ObsWindU[ipo] - Program.ObsWindU[ipo - 1]) * help;
+                        UYint = Program.ObsWindV[ipo - 1] + (Program.ObsWindV[ipo] - Program.ObsWindV[ipo - 1]) * help;
                     }
                 }
                 //with obstacles
-                else if (Program.BuildingFlatExist == true)
+                else if (Program.BuildingsExist == true)
                 {
                     for (IndexK = 1; IndexK <= NKK; IndexK++)
                     {
                         if (zcoord <= Program.HOKART[IndexK])
+                        {
                             break;
+                        }
                     }
-                    if (IndexK > NKK) IndexK = NKK;
+                    if (IndexK > NKK)
+                    {
+                        IndexK = NKK;
+                    }
 
-                    float u1 = Program.UK[IndexId][IndexJd][IndexK];
-                    float u2 = Program.UK[IndexId + 1][IndexJd][IndexK];
-                    UXint = (float)(u1 + (u2 - u1) / DXK * (xcoord - (Program.IKOOAGRAL + (IndexId - 1) * DXK)));
+                    float u1 = Program.UK[IndexI][IndexJ][IndexK];
+                    float u2 = Program.UK[IndexI + 1][IndexJ][IndexK];
+                    UXint = (float)(u1 + (u2 - u1) / DXK * (xcoord - (Program.IKOOAGRAL + (IndexI - 1) * DXK)));
 
-                    float v1 = Program.VK[IndexId][IndexJd][IndexK];
-                    float v2 = Program.VK[IndexId][IndexJd + 1][IndexK];
-                    UYint = (float)(v1 + (v2 - v1) / DYK * (ycoord - (Program.JKOOAGRAL + (IndexJd - 1) * DYK)));
+                    float v1 = Program.VK[IndexI][IndexJ][IndexK];
+                    float v2 = Program.VK[IndexI][IndexJ + 1][IndexK];
+                    UYint = (float)(v1 + (v2 - v1) / DYK * (ycoord - (Program.JKOOAGRAL + (IndexJ - 1) * DYK)));
 
-                    float[] WK_L = Program.WK[IndexId][IndexJd]; //19.05.25 Ku: use a reference -> performance
+                    float[] WK_L = Program.WK[IndexI][IndexJ]; //19.05.25 Ku: use a reference -> performance
                     float w1 = WK_L[IndexK];
                     float w2 = WK_L[IndexK + 1];
                     UZint = w1 + (w2 - w1) / Program.DZK[IndexK] * (zcoord + AHint - Program.HOKART[IndexK - 1]);
-
                     //mean wind-speed component gradients are not computed as there is no significant change in computed concentrations, even though the well-mixed criterion (Anfossi et al., 2009) is not met
                 }
             }
+            return (UXint, UYint, UZint, IndexK);
         }
 
 
