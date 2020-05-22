@@ -11,10 +11,10 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Compression;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
 
 
 namespace GRAL_2001
@@ -24,8 +24,8 @@ namespace GRAL_2001
         private const int ZIP_LEAD_BYTES = 0x04034b50;
 
         /// <summary>
-		///Read a GRAL flow field file
-		/// </summary>
+        ///Read a GRAL flow field file
+        /// </summary>
         public static bool Read()
         {
             bool ReadingOK = false;
@@ -230,22 +230,15 @@ namespace GRAL_2001
                             float[][] WK_L = Program.WK[i];
 
                             readData = reader.ReadBytes((Program.NJJ + 1) * 6); // read one vertical column 
-
                             int offset = (Program.NJJ + 1) * 2;
-
-                            var rangePartitioner = Partitioner.Create(1, Program.NJJ + 1);
-                            Parallel.ForEach(rangePartitioner, (range, loopState) =>
+                            Parallel.For(1, Program.NJJ + 1, Program.pOptions, j =>
                             {
-                                // Loop over each range element
-                                for (int j = range.Item1; j < range.Item2; j++)
-                                {
-                                    int index = (j - 1) * 2;
-                                    UK_L[j][k - 1] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F; // 19.06.03 Ku: use Bitshift instead of Bitconverter 2 Bytes  = word integer value
-                                    index += offset;
-                                    VK_L[j][k - 1] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F;
-                                    index += offset;
-                                    WK_L[j][k] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F;
-                                }
+                                int index = (j - 1) * 2;
+                                UK_L[j][k - 1] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F; // 19.06.03 Ku: use Bitshift instead of Bitconverter 2 Bytes  = word integer value
+                                index += offset;
+                                VK_L[j][k - 1] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F;
+                                index += offset;
+                                WK_L[j][k] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F;
                             });
                         }
                     }
@@ -265,15 +258,22 @@ namespace GRAL_2001
             {
                 int zipheader = 0;
 
-                if (File.Exists(filename) == false) return false;
+                if (File.Exists(filename) == false)
+                {
+                    return false;
+                }
 
                 using (BinaryReader header = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
                 {
                     zipheader = header.ReadInt32();
                     if (zipheader == ZIP_LEAD_BYTES)
+                    {
                         return true;
+                    }
                     else
+                    {
                         return false;
+                    }
                 }
             }
             catch
