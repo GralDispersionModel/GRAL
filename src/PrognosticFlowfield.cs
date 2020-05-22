@@ -38,6 +38,7 @@ namespace GRAL_2001
             float DYK = Program.DYK;
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
+            bool topoZ0Available = (Program.Topo == 1) && (Program.LandUseAvailable == true);
 
             //some array declarations
             if (Program.UKS.Length < 5) // Arrays already created?
@@ -111,13 +112,13 @@ namespace GRAL_2001
 
             //wind velocity at the top of the model domain, needed for scaling the pressure changes for stationarity condition
             IntPoint refP = Program.SubDomainRefPos;
-            float topwind = (float)Math.Sqrt(Program.Pow2(Program.UK[refP.X][refP.Y][NKK - 1]) + 
+            float topwind = (float)Math.Sqrt(Program.Pow2(Program.UK[refP.X][refP.Y][NKK - 1]) +
                                              Program.Pow2(Program.VK[refP.X][refP.Y][NKK - 1]));
             topwind = Math.Max(topwind, 0.01F);
 
             //some variable declarations
             int IterationLoops = 1;
-            float DTIME = 0.5F * MathF.Min(DXK, Program.DZK[1]) / MathF.Max(0.01f, MathF.Sqrt(Program.Pow2(Program.UK[refP.X][refP.Y][Program.KADVMAX]) + 
+            float DTIME = 0.5F * MathF.Min(DXK, Program.DZK[1]) / MathF.Max(0.01f, MathF.Sqrt(Program.Pow2(Program.UK[refP.X][refP.Y][Program.KADVMAX]) +
                                                                                               Program.Pow2(Program.VK[refP.X][refP.Y][Program.KADVMAX])));
             DTIME = MathF.Min(DTIME, 5);
             float DeltaUMax = 0;
@@ -316,24 +317,47 @@ namespace GRAL_2001
                     int KKART_L = Program.KKART[i][j];
                     float CUTK_L = Program.CUTK[i][j];
 
+                    float rough = 0;
+                    if (Program.AdaptiveRoughnessMax > 0)
+                    {
+                        rough = Program.Z0Gral[i][j];
+                    }
+                    else if (topoZ0Available)
+                    {
+                        double x = i * Program.DXK + Program.GralWest;
+                        double y = j * Program.DYK + Program.GralSouth;
+                        double xsi1 = x - Program.GrammWest;
+                        double eta1 = y - Program.GrammSouth;
+                        int IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX);
+                        int JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY);
+                        rough = Program.Z0Gramm[IUstern][JUstern];
+                    }
+                    else
+                    {
+                        rough = Program.Z0Gramm[1][1];
+                    }
+
                     for (int k = KSTART; k <= Vert_index; ++k)
                     {
-                        if ((k == KKART_L + 1) && (CUTK_L == 0))
+                        if (k == KKART_L + 1)
                         {
-                            float xhilf = (float)i * (DXK - DXK * 0.5F);
-                            float yhilf = (float)j * (DYK - DYK * 0.5F);
-                            int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
-                            int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
-                            Program.UsternTerrainHelpterm[i][j] = 0.4F / MathF.Log(Program.DZK[k] * 0.5F / Program.Z0Gramm[IUstern][JUstern]);
-
-                            if (Program.Z0Gramm[IUstern][JUstern] >= Program.DZK[k] * 0.1)
+                            if (CUTK_L < 1) // building heigth < 1 m
                             {
-                                Program.UsternTerrainHelpterm[i][j] = 0.4F / MathF.Log((Program.DZK[k] + Program.DZK[k + 1] * 0.5F) / Program.DZK[k] * 0.1F);
+                                //above terrain
+                                if (rough >= Program.DZK[k] * 0.1)
+                                {
+                                    Program.UsternTerrainHelpterm[i][j] = 0.4F / MathF.Log((Program.DZK[k] + Program.DZK[k + 1] * 0.5F) / Program.DZK[k] * 0.1F);
+                                }
+                                else
+                                {
+                                    Program.UsternTerrainHelpterm[i][j] = 0.4F / MathF.Log(Program.DZK[k] * 0.5F / rough);
+                                }
                             }
-                        }
-                        else if ((k == KKART_L + 1) && (CUTK_L == 1))
-                        {
-                            Program.UsternObstaclesHelpterm[i][j] = 0.4F / MathF.Log(Program.DZK[k] * 0.5F / building_Z0);
+                            else 
+                            {
+                                //above building
+                                Program.UsternObstaclesHelpterm[i][j] = 0.4F / MathF.Log(Program.DZK[k] * 0.5F / building_Z0);
+                            }
                         }
                     }
                 }
@@ -348,6 +372,30 @@ namespace GRAL_2001
             {
                 for (int j = 1; j <= NJJ; ++j)
                 {
+                    float ObLength, ust, rough;
+                    if (Program.AdaptiveRoughnessMax > 0)
+                    {
+                        ObLength = Program.OLGral[i][j];
+                        ust = Program.USternGral[i][j];
+                        rough = Program.Z0Gral[i][j];
+                    }
+                    else if (topoZ0Available)
+                    {
+                        double xhilf = (float)i * (DXK - DXK * 0.5F);
+                        double yhilf = (float)j * (DYK - DYK * 0.5F);
+                        int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
+                        int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
+                        ObLength = Program.Ob[IUstern][JUstern];
+                        ust = Program.Ustern[IUstern][JUstern];
+                        rough = Program.Z0Gramm[IUstern][JUstern];
+                    }
+                    else
+                    {
+                        ObLength = Program.Ob[1][1];
+                        ust = Program.Ustern[1][1];
+                        rough = Program.Z0Gramm[1][1];
+                    }
+
                     for (int k = 1; k <= NKK - 1; ++k)
                     {
                         int ipo = 1;
@@ -363,10 +411,7 @@ namespace GRAL_2001
                         }
 
                         float zhilf = Program.HOKART[k] - (Program.AHK[i][j] - Program.HOKART[Program.KKART[i][j]]);
-                        double xhilf = (float)i * (DXK - DXK * 0.5F);
-                        double yhilf = (float)j * (DYK - DYK * 0.5F);
-                        int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
-                        int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
+
                         float U0int = 0;
                         float varw = 0;
                         if ((Program.IStatistics == 0) || (Program.IStatistics == 3))
@@ -400,17 +445,17 @@ namespace GRAL_2001
                         else
                         {
                             double windhilf = Math.Max(Math.Sqrt(Program.Pow2(Program.UK[i][j][k]) + Program.Pow2(Program.VK[i][j][k])), 0.01);
-                            U0int = (float)(windhilf * (0.2 * Math.Pow(windhilf, -0.9) + 0.32 * Program.Z0Gramm[IUstern][JUstern] + 0.18));
+                            U0int = (float)(windhilf * (0.2 * Math.Pow(windhilf, -0.9) + 0.32 * rough + 0.18));
                             U0int = (float)Math.Max(U0int, 0.3) * Program.StdDeviationV;
                         }
 
-                        if (Program.Ob[IUstern][JUstern] < 0)
+                        if (ObLength < 0)
                         {
-                            varw = (Program.Pow2(Program.Ustern[IUstern][JUstern]) * Program.Pow2(1.15F + 0.1F * MathF.Pow(Program.BdLayHeight / (-Program.Ob[IUstern][JUstern]), 0.67F)) * Program.Pow2(Program.StdDeviationW));
+                            varw = (Program.Pow2(ust) * Program.Pow2(1.15F + 0.1F * MathF.Pow(Program.BdLayHeight / (-ObLength), 0.67F)) * Program.Pow2(Program.StdDeviationW));
                         }
                         else
                         {
-                            varw = Program.Pow2(Program.Ustern[IUstern][JUstern] * Program.StdDeviationW * 1.25F);
+                            varw = Program.Pow2(ust * Program.StdDeviationW * 1.25F);
                         }
 
                         if (TurbulenceModel != 1)
@@ -419,7 +464,7 @@ namespace GRAL_2001
                         }
                         /*
                         if (Program.IEPS == 1)
-                            Program.TDISS[i][j][k] = (float)MyPow(Program.Ustern[IUstern][JUstern], 3) / zhilf / 0.4 * MyPow(1 + 0.5 * MyPow(zhilf / Math.Abs(Program.Ob[IUstern][JUstern]), 0.67), 1.5);
+                            Program.TDISS[i][j][k] = (float)MyPow(ust, 3) / zhilf / 0.4 * MyPow(1 + 0.5 * MyPow(zhilf / Math.Abs(Program.Ob[IUstern][JUstern]), 0.67), 1.5);
                          */
                     }
                 }
@@ -494,8 +539,8 @@ namespace GRAL_2001
                 }
             });
 
-            //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
-            CONTINUE_SIMULATION:
+        //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
+        CONTINUE_SIMULATION:
             while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel > 1))
             {
                 if (IterationLoops == 1)
@@ -713,7 +758,7 @@ namespace GRAL_2001
                     IS = 1;
                     JS = -1;
                 }
-               
+
                 DeltaUMax = 0;
                 Parallel.For(2, NJJ, Program.pOptions, j1 =>
                 {
@@ -938,9 +983,9 @@ namespace GRAL_2001
                 if (TurbulenceModel == 1)
                 {
                     Parallel.Invoke(Program.pOptions,
-                        () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
-                        () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));
-                    W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
+                        () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
+                        () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                    W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
                 }
 
                 //k-eps model
@@ -952,13 +997,13 @@ namespace GRAL_2001
                     W_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
                     TKE_PrognosticMicroscale.Calculate(IS, JS, Cmueh, Ceps, Ceps1, Ceps2, VISHMIN, VISVMIN, AREAxy, building_Z0, relax, Ustern_factorX);
                 }
-                
+
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Part 8: " + TIME_dispersion.ToString("0.000"));
                 //Startzeit = Environment.TickCount;
 
                 //Average maximum deviation of wind components between two time steps
-                if (IterationLoops >= IterationStepsMax) 
+                if (IterationLoops >= IterationStepsMax)
                 {
                     DeltaFinish = (float)(DeltaMean / Program.Pow2(topwind));
                 }
@@ -973,7 +1018,7 @@ namespace GRAL_2001
                     }
 
                     Console.WriteLine("ITERATION " + IterationLoops.ToString() + ": " + _delta.ToString("0.000"));
-                    
+
                     if (_delta < 0.012 && (IterationLoops >= IterationStepsMin))
                     {
                         break;
@@ -993,7 +1038,7 @@ namespace GRAL_2001
                 }
 
                 IterationLoops++;
-                
+
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Total time: " + TIME_dispersion.ToString("0.000"));
             }
