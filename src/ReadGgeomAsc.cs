@@ -196,8 +196,8 @@ namespace GRAL_2001
                                 readbin.ReadSingle();
                             }
 
-                            Program.IKOOA = readbin.ReadInt32();
-                            Program.JKOOA = readbin.ReadInt32();
+                            Program.GrammWest = readbin.ReadInt32();
+                            Program.GrammSouth = readbin.ReadInt32();
                             readbin.ReadDouble(); // angle not used
 
                             for (int k = 1; k < Program.NK + 2; k++)
@@ -322,8 +322,8 @@ namespace GRAL_2001
                             text[0] = read1.ReadLine();
                             //obtain western and southern borders of the model domain and the angle (not used anymore) between the main model domain axis and north
                             text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            Program.IKOOA = Convert.ToInt32(text[0]);
-                            Program.JKOOA = Convert.ToInt32(text[1]);
+                            Program.GrammWest = Convert.ToInt32(text[0]);
+                            Program.GrammSouth = Convert.ToInt32(text[1]);
 
                             //obtain heights of the cell corners
                             n = 0;
