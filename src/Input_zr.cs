@@ -56,7 +56,11 @@ namespace GRAL_2001
 
                     Program.Ustern[1][1] = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
                     Program.Ob[1][1] = Convert.ToSingle(text[2].Replace(".", Program.Decsep));
-                    if (Program.Ob[1][1] == 0) Program.Ob[1][1] = 1.0F;
+                    if (Program.Ob[1][1] == 0)
+                    {
+                        Program.Ob[1][1] = 1.0F;
+                    }
+
                     Program.BdLayHeight = Convert.ToSingle(text[3].Replace(".", Program.Decsep));
 
                     //read additional data for tunnel portals if existent
@@ -65,12 +69,14 @@ namespace GRAL_2001
                     {
                         n1 = (k - 1) * 3;
                         Program.U0[k] = Convert.ToSingle(text[4 + n1].Replace(".", Program.Decsep));
-                        Program.UX[k] = Convert.ToSingle(text[5 + n1].Replace(".", Program.Decsep));
-                        Program.UY[k] = Convert.ToSingle(text[6 + n1].Replace(".", Program.Decsep));
+                        Program.ObsWindU[k] = Convert.ToSingle(text[5 + n1].Replace(".", Program.Decsep));
+                        Program.ObsWindV[k] = Convert.ToSingle(text[6 + n1].Replace(".", Program.Decsep));
 
                         //just for wind-speed output
                         if (k == 1)
-                            Program.WindVelGral = (float)Math.Sqrt(Math.Pow(Program.UX[k], 2) + Math.Pow(Program.UY[k], 2));
+                        {
+                            Program.WindVelGral = (float)Math.Sqrt(Math.Pow(Program.ObsWindU[k], 2) + Math.Pow(Program.ObsWindV[k], 2));
+                        }
                     }
 
                     //read additional data for tunnel portals if existent //Removed Kuntner 1.4.2019 - Read these values in ReadTunnelportals
@@ -91,17 +97,22 @@ namespace GRAL_2001
                             if (Program.BdLayHeight <= 0)
                             {
                                 if (Program.Ob[ix][iy] >= 0)
+                                {
                                     Program.BdLayHeight = (float)Math.Min(0.4F * Math.Sqrt(Program.Ustern[1][1] * Program.Ob[1][1] / Program.CorolisParam), 1000);
+                                }
                                 else
+                                {
                                     Program.BdLayHeight = (float)(Math.Min(0.4 * Math.Sqrt(Program.Ustern[1][1] * 1000 / Program.CorolisParam), 800) + 300 * Math.Pow(2.72, Program.Ob[1][1] * 0.01F));
+                                }
                             }
                         }
                     }
 
                     Program.BdLayFlat = Program.BdLayHeight;
                     for (int k = 1; k <= Program.MetProfileNumb; k++)
+                    {
                         Program.V0[k] = Program.U0[k];
-
+                    }
 
                     Program.IWETstart = Program.IDISP + 1;
                 }
@@ -110,7 +121,12 @@ namespace GRAL_2001
                     Console.WriteLine("Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop");
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
                 }
                 sr.Close();
                 sr.Dispose();
@@ -122,7 +138,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }
