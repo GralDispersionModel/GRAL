@@ -50,7 +50,12 @@ namespace GRAL_2001
                         ProgramWriters.LogfileProblemreportWrite(err);
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                        {
+                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                            {
+                                ;
+                            }
+                        }
 
                         Environment.Exit(0);
                     }
