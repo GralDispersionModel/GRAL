@@ -11,10 +11,6 @@
 #endregion
 
 using System;
-using System.Globalization;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -43,7 +39,7 @@ namespace GRAL_2001
             {
                 i = delta;
                 j = delta;
-                
+
                 while (j < (ymax - delta) && !found)
                 {
                     //Console.Write(i.ToString()+"/"+j.ToString()+":");
@@ -53,7 +49,7 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        j ++;
+                        j++;
                     }
                 }
                 while (i < (xmax - delta) && !found)
@@ -65,7 +61,7 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        i ++;
+                        i++;
                     }
                 }
                 while (j > delta && !found)
@@ -77,7 +73,7 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        j --;
+                        j--;
                     }
                 }
                 while (i > delta && !found)
@@ -89,11 +85,11 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        i --;
+                        i--;
                     }
                 }
                 // take the next ring to search a sub domain
-                delta++; 
+                delta++;
             }
 
             //if no prognostic sub domain was found -> set an invalid position for the reference point
