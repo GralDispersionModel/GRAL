@@ -98,9 +98,13 @@ namespace GRAL_2001
 
                         string writefile;
                         if (Ausgabe < 10) // man könnte auf den Textteil "vp_" prüfen, ist unabhängiger, aber nicht so schnell 
+                        {
                             writefile = filename + "_GRAMM.txt";
+                        }
                         else
+                        {
                             writefile = "GRAMM-" + filename + ".txt";
+                        }
 
                         using (StreamWriter wt = new StreamWriter(writefile)) // ausgabe des windfeldes - using = try-catch
                         {
