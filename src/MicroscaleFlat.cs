@@ -68,44 +68,57 @@ namespace GRAL_2001
                         float[] VKj_L = Program.VK[i][j + 1];
                         double UXint;
                         double UYint;
-                        double vertk;
-                        double exponent;
-                        double dumfac;
+                        float vertk;
+                        float exponent;
+                        float dumfac;
+                        float ObLength = Program.Ob[1][1];
+                        if (Program.AdaptiveRoughnessMax > 0)
+                        {
+                            ObLength = Program.OLGral[i][j];
+                        }
 
                         for (int k = Program.NKK; k >= 1; k--)
                         {
-                            vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5;
+                            vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5F;
                             if (vertk > Program.CUTK[i][j])
                             {
                                 //interpolation between observations
                                 if (vertk <= Program.MeasurementHeight[1])
                                 {
-                                    if (Program.Ob[1][1] <= 0)
-                                        exponent = Math.Max(0.35 - 0.4 * Math.Pow(Math.Abs(Program.Ob[1][1]), -0.15), 0.05);
+                                    if (ObLength <= 0)
+                                    {
+                                        exponent = MathF.Max(0.35F - 0.4F * MathF.Pow(MathF.Abs(ObLength), -0.15F), 0.05F);
+                                    }
                                     else
-                                        exponent = 0.56 * Math.Pow(Program.Ob[1][1], -0.15);
+                                    {
+                                        exponent = 0.56F * MathF.Pow(ObLength, -0.15F);
+                                    }
 
-                                    dumfac = Math.Pow(vertk / Program.MeasurementHeight[1], exponent);
-                                    UXint = Program.UX[1] * dumfac;
-                                    UYint = Program.UY[1] * dumfac;
+                                    dumfac = MathF.Pow(vertk / Program.MeasurementHeight[1], exponent);
+                                    UXint = Program.ObsWindU[1] * dumfac;
+                                    UYint = Program.ObsWindV[1] * dumfac;
                                 }
                                 else if (vertk > Program.MeasurementHeight[inumm])
                                 {
                                     if (inumm == 1)
                                     {
-                                        if (Program.Ob[1][1] <= 0)
-                                            exponent = Math.Max(0.35 - 0.4 * Math.Pow(Math.Abs(Program.Ob[1][1]), -0.15), 0.05);
+                                        if (ObLength <= 0)
+                                        {
+                                            exponent = MathF.Max(0.35F - 0.4F * MathF.Pow(MathF.Abs(ObLength), -0.15F), 0.05F);
+                                        }
                                         else
-                                            exponent = 0.56 * Math.Pow(Program.Ob[1][1], -0.15);
+                                        {
+                                            exponent = 0.56F * MathF.Pow(ObLength, -0.15F);
+                                        }
 
-                                        dumfac = Math.Pow(vertk / Program.MeasurementHeight[inumm], exponent);
-                                        UXint = Program.UX[inumm] * dumfac;
-                                        UYint = Program.UY[inumm] * dumfac;
+                                        dumfac = MathF.Pow(vertk / Program.MeasurementHeight[inumm], exponent);
+                                        UXint = Program.ObsWindU[inumm] * dumfac;
+                                        UYint = Program.ObsWindV[inumm] * dumfac;
                                     }
                                     else
                                     {
-                                        UXint = Program.UX[inumm];
-                                        UYint = Program.UY[inumm];
+                                        UXint = Program.ObsWindU[inumm];
+                                        UYint = Program.ObsWindV[inumm];
                                     }
                                 }
                                 else
@@ -114,11 +127,13 @@ namespace GRAL_2001
                                     for (int iprof = 1; iprof <= inumm; iprof++)
                                     {
                                         if (vertk > Program.MeasurementHeight[iprof])
+                                        {
                                             ipo = iprof + 1;
+                                        }
                                     }
-                                    UXint = Program.UX[ipo - 1] + (Program.UX[ipo] - Program.UX[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
+                                    UXint = Program.ObsWindU[ipo - 1] + (Program.ObsWindU[ipo] - Program.ObsWindU[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
                                      (vertk - Program.MeasurementHeight[ipo - 1]);
-                                    UYint = Program.UY[ipo - 1] + (Program.UY[ipo] - Program.UY[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
+                                    UYint = Program.ObsWindV[ipo - 1] + (Program.ObsWindV[ipo] - Program.ObsWindV[ipo - 1]) / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) *
                                      (vertk - Program.MeasurementHeight[ipo - 1]);
                                 }
 
@@ -128,12 +143,16 @@ namespace GRAL_2001
                                 if (i > 1)
                                 {
                                     if (vertk <= Program.CUTK[i - 1][j])
+                                    {
                                         UK_L[k] = 0;
+                                    }
                                 }
                                 if (j > 1)
                                 {
                                     if (vertk <= Program.CUTK[i][j - 1])
+                                    {
                                         VK_L[k] = 0;
+                                    }
                                 }
                                 Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
                                 Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
@@ -142,20 +161,32 @@ namespace GRAL_2001
                             {
                                 //set wind speed zero inside obstacles
                                 UK_L[k] = 0;
-                                if (i < Program.NII) UKi_L[k] = 0;
+                                if (i < Program.NII)
+                                {
+                                    UKi_L[k] = 0;
+                                }
+
                                 VK_L[k] = 0;
-                                if (j < Program.NJJ) VKj_L[k] = 0;
+                                if (j < Program.NJJ)
+                                {
+                                    VKj_L[k] = 0;
+                                }
+
                                 Program.AHK[i][j] = Math.Max(Program.HOKART[k], Program.AHK[i][j]);
                                 Program.BUI_HEIGHT[i][j] = Program.AHK[i][j];
                                 Program.KKART[i][j] = Convert.ToInt16(Math.Max(k, Program.KKART[i][j]));
                                 if (Program.CUTK[i][j] > 0)
+                                {
                                     KADVMAX1 = Math.Max(Program.KKART[i][j], KADVMAX1);
+                                }
                             }
                         }
                     }
                 }
                 if (KADVMAX1 > Program.KADVMAX)
+                {
                     lock (obj) { Program.KADVMAX = Math.Max(Program.KADVMAX, KADVMAX1); }
+                }
             });
             obj = null;
 
@@ -184,40 +215,56 @@ namespace GRAL_2001
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Abs((i - ig) * Program.DXK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards east for obstacles
                             for (int ig = i + Program.IGEB; ig >= i + 1; ig--)
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Abs((i - ig) * Program.DXK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards south for obstacles
                             for (int jg = j - Program.IGEB; jg < j; jg++)
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Abs((j - jg) * Program.DYK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards north for obstacles
                             for (int jg = j + Program.IGEB; jg >= j + 1; jg--)
                             {
                                 entf = 21;
                                 if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Abs((j - jg) * Program.DYK);
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards north/east for obstacles
                             for (int ig = i + Program.IGEB; ig >= i + 1; ig--)
@@ -225,10 +272,14 @@ namespace GRAL_2001
                                 int jg = j + ig - i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards south/west for obstacles
                             for (int ig = i - Program.IGEB; ig < i; ig++)
@@ -236,10 +287,14 @@ namespace GRAL_2001
                                 int jg = j + ig - i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards south/east for obstacles
                             for (int ig = i + Program.IGEB; ig >= i + 1; ig--)
@@ -247,10 +302,14 @@ namespace GRAL_2001
                                 int jg = j - ig + i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             //search towards north/west for obstacles
                             for (int ig = i - Program.IGEB; ig < i; ig++)
@@ -258,10 +317,14 @@ namespace GRAL_2001
                                 int jg = j - ig + i;
                                 entf = 21;
                                 if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
+                                {
                                     entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
+                                }
                             }
                             if (entf <= 20)
+                            {
                                 abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
+                            }
 
                             Program.UK[i][j][k] *= (float)abmind;
                             Program.VK[i][j][k] *= (float)abmind;
@@ -283,11 +346,11 @@ namespace GRAL_2001
                 //prognostic approach
                 if (Program.FlowFieldLevel == 2)
                 {
-                    //read vegetation only once
+                    //read vegetation only one times
                     if (Program.VEG[0][0][0] < 0)
                     {
                         ProgramReaders Readclass = new ProgramReaders();
-                        Readclass.ReadVegetationDomain();
+                        Readclass.ReadVegetationDomain(null);
                         Readclass.ReadVegetation();
                     }
 
@@ -327,29 +390,49 @@ namespace GRAL_2001
                             if (k > KKART)
                             {
                                 if (k <= Program.KKART[i - 1][j])
+                                {
                                     fwo1 = 0;
+                                }
                                 else
+                                {
                                     fwo1 = Program.DZK[k] * Program.DYK * UK_L[k];
+                                }
 
                                 if (k <= Program.KKART[i + 1][j])
+                                {
                                     fwo2 = 0;
+                                }
                                 else
+                                {
                                     fwo2 = Program.DZK[k] * Program.DYK * UKi_L[k];
+                                }
 
                                 if (k <= Program.KKART[i][j - 1])
+                                {
                                     fsn1 = 0;
+                                }
                                 else
+                                {
                                     fsn1 = Program.DZK[k] * Program.DXK * VK_L[k];
+                                }
 
                                 if (k <= Program.KKART[i][j + 1])
+                                {
                                     fsn2 = 0;
+                                }
                                 else
+                                {
                                     fsn2 = Program.DZK[k] * Program.DXK * VKj_L[k];
+                                }
 
                                 if ((k <= KKART + 1) || (k == 1))
+                                {
                                     fbt1 = 0;
+                                }
                                 else
+                                {
                                     fbt1 = Program.DXK * Program.DYK * WK_L[k];
+                                }
 
                                 WK_L[k + 1] = (float)((fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (Program.DXK * Program.DYK));
                             }
