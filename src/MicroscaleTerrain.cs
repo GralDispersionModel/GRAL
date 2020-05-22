@@ -33,8 +33,8 @@ namespace GRAL_2001
             float DYK = Program.DYK;
             float DDX1 = Program.DDX[1];
             float DDY1 = Program.DDY[1];
-            int Delta_IKOO = Program.IKOOAGRAL - Program.IKOOA;
-            int Delta_JKOO = Program.JKOOAGRAL - Program.JKOOA;
+            int Delta_IKOO = Program.IKOOAGRAL - Program.GrammWest;
+            int Delta_JKOO = Program.JKOOAGRAL - Program.GrammSouth;
             double vec_x = 0; double vec_y = 0; int vec_numb = 0;
             bool[,] vec_count = new bool[Program.NII + 2, Program.NJJ + 2];
             Array.Clear(vec_count, 0, vec_count.Length);
@@ -46,7 +46,7 @@ namespace GRAL_2001
                 if (Program.VEG[0][0][0] < 0)
                 {
                     ProgramReaders Readclass = new ProgramReaders();
-                    Readclass.ReadVegetationDomain();
+                    Readclass.ReadVegetationDomain(null);
                 }
             }
 
@@ -56,7 +56,7 @@ namespace GRAL_2001
                 MicroscaleTerrainSearchRefPoint mtsp = new MicroscaleTerrainSearchRefPoint();
                 Program.SubDomainRefPos = mtsp.SearchReferencePoint(Program.ADVDOM);
                 //No prognostic sub array - warning message to the user
-                if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0) 
+                if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0)
                 {
                     Program.SubDomainRefPos = new IntPoint(1, 1);
                     string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
@@ -535,7 +535,7 @@ namespace GRAL_2001
                                 float ux6 = ux2 + (ux4 - ux2) / (Math.Max(_cellHeightPlus - _cellHeight, 0.1F)) * delta_z;
                                 UK_L[k] = (float)(ux5 + (ux6 - ux5) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
                                 //UK_L[k] = (float)(ux1 + (ux2 - ux1) / DDY1 * (iym - indj) * (ywert - DDY1 * 0.5F));
-                               
+
                                 float vx1 = Program.VWIN[indi][indj][indk] + (Program.VWIN[ixm][indj][indk] - Program.VWIN[indi][indj][indk]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 float vx2 = Program.VWIN[indi][iym][indk] + (Program.VWIN[ixm][iym][indk] - Program.VWIN[indi][iym][indk]) / DDX1 * (ixm - indi) * (xwert - DDX1 * 0.5F);
                                 //vertical interpolation
@@ -710,7 +710,7 @@ namespace GRAL_2001
             }
 
             //in case of the diagnostic approach, a boundary layer is established near the obstacle's walls
-            if ((Program.FlowFieldLevel == 1) && (Program.BuildingTerrExist == true))
+            if ((Program.FlowFieldLevel == 1) && (Program.BuildingsExist == true))
             {
                 Parallel.For((1 + Program.IGEB), (Program.NII - Program.IGEB + 1), Program.pOptions, i =>
                 {
@@ -861,9 +861,8 @@ namespace GRAL_2001
                     }
                 });
             }
-
             //prognostic approach
-            if ((Program.FlowFieldLevel == 2) && ((Program.BuildingTerrExist == true) || (File.Exists("vegetation.dat") == true)))
+            if ((Program.FlowFieldLevel == 2) && ((Program.BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
             {
                 //read vegetation only once
                 if (Program.VEG[0][0][0] < 0)
