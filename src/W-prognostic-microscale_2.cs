@@ -37,9 +37,16 @@ namespace GRAL_2001
                 for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
                 {
                     int j = j1;
-                    if (JS == -1) j = Program.NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = Program.NJJ - j1 + 1;
+                    }
+
                     int i = i1;
-                    if (IS == -1) i = Program.NII - i1 + 1;
+                    if (IS == -1)
+                    {
+                        i = Program.NII - i1 + 1;
+                    }
 
                     if (Program.ADVDOM[i][j] == 1)
                     {
@@ -69,7 +76,10 @@ namespace GRAL_2001
 
                         int KSTART = 1;
                         if (Program.CUTK[i][j] == 0)
+                        {
                             KSTART = KKART_LL + 1;
+                        }
+
                         for (int k = KSTART; k <= Vert_Index_LL; k++)
                         {
                             float DZK_K = Program.DZK[k];
@@ -88,17 +98,30 @@ namespace GRAL_2001
                             float DT = Program.FloatMax(VIS, VISHMIN) * AREAxy_L / DZK_K;
                             float DB = 0;
                             if (k > KKART_LL + 1)
+                            {
                                 DB = DT;
+                            }
 
                             //BOUNDARY CONDITIONS FOR DIFFUSION TERMS
                             if ((Program.ADVDOM[i][j - 1] < 1) || (j == 2))
+                            {
                                 DS = 0;
+                            }
+
                             if ((Program.ADVDOM[i][j + 1] < 1) || (j == Program.NJJ - 1))
+                            {
                                 DN = 0;
+                            }
+
                             if ((Program.ADVDOM[i - 1][j] < 1) || (i == 2))
+                            {
                                 DW = 0;
+                            }
+
                             if ((Program.ADVDOM[i + 1][j] < 1) || (i == Program.NII - 1))
+                            {
                                 DE = 0;
+                            }
 
 
                             //ADVECTION TERMS
@@ -109,7 +132,9 @@ namespace GRAL_2001
                             float FT = WKS_L[k] * AREAxy_L;
                             float FB = 0;
                             if (k > KKART_LL + 1)
+                            {
                                 FB = WKS_L[k - 1] * AREAxy_L;
+                            }
 
                             //PECLET NUMBERS
                             DE = Program.FloatMax(DE, 0.0001F);
@@ -194,7 +219,10 @@ namespace GRAL_2001
             while (exp > 0)
             {
                 if (exp % 2 == 1)
+                {
                     result *= num;
+                }
+
                 exp >>= 1;
                 num *= num;
             };

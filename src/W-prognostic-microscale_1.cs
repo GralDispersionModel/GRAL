@@ -44,7 +44,7 @@ namespace GRAL_2001
         /// <param name="AREAxy">Area of a flow field cell</param>
         /// <param name="building_Z0">Roughness of buildings</param>
         /// <param name="relax">Relaxation factor</param>
-        public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, float building_Z0, float relax)
+        public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, float relax)
         {
             Vector<float> DXK_V = new Vector<float>(Program.DXK);
             Vector<float> DYK_V = new Vector<float>(Program.DYK);
@@ -53,7 +53,6 @@ namespace GRAL_2001
 
             Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
-                int KKART_LL, Vert_Index_LL;
                 Span<float> PIMW = stackalloc float[Program.KADVMAX + 1];
                 Span<float> QIMW = stackalloc float[Program.KADVMAX + 1];
                 Span<float> Mask = stackalloc float[SIMD];
@@ -84,18 +83,23 @@ namespace GRAL_2001
 
                 Vector<float> UKS_M_V, VKS_M_V, WK_LV;
 
-                float Ustern_terrain_helpterm, Ustern_obstacles_helpterm;
-
                 int i = i1;
-                if (IS == -1) i = Program.NII - i1 + 1;
+                if (IS == -1)
+                {
+                    i = Program.NII - i1 + 1;
+                }
 
                 for (int j1 = 2; j1 < Program.NJJ; ++j1)
                 {
                     int j = j1;
-                    if (JS == -1) j = Program.NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = Program.NJJ - j1 + 1;
+                    }
 
                     if (Program.ADVDOM[i][j] == 1)
                     {
+                        //inside a prognostic sub domain
                         int jM1 = j - 1;
                         int jP1 = j + 1;
                         int iM1 = i - 1;
@@ -122,10 +126,10 @@ namespace GRAL_2001
                         Single[] UK_L = Program.UK[i][j];
                         Single[] VK_L = Program.VK[i][j];
 
-                        KKART_LL = Program.KKART[i][j];
-                        Vert_Index_LL = Program.VerticalIndex[i][j];
-                        Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
-                        Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
+                        int KKART_LL = Program.KKART[i][j];
+                        int Vert_Index_LL = Program.VerticalIndex[i][j];
+                        float Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
+                        float Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
                         bool ADVDOM_JM = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
                         bool ADVDOM_JP = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
                         bool ADVDOM_IM = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
@@ -138,7 +142,9 @@ namespace GRAL_2001
 
                         int KSTART = 1;
                         if (Program.CUTK[i][j] == 0)
+                        {
                             KSTART = KKART_LL + 1;
+                        }
 
                         int KKART_LL_P1 = KKART_LL + 1;
 
@@ -216,9 +222,13 @@ namespace GRAL_2001
                                 DVDZ = intern * intern;
 
                                 if (mask_v_enable)
+                                {
                                     VIS = Vector.Min(mixL * mixL * Vector.SquareRoot(Vect_05 * (DUDZ + DVDZ)), Vect_15) * Mask_V;
+                                }
                                 else
+                                {
                                     VIS = Vector.Min(mixL * mixL * Vector.SquareRoot(Vect_05 * (DUDZ + DVDZ)), Vect_15);
+                                }
                             }
 
                             DE = Vector.Max(VIS, VISHMIN_V) * DYKDZK / DXK_V;
@@ -229,19 +239,34 @@ namespace GRAL_2001
                             DB = Vector<float>.Zero;
 
                             if (mask_v_enable)
+                            {
                                 DB = DT * Mask_V;
+                            }
                             else if (k > KKART_LL_P1) // otherwise k < KKART_LL_P1 and DB=0!
+                            {
                                 DB = DT;
+                            }
 
                             //BOUNDARY CONDITIONS FOR DIFFUSION TERMS
                             if (ADVDOM_JM)
+                            {
                                 DS = Vector<float>.Zero;
+                            }
+
                             if (ADVDOM_JP)
+                            {
                                 DN = Vector<float>.Zero;
+                            }
+
                             if (ADVDOM_IM)
+                            {
                                 DW = Vector<float>.Zero;
+                            }
+
                             if (ADVDOM_IP)
+                            {
                                 DE = Vector<float>.Zero;
+                            }
 
                             //ADVECTION TERMS
                             UKSim_LV = new Vector<float>(UKSim_L, k);
@@ -257,9 +282,13 @@ namespace GRAL_2001
                             FB = Vector<float>.Zero;
 
                             if (mask_v_enable)
+                            {
                                 FB = new Vector<float>(WKS_L, kM1) * AREAxy_V * Mask_V;
+                            }
                             else if (k > KKART_LL_P1) // otherwise k < KKART_LL_P1 and FB=0!
+                            {
                                 FB = new Vector<float>(WKS_L, kM1) * AREAxy_V;
+                            }
 
                             //PECLET NUMBERS
                             DE = Vector.Max(DE, Vect_0001);
@@ -318,7 +347,6 @@ namespace GRAL_2001
                             //SOURCE TERMS
                             intern2 = Vect_05 * (VKSjm_LV + VKS_V);
                             intern = Vect_05 * (UKSim_LV + UKS_V);
-
                             windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
 
                             DDPZ = new Vector<float>(DPMNEW_L, kM1) - new Vector<float>(DPMNEW_L, k);
@@ -344,9 +372,13 @@ namespace GRAL_2001
                                 DWDZB = (WK_LV - new Vector<float>(WK_L, kM1)) * AREAxy_V;
 
                                 if (mask_v_enable) // compute ADD_DIFF and add to DIMW
+                                {
                                     DIMW += VIS / DZK_V * (DUDZE - DUDZW + DVDZN - DVDZS + DWDZT - DWDZB) * Mask_V;
+                                }
                                 else
+                                {
                                     DIMW += VIS / DZK_V * (DUDZE - DUDZW + DVDZN - DVDZS + DWDZT - DWDZB);
+                                }
                             }
 
                             //RECURRENCE FORMULA

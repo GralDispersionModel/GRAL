@@ -38,9 +38,16 @@ namespace GRAL_2001
                 for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
                 {
                     int j = j1;
-                    if (JS == -1) j = Program.NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = Program.NJJ - j1 + 1;
+                    }
+
                     int i = i1;
-                    if (IS == -1) i = Program.NII - i1 + 1;
+                    if (IS == -1)
+                    {
+                        i = Program.NII - i1 + 1;
+                    }
 
                     if (Program.ADVDOM[i][j] == 1)
                     {
@@ -71,7 +78,10 @@ namespace GRAL_2001
 
                         int KSTART = 1;
                         if (Program.CUTK[i][j] == 0)
+                        {
                             KSTART = KKART_LL + 1;
+                        }
+
                         for (int k = KSTART; k <= Vert_Index_LL; k++)
                         {
                             float DZK_K = Program.DZK[k];
@@ -88,7 +98,9 @@ namespace GRAL_2001
                             float FT = WKS_L[k] * AREAxy_L;
                             float FB = 0;
                             if (k > KKART_LL + 1)
+                            {
                                 FB = WKS_L[k - 1] * AREAxy_L;
+                            }
 
                             //POWER LAW ADVECTION SCHEME
                             float BIM = Program.FloatMax(-FT, 0);
@@ -126,19 +138,5 @@ namespace GRAL_2001
                 }
             });
         }
-
-        //should be faster than MyPow - Function
-        static Func<double, int, double> MyPow = (double num, int exp) =>
-        {
-            double result = 1.0;
-            while (exp > 0)
-            {
-                if (exp % 2 == 1)
-                    result *= num;
-                exp >>= 1;
-                num *= num;
-            };
-            return result;
-        };
     }
 }

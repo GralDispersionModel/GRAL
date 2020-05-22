@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
-    public class U_PrognosticMicroscaleV1
+    public static class U_PrognosticMicroscaleV1
     {
         static readonly Vector<float> Vect_0 = Vector<float>.Zero;
         static readonly Vector<float> Vect_1 = Vector<float>.One;
@@ -44,7 +44,7 @@ namespace GRAL_2001
         /// <param name="UG">Geostrophic wind</param>
         /// <param name="building_Z0">Roughness of buildings</param>
         /// <param name="relax">Relaxation factor</param>
-        public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, Single UG, float building_Z0, float relax)
+        public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, Single UG, float relax)
         {
             float DXK = Program.DXK; float DYK = Program.DYK;
             Vector<float> DXK_V = new Vector<float>(DXK);
@@ -55,8 +55,6 @@ namespace GRAL_2001
 
             Parallel.For(3, Program.NII, Program.pOptions, i1 =>
             {
-                int KKART_LL, Vert_Index_LL;
-
                 Span<float> PIMU = stackalloc float[Program.KADVMAX + 1];
                 Span<float> QIMU = stackalloc float[Program.KADVMAX + 1];
                 Span<float> Mask = stackalloc float[SIMD];
@@ -89,19 +87,23 @@ namespace GRAL_2001
                 Vector<float> Mask_V = Vector<float>.Zero;
                 Vector<float> DUDZ, DVDZ;
 
-                float Ustern_terrain_helpterm, Ustern_obstacles_helpterm, CUTK_L;
-                float xhilf, yhilf, Ustern_Buildings;
-
                 int i = i1;
-                if (IS == -1) i = Program.NII - i1 + 1;
+                if (IS == -1)
+                {
+                    i = Program.NII - i1 + 1;
+                }
 
                 for (int j1 = 2; j1 <= Program.NJJ - 1; ++j1)
                 {
                     int j = j1;
-                    if (JS == -1) j = Program.NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = Program.NJJ - j1 + 1;
+                    }
 
                     if (Program.ADVDOM[i][j] == 1)
                     {
+                        //inside a prognostic sub d omain
                         int jM1 = j - 1;
                         int jP1 = j + 1;
                         int iM1 = i - 1;
@@ -130,24 +132,48 @@ namespace GRAL_2001
                         Single[] WKSip_L = Program.WK[iP1][j];
                         Single[] VK_L = Program.VK[i][j];
 
-                        Vert_Index_LL = Program.VerticalIndex[i][j];
-                        Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
-                        Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
+                        int Vert_Index_LL = Program.VerticalIndex[i][j];
+                        float Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
+                        float Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
                         bool ADVDOM_JM = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
                         bool ADVDOM_JP = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
                         bool ADVDOM_IM = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
                         bool ADVDOM_IP = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
 
-                        CUTK_L = Program.CUTK[i][j];
+                        float CUTK_L = Program.CUTK[i][j];
                         Single[] VEG_L = Program.VEG[i][j];
                         Single COV_L = Program.COV[i][j];
 
-                        KKART_LL = Program.KKART[i][j];
+                        float Z0 = Program.Z0;
+                        if (Program.AdaptiveRoughnessMax < 0.01)
+                        {
+                            //Use GRAMM Roughness with terrain or Roughness from point 1,1 without terrain
+                            int IUstern = 1;
+                            int JUstern = 1;
+                            if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
+                            {
+                                double x = i * Program.DXK + Program.GralWest;
+                                double y = j * Program.DYK + Program.GralSouth;
+                                double xsi1 = x - Program.GrammWest;
+                                double eta1 = y - Program.GrammSouth;
+                                IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX);
+                                JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY);
+                            }
+                            Z0 = Program.Z0Gramm[IUstern][JUstern];
+                        }
+                        else
+                        {
+                            Z0 = Program.Z0Gral[i][j];
+                        }
+
+                        int KKART_LL = Program.KKART[i][j];
                         HOKART_KKART_V = new Vector<float>(Program.HOKART[KKART_LL]);
 
                         int KSTART = 1;
-                        if (CUTK_L == 0)
+                        if (CUTK_L == 0) // building heigth == 0 m
+                        {
                             KSTART = KKART_LL + 1;
+                        }
 
                         int KKART_LL_P1 = KKART_LL + 1;
 
@@ -222,9 +248,13 @@ namespace GRAL_2001
                                 DVDZ = intern * intern;
 
                                 if (mask_v_enable)
+                                {
                                     VIS = Vector.Min(mixL * mixL * Vector.SquareRoot(Vect_05 * (DUDZ + DVDZ)), Vect_15) * Mask_V;
+                                }
                                 else
+                                {
                                     VIS = Vector.Min(mixL * mixL * Vector.SquareRoot(Vect_05 * (DUDZ + DVDZ)), Vect_15);
+                                }
                             }
 
                             DE = Vector.Max(VIS, VISHMIN_V) * DYKDZK / DXK_V;
@@ -234,19 +264,34 @@ namespace GRAL_2001
                             DT = Vector.Max(VIS, VISHMIN_V) * AREAxy_V / DZK_V;
                             DB = Vector<float>.Zero;
                             if (mask_v_enable)
+                            {
                                 DB = DT * Mask_V;
+                            }
                             else if (k > KKART_LL_P1) // otherwise k < KKART_LL_P1 and DB=0!
+                            {
                                 DB = DT;
+                            }
 
                             //BOUNDARY CONDITIONS FOR DIFFUSION TERMS
                             if (ADVDOM_JM)
+                            {
                                 DS = Vector<float>.Zero;
+                            }
+
                             if (ADVDOM_JP)
+                            {
                                 DN = Vector<float>.Zero;
+                            }
+
                             if (ADVDOM_IM)
+                            {
                                 DW = Vector<float>.Zero;
+                            }
+
                             if (ADVDOM_IP)
+                            {
                                 DE = Vector<float>.Zero;
+                            }
 
                             //ADVECTION TERMS
                             VKSimjp_LV = new Vector<float>(VKSimjp_L, k);
@@ -268,9 +313,13 @@ namespace GRAL_2001
                             WKSimM_LV = new Vector<float>(WKSim_L, kM1);
 
                             if (mask_v_enable)
+                            {
                                 FB = Vect_025 * (WKSim_LV + WKS_V + WKSimM_LV + WKSkM_LV) * AREAxy_V * Mask_V;
+                            }
                             else if (k > KKART_LL_P1) // otherwise k < KKART_LL_P1 and FB=0!
+                            {
                                 FB = Vect_025 * (WKSim_LV + WKS_V + WKSimM_LV + WKSkM_LV) * AREAxy_V;
+                            }
 
                             //PECLET NUMBERS
                             DE = Vector.Max(DE, Vect_0001);
@@ -350,49 +399,37 @@ namespace GRAL_2001
 
 
                             //BOUNDARY CONDITION AT SURFACES (OBSTACLES AND TERRAIN)
-                            if ((k <= KKART_LL_P1) && ((k + SIMD) > KKART_LL_P1) && (CUTK_L == 0))
+                            if ((k <= KKART_LL_P1) && ((k + SIMD) > KKART_LL_P1))
                             {
                                 Mask2.Clear();
                                 //Array.Clear(Mask2, 0, Mask2.Length);
                                 int ii = KKART_LL_P1 - k;   // 0 to SIMD - 1
                                 Mask2[ii] = 1;              // Set the mask2 at SIMD position k == KKART_LL_P1 to 1
 
-                                xhilf = (float)((float)i * (DXK - DXK * 0.5F));
-                                yhilf = (float)((float)j * (DYK - DYK * 0.5F));
-
                                 intern = Vect_05 * (UKSim_LV + UKS_V);
                                 intern2 = Vect_05 * (VKSim_LV + VKS_V);
-
                                 windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_01);
 
-                                int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
-                                int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
-
-                                Ustern_Buildings = Ustern_terrain_helpterm * windhilf[ii];
-                                if (Program.Z0Gramm[IUstern][JUstern] >= DZK_V[ii] * 0.1F)
+                                if (CUTK_L < 1) // building heigth < 1 m
                                 {
-                                    int ind = k + ii + 1;
-                                    Ustern_Buildings = Ustern_terrain_helpterm * MathF.Sqrt(Program.Pow2(0.5F * ((UKSim_L[ind]) + UKS_L[ind])) + Program.Pow2(0.5F * ((VKSim_L[ind]) + VKS_L[ind])));
+                                    // above terrain
+                                    float Ustern_Buildings = Ustern_terrain_helpterm * windhilf[ii];
+                                    if (Z0 >= DZK_V[ii] * 0.1F)
+                                    {
+                                        int ind = k + ii + 1;
+                                        Ustern_Buildings = Ustern_terrain_helpterm * MathF.Sqrt(Program.Pow2(0.5F * ((UKSim_L[ind]) + UKS_L[ind])) + Program.Pow2(0.5F * ((VKSim_L[ind]) + VKS_L[ind])));
+                                    }
+
+                                    Vector<float> Ustern_Buildings_V = new Vector<float>(Ustern_Buildings * Ustern_Buildings);
+                                    DIM_U -= UK_LV / windhilf * Ustern_Buildings_V * AREAxy_V * new Vector<float>(Mask2);
                                 }
-
-                                Vector<float> Ustern_Buildings_V = new Vector<float>(Ustern_Buildings * Ustern_Buildings);
-                                DIM_U -= UK_LV / windhilf * Ustern_Buildings_V * AREAxy_V * new Vector<float>(Mask2);
-                            }
-                            else if ((k <= KKART_LL_P1) && ((k + SIMD) > KKART_LL_P1) && (CUTK_L == 1))
-                            {
-                                Mask2.Clear();
-                                //Array.Clear(Mask2, 0, Mask2.Length);
-                                int ii = KKART_LL_P1 - k;   // 0 to SIMD - 1
-                                Mask2[ii] = 1;              // Set the mask2 at SIMD position k == KKART_LL_P1 to 1
-
-                                intern = Vect_05 * (UKSim_LV + UKS_V);
-                                intern2 = Vect_05 * (VKSim_LV + VKS_V);
-                                windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_01);
-
-                                Ustern_Buildings = Ustern_obstacles_helpterm * windhilf[ii];
-
-                                Vector<float> Ustern_Buildings_V = new Vector<float>(Ustern_Buildings * Ustern_Buildings);
-                                DIM_U -= UK_LV / windhilf * Ustern_Buildings_V * AREAxy_V * new Vector<float>(Mask2);
+                                else
+                                {
+                                    //above a building
+                                    float Ustern_Buildings = Ustern_obstacles_helpterm * windhilf[ii];
+                                    Vector<float> Ustern_Buildings_V = new Vector<float>(Ustern_Buildings * Ustern_Buildings);
+                                    DIM_U -= UK_LV / windhilf * Ustern_Buildings_V * AREAxy_V * new Vector<float>(Mask2);
+                                }
                             }
 
                             //additional terms of the eddy-viscosity model
@@ -406,9 +443,13 @@ namespace GRAL_2001
                                 DWDXB = (Vect_05 * (new Vector<float>(WKSip_L, kM1) + WKSkM_LV) - Vect_05 * (WKSkM_LV + WKSimM_LV)) * AREAxy_V;
 
                                 if (mask_v_enable) // compute ADD_DIFF and add to DIMW
+                                {
                                     DIM_U += VIS / DXK_V * (DUDXE - DUDXW + DVDXN - DVDXS + DWDXT - DWDXB) * Mask_V;
+                                }
                                 else
+                                {
                                     DIM_U += VIS / DXK_V * (DUDXE - DUDXW + DVDXN - DVDXS + DWDXT - DWDXB);
+                                }
                             }
 
                             //RECURRENCE FORMULA
@@ -460,7 +501,6 @@ namespace GRAL_2001
                             {
                                 if (KKARTm_LL < k)
                                 {
-
                                     UK_L[k] += relax * (PIMU[k] * UK_L[k + 1] + QIMU[k] - UK_L[k]);
                                 }
                             }
