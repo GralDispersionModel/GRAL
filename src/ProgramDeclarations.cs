@@ -305,6 +305,22 @@ namespace GRAL_2001
         ///</summary>
         public static float[] HorSlices = new float[1];
         ///<summary>
+        ///Adaptive roughness lenght max value; 0 = default GRAL mode using one roughness lenght 
+        ///</summary>
+        public static float AdaptiveRoughnessMax = 0;
+        ///<summary>
+        ///Roughness length [m] for the adaptive roughness lenght mode
+        ///</summary>
+        public static float[][] Z0Gral = CreateArray<float[]>(1, () => new float[1]);
+        ///<summary>
+        ///Fricition velocity for the adaptive roughness lenght mode
+        ///</summary>
+        public static float[][] USternGral = CreateArray<float[]>(1, () => new float[1]);
+        ///<summary>
+        /// Obukhov-length for the adaptive roughness lenght mode
+        ///</summary>
+        public static float[][] OLGral = CreateArray<float[]>(1, () => new float[1]);
+        ///<summary>
         ///Roughness length [m] from the file landuse.asc
         ///</summary>
         public static float[][] Z0Gramm = CreateArray<float[]>(1, () => new float[1]);
@@ -331,11 +347,11 @@ namespace GRAL_2001
         ///<summary>
         ///Observed vertical profile of u-wind components
         ///</summary>
-        public static float[] UX = new float[51];
+        public static float[] ObsWindU = new float[51];
         ///<summary>
         ///Observed vertical profile of v-wind components
         ///</summary>
-        public static float[] UY = new float[51];
+        public static float[] ObsWindV = new float[51];
         ///<summary>
         ///Observed vertical profile of the standard deviation u-wind fluctuations
         ///</summary>
@@ -355,11 +371,11 @@ namespace GRAL_2001
         ///<summary>
         ///Western border of the GRAMM domain
         ///</summary>
-        public static int IKOOA;
+        public static int GrammWest;
         ///<summary>
         ///Southern border of the GRAMM domain
         ///</summary>
-        public static int JKOOA;
+        public static int GrammSouth;
         ///<summary>
         ///Western border of the GRAL domain
         ///</summary>
@@ -369,13 +385,9 @@ namespace GRAL_2001
         ///</summary>
         public static int JKOOAGRAL;
         ///<summary>
-        ///Flag indicating the existance of buildings in the presence of complex terrain
+        ///Flag indicating the existance of buildings 
         ///</summary>
-        public static bool BuildingTerrExist = false;
-        ///<summary>
-        ///Flag indicating the existance of buildings in flat terrain applications
-        ///</summary>
-        public static bool BuildingFlatExist = false;
+        public static bool BuildingsExist = false;
         ///<summary>
         ///Flag indicating the existance of vegetation
         ///</summary>
@@ -486,9 +498,9 @@ namespace GRAL_2001
         public static float TAUS = 3600;
         ///<summary>
         ///Flag determining the input file for meteorological data 4:wind speed, wind direction, stability class 
-		/// 0: friction velocity, Obukhov length, boundary-layer height, standard deviation of horizontal wind fluctuations, u- and v-wind components 
-		/// 2: friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components
-		/// 3: velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters
+        /// 0: friction velocity, Obukhov length, boundary-layer height, standard deviation of horizontal wind fluctuations, u- and v-wind components 
+        /// 2: friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components
+        /// 3: velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters
         ///</summary>
         public static int IStatistics = 4;
         ///<summary>
@@ -898,7 +910,7 @@ namespace GRAL_2001
         ///<summary>
         ///Each particle is assigned a specific source number
         ///</summary>
-        public static int [] ParticleSource = new int[1];
+        public static int[] ParticleSource = new int[1];
         ///<summary>
         ///Each particle is assigned a specific source type (0: point, 1: portal, 2: line, 3: area)
         ///</summary>
@@ -1035,10 +1047,6 @@ namespace GRAL_2001
         ///Term used to compute friction velocity near terrain efficiently
         ///</summary>
         public static float[][] UsternTerrainHelpterm = CreateArray<float[]>(1, () => new float[1]);
-        ///<summary>
-        ///Stability parameter to compute plume rise in dependence upon atmospheric stability
-        ///</summary>
-        public static float PlumeStab = 0.004F;
         ///<summary>
         ///Total number of particles allocated per point source
         ///</summary>
