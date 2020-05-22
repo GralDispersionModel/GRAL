@@ -30,7 +30,7 @@ namespace GRAL_2001
         /// </summary>
         public void WriteGRALGeometries()
         {
-            if ((Program.Topo == 1) || (Program.BuildingFlatExist == true) || (Program.BuildingTerrExist == true))
+            if ((Program.Topo == 1) || (Program.BuildingsExist == true))
             {
                 //write geometry data
                 string GRALgeom = "GRAL_geometries.txt";
@@ -74,7 +74,13 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
+
                     Environment.Exit(0);
                 }
             }
@@ -83,19 +89,19 @@ namespace GRAL_2001
         /// <summary>
         ///optional: write building heights as utilized in GRAL
         /// </summary>
-        public void WriteBuildingHeights()
+        public void WriteBuildingHeights(string Filename, float[][] Data, string Format, int Digits, double west, double south)
         {
             if ((Math.Abs(Program.IOUTPUT) > 1) && (Program.FlowFieldLevel > 0))
             {
                 try
                 {
                     CultureInfo ic = CultureInfo.InvariantCulture;
-                    using (StreamWriter wt = new StreamWriter("building_heights.txt"))
+                    using (StreamWriter wt = new StreamWriter(Filename))
                     {
                         wt.WriteLine("ncols         " + Program.NII.ToString(CultureInfo.InvariantCulture));
                         wt.WriteLine("nrows         " + Program.NJJ.ToString(CultureInfo.InvariantCulture));
-                        wt.WriteLine("xllcorner     " + Program.IKOOAGRAL.ToString(CultureInfo.InvariantCulture));
-                        wt.WriteLine("yllcorner     " + Program.JKOOAGRAL.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("xllcorner     " + west.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("yllcorner     " + south.ToString(CultureInfo.InvariantCulture));
                         wt.WriteLine("cellsize      " + Program.DXK.ToString(CultureInfo.InvariantCulture));
                         wt.WriteLine("NODATA_value  " + "-9999");
 
@@ -104,7 +110,7 @@ namespace GRAL_2001
                         {
                             for (int o = 1; o <= Program.NII; o++)
                             {
-                                SB.Append(Math.Round(Program.BUI_HEIGHT[o][jj], 1).ToString("0.0", ic));
+                                SB.Append(Math.Round(Data[o][jj], Digits).ToString(Format, ic));
                                 SB.Append(" ");
                             }
                             wt.WriteLine(SB.ToString());
@@ -112,7 +118,7 @@ namespace GRAL_2001
                         }
                     }
                 }
-                catch { }
+                catch(Exception ex) {Console.WriteLine(ex.Message);}
             }
         }//optional: write building heights as utilized in GRAL
     }
