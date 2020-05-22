@@ -297,9 +297,9 @@ namespace GRAL_2001
                                         }
                                         else
                                         {
-                                            _valInt16 = (Int16) _val;
+                                            _valInt16 = (Int16)_val;
                                         }
-                                        
+
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
@@ -317,9 +317,9 @@ namespace GRAL_2001
                                         }
                                         else
                                         {
-                                            _valInt16 = (Int16) _val;
+                                            _valInt16 = (Int16)_val;
                                         }
-                                        
+
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
@@ -337,9 +337,9 @@ namespace GRAL_2001
                                         }
                                         else
                                         {
-                                            _valInt16 = (Int16) _val;
+                                            _valInt16 = (Int16)_val;
                                         }
-                                        
+
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
