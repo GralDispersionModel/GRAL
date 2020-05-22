@@ -25,35 +25,24 @@ namespace GRAL_2001
             {
                 double xsi = Program.PS_X[i] - Program.IKOOAGRAL;
                 double eta = Program.PS_Y[i] - Program.JKOOAGRAL;
-                double xsi1 = Program.PS_X[i] - Program.IKOOA;
-                double eta1 = Program.PS_Y[i] - Program.JKOOA;
+
                 if ((eta <= Program.EtaMinGral) || (xsi <= Program.XsiMinGral) || (eta >= Program.EtaMaxGral) || (xsi >= Program.XsiMaxGral))
                 {
                     Console.WriteLine("Point source " + i.ToString() + " out of GRAL domain.");
                 }
 
-                int IndexI = 1;
-                int IndexJ = 1;
                 int IndexId = 1;
                 int IndexJd = 1;
-                if (Program.Topo == 1)
-                {
-                    IndexI = (int)(xsi / Program.DXK) + 1;
-                    IndexJ = (int)(eta / Program.DYK) + 1;
-                }
-                else
-                {
-                    IndexI = (int)(xsi1 / Program.DDX[1]) + 1;
-                    IndexJ = (int)(eta1 / Program.DDY[1]) + 1;
-                }
-                IndexId = (int)(xsi / Program.DXK) + 1;
-                IndexJd = (int)(eta / Program.DYK) + 1;
-
                 float AHint = 0;
                 if (Program.Topo == 1)
                 {
+                    int IndexI = (int)(xsi / Program.DXK) + 1;
+                    int IndexJ = (int)(eta / Program.DYK) + 1;
                     AHint = Program.AHK[IndexI][IndexJ];
                 }
+
+                IndexId = (int)(xsi / Program.DXK) + 1;
+                IndexJd = (int)(eta / Program.DYK) + 1;
 
                 // input = absolute source-height -> compute relative source height
                 if (Program.PS_Absolute_Height[i])
@@ -71,27 +60,13 @@ namespace GRAL_2001
                 Program.PS_effqu[i] = Program.PS_Z[i] + AHint;
 
                 //check if point source is within buildings
-                if ((Program.BuildingTerrExist == true) || (Program.BuildingFlatExist == true))
+                if (Program.BuildingsExist == true)
                 {
                     while (Program.PS_Z[i] <= Program.CUTK[IndexId][IndexJd])
                     {
                         Program.PS_Z[i] += 0.1f;
                         Program.PS_effqu[i] = Program.PS_Z[i] + AHint;
                     }
-                }
-
-                //stability parameter for plume rise calculation according to Hurley, 2005
-                if ((Program.Ob[1][1] >= 0) && (Program.Ob[1][1] < 100))
-                {
-                    Program.PlumeStab = 0.004F;
-                }
-                else if ((Program.Ob[1][1] < 0) && (Program.Ob[1][1] > -100))
-                {
-                    Program.PlumeStab = 0.0001F;
-                }
-                else
-                {
-                    Program.PlumeStab = 0.00015F;
                 }
             }
         }
