@@ -53,13 +53,17 @@ namespace GRAL_2001
                         dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Nz
                         float temp = windfieldb.ReadInt32(); // read 4 bytes from stream = DXX
                         for (int i = 1; i <= NX; i++)
+                        {
                             for (int j = 1; j <= NY; j++)
+                            {
                                 for (int k = 1; k <= NZ; k++)
                                 {
                                     UWI[i][j][k] = (float)windfieldb.ReadInt16() / 100; // 2 Bytes  = word integer value;
                                     VWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
                                     WWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
                                 }
+                            }
+                        }
                     }
                 }
                 else // classic windfield file format
@@ -69,7 +73,9 @@ namespace GRAL_2001
                     using (StreamReader windfield = new StreamReader(filename))
                     {
                         for (int i = 1; i <= NX; i++)
+                        {
                             for (int j = 1; j <= NY; j++)
+                            {
                                 for (int k = 1; k <= NZ; k++)
                                 {
                                     text = windfield.ReadLine().Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
@@ -77,6 +83,8 @@ namespace GRAL_2001
                                     VWI[i][j][k] = (float)Convert.ToDouble(text[1].Replace(".", decsep));
                                     WWI[i][j][k] = (float)Convert.ToDouble(text[2].Replace(".", decsep));
                                 }
+                            }
+                        }
                     }
 
                 }
