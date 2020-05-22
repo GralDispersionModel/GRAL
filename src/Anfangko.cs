@@ -25,10 +25,10 @@ namespace GRAL_2001
         public static void Calculate()
         {
             /*
-			 * 1) coordinates for source 1
-			 * 2) coordinates for source 2
-			 * 3) etc.
-			 */
+             * 1) coordinates for source 1
+             * 2) coordinates for source 2
+             * 3) etc.
+             */
 
             for (int i = 1; i <= Program.TS_Count; i++)
             {
@@ -144,23 +144,28 @@ namespace GRAL_2001
                                     }
                                 }
 
-                                if ((Program.Topo == 1) && (Program.BuildingTerrExist == true))
+                                if ((Program.Topo == 1) && (Program.BuildingsExist == true))
                                 {
                                     int IndexI = (int)(xsi / Program.DXK) + 1;
                                     int IndexJ = (int)(eta / Program.DYK) + 1;
                                     Program.ZCoord[nteil] = Program.PS_effqu[i] - Program.CUTK[IndexI][IndexJ];
                                     AHint = Program.AHK[IndexI][IndexJ];
                                 }
-                                else if ((Program.Topo == 0) && (Program.BuildingFlatExist == true))
+                                else if ((Program.Topo == 0) && (Program.BuildingsExist == true))
                                 {
                                     int IndexI = (int)(xsi / Program.DXK) + 1;
                                     int IndexJ = (int)(eta / Program.DYK) + 1;
                                     if (Program.ZCoord[nteil] <= Program.HOKART[Program.KKART[IndexI][IndexJ]])
+                                    {
                                         Program.ZCoord[nteil] = Program.HOKART[Program.KKART[IndexI][IndexJ]] + 0.1F;
+                                    }
+
                                     AHint = Program.AHK[IndexI][IndexJ];
                                 }
                                 if (Program.ZCoord[nteil] <= AHint)
+                                {
                                     Program.ZCoord[nteil] = AHint + 0.1F;
+                                }
                             }
                             else
                             { }
@@ -234,8 +239,8 @@ namespace GRAL_2001
                                 //in complex terrain z-coordinate is placed onto actual model height
                                 double xsi = Program.Xcoord[nteil] - Program.IKOOAGRAL;
                                 double eta = Program.YCoord[nteil] - Program.JKOOAGRAL;
-                                double xsi1 = Program.Xcoord[nteil] - Program.IKOOA;
-                                double eta1 = Program.YCoord[nteil] - Program.JKOOA;
+                                double xsi1 = Program.Xcoord[nteil] - Program.GrammWest;
+                                double eta1 = Program.YCoord[nteil] - Program.GrammSouth;
                                 if ((eta <= Program.EtaMinGral) || (xsi <= Program.XsiMinGral) || (eta >= Program.EtaMaxGral) || (xsi >= Program.XsiMaxGral))
                                 { }
                                 else
@@ -251,17 +256,24 @@ namespace GRAL_2001
                                     if (Program.TS_Absolute_Height[i])
                                     {
                                         if (Program.ZCoord[nteil] < AHint) // if absolute height < surface
+                                        {
                                             Program.ZCoord[nteil] = AHint + 0.1F;
+                                        }
                                     }
                                     else
+                                    {
                                         Program.ZCoord[nteil] += AHint + 0.1F; // compute abs. height
+                                    }
 
-                                    if ((Program.Topo == 0) && (Program.BuildingFlatExist == true))
+                                    if ((Program.Topo == 0) && (Program.BuildingsExist == true))
                                     {
                                         int IndexI = (int)(xsi / Program.DXK) + 1;
                                         int IndexJ = (int)(eta / Program.DYK) + 1;
                                         if (Program.ZCoord[nteil] <= Program.HOKART[Program.KKART[IndexI][IndexJ]])
+                                        {
                                             Program.ZCoord[nteil] = Program.HOKART[Program.KKART[IndexI][IndexJ]] + 0.1F;
+                                        }
+
                                         AHint = Program.AHK[IndexI][IndexJ];
                                     }
 
@@ -389,8 +401,8 @@ namespace GRAL_2001
                                 //in complex terrain z-coordinate is placed onto actual model height
                                 double xsi = Program.Xcoord[nteil] - Program.IKOOAGRAL;
                                 double eta = Program.YCoord[nteil] - Program.JKOOAGRAL;
-                                double xsi1 = Program.Xcoord[nteil] - Program.IKOOA;
-                                double eta1 = Program.YCoord[nteil] - Program.JKOOA;
+                                double xsi1 = Program.Xcoord[nteil] - Program.GrammWest;
+                                double eta1 = Program.YCoord[nteil] - Program.GrammSouth;
                                 if ((eta <= Program.EtaMinGral) || (xsi <= Program.XsiMinGral) || (eta >= Program.EtaMaxGral) || (xsi >= Program.XsiMaxGral))
                                 { }
                                 else
@@ -404,17 +416,24 @@ namespace GRAL_2001
 
                                     // input = absolute height? - do nothing -otherwise compute abs. height
                                     if (Program.LS_Absolute_Height[i] == false)
+                                    {
                                         zzz += AHint; // compute absolute height 
+                                    }
 
                                     if (zzz <= (AHint + 0.01F)) // set source to the surface
+                                    {
                                         zzz = AHint + 0.01F;
+                                    }
 
-                                    if ((Program.Topo == 0) && (Program.BuildingFlatExist == true))
+                                    if ((Program.Topo == 0) && (Program.BuildingsExist == true))
                                     {
                                         int IndexI = (int)(xsi / Program.DXK) + 1;
                                         int IndexJ = (int)(eta / Program.DYK) + 1;
                                         if (zzz <= Program.HOKART[Program.KKART[IndexI][IndexJ]])
+                                        {
                                             zzz = Program.HOKART[Program.KKART[IndexI][IndexJ]] + 0.1F;
+                                        }
+
                                         AHint = Program.AHK[IndexI][IndexJ];
                                     }
 
@@ -490,8 +509,8 @@ namespace GRAL_2001
                                 //in complex terrain z-coordinate is placed onto actual model height
                                 double xsi = Program.Xcoord[nteil] - Program.IKOOAGRAL;
                                 double eta = Program.YCoord[nteil] - Program.JKOOAGRAL;
-                                double xsi1 = Program.Xcoord[nteil] - Program.IKOOA;
-                                double eta1 = Program.YCoord[nteil] - Program.JKOOA;
+                                double xsi1 = Program.Xcoord[nteil] - Program.GrammWest;
+                                double eta1 = Program.YCoord[nteil] - Program.GrammSouth;
                                 if ((eta <= Program.EtaMinGral) || (xsi <= Program.XsiMinGral) || (eta >= Program.EtaMaxGral) || (xsi >= Program.XsiMaxGral))
                                 { }
                                 else
@@ -507,22 +526,29 @@ namespace GRAL_2001
 
                                     // input = absolute height? -> do nothing, otherwise compute absolute height
                                     if (Program.AS_Absolute_Height[i] == false)
+                                    {
                                         zzz += AHint;
+                                    }
 
-                                    if ((Program.Topo == 1) && (Program.BuildingTerrExist == true))
+                                    if ((Program.Topo == 1) && (Program.BuildingsExist == true))
                                     {
                                         zzz -= Program.CUTK[IndexI][IndexJ];
                                     }
 
                                     if (zzz <= AHint)
+                                    {
                                         zzz = AHint + 0.01F;
+                                    }
 
-                                    if ((Program.Topo == 0) && (Program.BuildingFlatExist == true))
+                                    if ((Program.Topo == 0) && (Program.BuildingsExist == true))
                                     {
                                         IndexI = (int)(xsi / Program.DXK) + 1;
                                         IndexJ = (int)(eta / Program.DYK) + 1;
                                         if (zzz <= Program.HOKART[Program.KKART[IndexI][IndexJ]])
+                                        {
                                             zzz = Program.HOKART[Program.KKART[IndexI][IndexJ]] + 0.1F;
+                                        }
+
                                         AHint = Program.AHK[IndexI][IndexJ];
                                     }
 
