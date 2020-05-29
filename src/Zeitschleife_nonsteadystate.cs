@@ -37,15 +37,15 @@ namespace GRAL_2001
         /// </remarks>
         public static void Calculate(int i, int j, int k, int SG, float TransConcentration)
         {
-            double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
+            double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
             double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
             
             // how many particles (on average) were summed in this cell?
             int transConcentrationFactor = (int)(masse / Program.ParticleMassMean);
             // Split one transient particle into sub-particles if more than 10 average particles have been summed - reduce stat. error
-            int transParticlesSplit = transConcentrationFactor / 10;
+            int transParticlesSplit = transConcentrationFactor / 10 + 1;
 
-            if (transParticlesSplit <= 0)
+            if (transParticlesSplit <= 1)
             {
                 ParticleDriver(i, j, k, SG, TransConcentration);
             }
