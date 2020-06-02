@@ -408,8 +408,9 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        //in stationary mode, meteopgt.all is read here instead of ReadMeteoData(), because we need IEND
+                        //in stationary mode, meteopgt.all is read here, because we need IEND
                         IEND = Input_MeteopgtAll.Read();
+                        IWETstart--; // reset the counter, because metepgt.all is finally read in ReadMeteoData, after the GRAMM wind field is available
                     }
                 }
 
