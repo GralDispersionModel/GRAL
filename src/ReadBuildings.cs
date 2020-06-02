@@ -84,6 +84,10 @@ namespace GRAL_2001
                                         Environment.Exit(0);
                                     }
                                 }
+                                else
+                                {
+                                    block++;
+                                }
                                 BuildingHeights[IXCUT][IYCUT] = (float)Math.Max(czo, BuildingHeights[IXCUT][IYCUT]);
                             }
                         }
