@@ -23,6 +23,43 @@ namespace GRAL_2001
     {
         private const float Pi2F = 2F * MathF.PI;
         private const float RNG_Const = 2.328306435454494e-10F;
+
+        /// <summary>
+        /// Organize the particles released from the transient grid  
+        /// </summary>
+        /// <param name="i">x grid position within the transient concentration grid</param>
+        /// <param name="j">y grid position within the transient concentration grid</param>
+        /// <param name="k">z grid position within the transient concentration grid</param>
+        /// <param name="SG">Source group</param>
+        /// <param name="TransConcentration">Concentration of the transient concentration cell [i][j][k]</param>
+        /// <remarks>
+        /// This class is the particle driver for particles, released by the transient grid in the transient GRAL mode
+        /// </remarks>
+        public static void Calculate(int i, int j, int k, int SG, float TransConcentration)
+        {
+            double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
+            double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
+            
+            // how many particles (on average) were summed in this cell?
+            int transConcentrationFactor = (int)(masse / Program.ParticleMassMean);
+            // Split one transient particle into sub-particles if more than 10 average particles have been summed - reduce stat. error
+            int transParticlesSplit = transConcentrationFactor / 10 + 1;
+
+            if (transParticlesSplit <= 1)
+            {
+                ParticleDriver(i, j, k, SG, TransConcentration);
+            }
+            else
+            {
+                // call particle driver with splitted transient particles
+                float transConcSplit = TransConcentration / transParticlesSplit;
+                for (int p = 0; p < transParticlesSplit; p++)
+                {
+                    ParticleDriver(i, j, k, SG, transConcSplit);
+                }
+            }
+        }
+
         /// <summary>
         /// Time loop for the particles released from the transient grid  
         /// </summary>
@@ -30,33 +67,30 @@ namespace GRAL_2001
         /// <param name="j">y grid position within the transient concentration grid</param>
         /// <param name="k">z grid position within the transient concentration grid</param>
         /// <param name="SG">Source group</param>
-        /// <param name="conz_trans">Concentration of the transient concentration cell [i][j][k]</param>
-        /// <remarks>
-        /// This class is the particle driver for particles, released by the transient grid in the transient GRAL mode
-        /// </remarks>
+        /// <param name="TransConcentration">Concentration of the transient concentration cell [i][j][k]</param>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public static void Calculate(int i, int j, int k, int SG, float conz_trans)
+        private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration)
         {
             //random number generator seeds
             Random RND = new Random();
             uint m_w = (uint)(RND.Next() + 521288629);
             uint m_z = (uint)(RND.Next() + 2232121);
-            RND = null;
+            
             float zahl1 = 0;
             uint u_rg = 0;
             double u1_rg = 0;
 
-            //transfering grid-concentration and grid position into single particle mass and particle position
-            Random rnd = new Random();
-            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25f + (float)(rnd.NextDouble() * 0.5)) * Program.DXK;
-            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25f + (float)(rnd.NextDouble() * 0.5)) * Program.DYK;
-            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.4f + (float)(rnd.NextDouble() * 0.2)) * Program.DZK_Trans[k]);
+            //transfer grid-concentration and grid position into single particle mass and particle position
+            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25 + RND.NextDouble() * 0.5) * Program.DXK;
+            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25 + RND.NextDouble() * 0.5) * Program.DYK;
+            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.3 + RND.NextDouble() * 0.5) * Program.DZK_Trans[k]);
+            RND = null;
 
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
             double Vol_cart = Program.DXK * Program.DYK * Program.DZK_Trans[k];
             double Area_cart = Program.DXK * Program.DYK;
-            double masse = conz_trans * Vol_ratio / Program.TAUS;     //mass related to the concentration grid, but not for the memory-effect grid
-            double mass_real = conz_trans * Vol_cart / Program.TAUS;  //mass related to the memory-effect grid
+            double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid, but not for the memory-effect grid
+            double mass_real = TransConcentration * Vol_cart / Program.TAUS;  //mass related to the memory-effect grid
 
             if (mass_real == 0 || masse == 0)
             {
