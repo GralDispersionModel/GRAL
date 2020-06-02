@@ -600,7 +600,7 @@ namespace GRAL_2001
         private static void ReadMeteoData()
         {
             //read meteorological input data (wind speed, wind direction, stability class)
-            if (IStatistics == 4 && ISTATIONAER == 0) // meteopgt.all and transient mode, in stationary mode, meteogt.all is read in program.cs
+            if (IStatistics == 4) // meteopgt.all 
             {
                 Input_MeteopgtAll.Read();
             }
