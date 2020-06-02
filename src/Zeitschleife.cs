@@ -57,7 +57,7 @@ namespace GRAL_2001
             double ycoord_nteil = Program.YCoord[nteil];
             float zcoord_nteil = Program.ZCoord[nteil];
             double masse = Program.ParticleMass[nteil];
-
+            
             //get index of internal source group number
             int SG_nteil = Program.ParticleSG[nteil];
             for (int i = 0; i < Program.SourceGroups.Count; i++)
@@ -156,7 +156,7 @@ namespace GRAL_2001
                     {
                         masse *= Program.EmFacTimeSeries[Program.IWET - 1, SG_nteil];
                     }
-
+                      
                     if (masse <= 0)
                     {
                         goto REMOVE_PARTICLE;
@@ -171,6 +171,7 @@ namespace GRAL_2001
                 }
                 //catch{}
             }
+          
 
             /*
              *   INITIIALIZING PARTICLE PROPERTIES -> DEPEND ON SOURCE CATEGORY
