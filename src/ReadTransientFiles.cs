@@ -20,6 +20,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Collections.Generic;
 
 namespace GRAL_2001
 {
@@ -320,7 +321,7 @@ namespace GRAL_2001
             string Filename = "TimeSeriesPointSourceVel.txt";
             if (RSTS.ReadTimeSeries(ref Program.PS_TimeSerVelValues, Filename))
             {
-                string Info = "Reading TimeSeriesPointSourceVel.txt successful";
+                string Info = "Reading TimeSeriesPointSourceVel.txt successful; mean exit velocities [m/s]: " + MeanTimeSeriesValue(ref Program.PS_TimeSerVelValues);
                 Console.WriteLine(Info);
                 ProgramWriters.LogfileGralCoreWrite(Info);
             }
@@ -328,7 +329,7 @@ namespace GRAL_2001
             Filename = "TimeSeriesPointSourceTemp.txt";
             if (RSTS.ReadTimeSeries(ref Program.PS_TimeSerTempValues, Filename))
             {
-                string Info = "Reading TimeSeriesPointSourceTemp.txt successful";
+                string Info = "Reading TimeSeriesPointSourceTemp.txt successful; mean exit temperatures [D°C]: " + MeanTimeSeriesValue(ref Program.PS_TimeSerTempValues);
                 Console.WriteLine(Info);
                 ProgramWriters.LogfileGralCoreWrite(Info);
             }
@@ -336,7 +337,7 @@ namespace GRAL_2001
             Filename = "TimeSeriesPortalSourceVel.txt";
             if (RSTS.ReadTimeSeries(ref Program.TS_TimeSerVelValues, Filename))
             {
-                string Info = "Reading TimeSeriesPortalSourceVel.txt successful";
+                string Info = "Reading TimeSeriesPortalSourceVel.txt successful; mean exit velocities [m/s]: " + MeanTimeSeriesValue(ref Program.TS_TimeSerVelValues);
                 Console.WriteLine(Info);
                 ProgramWriters.LogfileGralCoreWrite(Info);
             }
@@ -344,10 +345,38 @@ namespace GRAL_2001
             Filename = "TimeSeriesPortalSourceTemp.txt";
             if (RSTS.ReadTimeSeries(ref Program.TS_TimeSerTempValues, Filename))
             {
-                string Info = "Reading TimeSeriesPortalSourceTemp.txt successful";
+                string Info = "Reading TimeSeriesPortalSourceTemp.txt successful; mean exit temperatures [D°C]: " + MeanTimeSeriesValue(ref Program.TS_TimeSerTempValues);
                 Console.WriteLine(Info);
                 ProgramWriters.LogfileGralCoreWrite(Info);
             }
+        }
+
+        /// <summary>
+        /// Calculate mean value of each TimeSeries column and return string with all values
+        /// </summary> 
+        private string MeanTimeSeriesValue(ref List<TimeSeriesColumn> TimeSeries)
+        {
+            string result = string.Empty;
+            foreach (TimeSeriesColumn _val in TimeSeries)
+            {
+                double sum = 0;
+                for (int i = 0; i < _val.Value.Length; i++)
+                {
+                    sum += _val.Value[i];
+                    //Console.Write(sum+"/");
+                }
+                if (_val.Value.Length > 1)
+                {
+                    sum = sum /(_val.Value.Length - 1);
+                    //Console.Write(sum+"/");
+                    result += Math.Round(sum, 2).ToString() + "\t";
+                }
+                else
+                {
+                    result += "0" + "\t";
+                }
+            }
+            return result;
         }
 
         /// <summary>
