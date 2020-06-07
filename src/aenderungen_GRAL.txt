@@ -622,7 +622,6 @@ aktuell das Partikel entfernt. Neu wird die nächste GRAMM Zelle im Grid weiter 
 
 28.4.2020 (Kuntner)
 Teile die Leseroutine Input_pgt auf, verwende MathF, verringere Array-Zugriffe und verwende Tuples 
-Lese meteogt.all im stationärern Mode nur 1 mal (bisher 2 mal gelesen)
 
 29.4.2020 (Kuntner)
 Behebe Fehler bei der Berechnung des GRAMM Indes in der Flow Field Berechnung -> bisher wurde immer die Rauigkeit am Index [1][1] verwendet, auch wenn Gelände mit variabler Rauigkeit vorhanden war!
@@ -641,3 +640,13 @@ Korrigiere Windrichtung für inputzr.dat für Vielfache von 2Pi
 
 17.5.2020 (Kuntner)
 Berichtige Rauigkeit von Gebäuden in der Flow-Field Berechnung, wobei nur Gebäude > 1 m Höhe als Gebäude herangezogen werden. Darunter wird die Rauigkeit des Geländes verwendet.
+
+1.6.2020 (Kuntner)
+Teile transiente Partikel mit hoher Zellkonzentration in Sub-Partikel, um Partikel mit hoher Masse zu vermeiden
+
+3.6.2020 (Kuntner)
+Ergänze Berechnung und Ausgabe der mittleren Austrittstemp.und Austrittsgeschwindigkeit bei Zeitreihenrechnungen
+
+6.6.2020 (Kuntner)
+Neues *.gff File Format
+Zusätzliche Ausgaben für Zeitreihen Austrittsgeschw./Austrittstemp. bei transienter Berechnung
