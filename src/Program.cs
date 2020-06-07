@@ -378,7 +378,19 @@ namespace GRAL_2001
 
                 //show actual computed weather situation
                 Console.WriteLine("_".PadLeft(79, '_'));
-                Console.WriteLine("Weather number: " + IWET.ToString());
+                Console.Write("Weather number: " + IWET.ToString());
+                if (ISTATIONAER == 0)
+                {
+                    int _iwet = IWET - 1;
+                    if (_iwet < MeteoTimeSer.Count)
+                    {
+                        Console.WriteLine(" - " + MeteoTimeSer[_iwet].Day + "." + MeteoTimeSer[_iwet].Month + "-" + MeteoTimeSer[_iwet].Hour + ":00");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine();
+                }
 
                 //time stamp to evaluate computation times
                 int StartTime = Environment.TickCount;
