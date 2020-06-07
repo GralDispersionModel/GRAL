@@ -26,7 +26,7 @@ namespace GRAL_2001
     public partial class ProgramReaders
     {
         /// <summary>
-        ///Read the emission modulation for transient mode
+        ///Read the emission modulation factors for the transient GRAL mode
         /// </summary>
         public void ReadEmissionTimeseries()
         {
@@ -39,6 +39,7 @@ namespace GRAL_2001
                     {
                         int lineCount = File.ReadLines("emissions_timeseries.txt").Count();
                         Program.EmFacTimeSeries = new float[lineCount, Program.SourceGroups.Count];
+                        double[] mean = new double[Program.SourceGroups.Count];
                         
                         using (StreamReader sr = new StreamReader("emissions_timeseries.txt"))
                         {
@@ -80,9 +81,22 @@ namespace GRAL_2001
                                     {
                                         Program.EmFacTimeSeries[i, SG_internal] = 1;
                                     }
+                                    mean[n] += Program.EmFacTimeSeries[i, SG_internal];
                                 }
                                 i++;
                             }
+
+                            string info = "Reading emissions_timeseries.txt successful - mean factors for each source group: ";
+                            Console.WriteLine(info);
+                            ProgramWriters.LogfileGralCoreWrite(info);
+                            for (int n = 0; n < SG_Time_Series_Count; n++) // check each source group defined in emissions_timeseries.txt
+                            {
+                                info = "  Source group: " + SG_Time_Series[n].ToString() + " Mean emission factor: " + Math.Round(mean[n] / i, 2);
+                                Console.WriteLine(info);
+                                ProgramWriters.LogfileGralCoreWrite(info);
+                            }
+                            ProgramWriters.LogfileGralCoreWrite(" ");
+                            Console.WriteLine();
                         }
                     }
                     catch(Exception ex)
