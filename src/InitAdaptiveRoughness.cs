@@ -30,9 +30,13 @@ namespace GRAL_2001
 
             // Read roughness from file
             bool readRoughnessFromFile = false;
-            if (File.Exists("RoughnessLenghtsGral.dat"))
+            if (File.Exists("RoughnessLengthsGral.dat"))
             {
                 readRoughnessFromFile = ReaderClass.ReadRoughnessGral(Program.Z0Gral);
+                if (readRoughnessFromFile)
+                {
+                    Console.WriteLine("Reading local roughness lenghts from RoughnessLenghtsGral.dat successful");
+                }
             }      
             // or create adaptive roughness lenghts 
             if (readRoughnessFromFile == false)
