@@ -371,7 +371,24 @@ namespace GRAL_2001
             bool FirstLoop = true;
             while (IEND == 0)
             {
-                //next weather situation
+                // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
+                if (ThreadWriteGffFiles != null)
+                {
+                    ThreadWriteGffFiles.Join(5000); // wait up to 5s or until thread has been finished
+                    if (ThreadWriteGffFiles.IsAlive)
+                    {
+                        Console.Write("Writing *.gff file..");
+                        while (ThreadWriteGffFiles.IsAlive)
+                        {
+                            ThreadWriteGffFiles.Join(30000); // wait up to 30s or until thread has been finished
+                            Console.Write(".");
+                        }
+                        Console.WriteLine();
+                    }
+                    ThreadWriteGffFiles = null; // Release ressources				
+                }
+
+                //Next weather situation
                 IWET++;
                 IDISP = IWET;
                 WindVelGramm = -99; WindDirGramm = -99; StabClassGramm = -99; // Reset GRAMM values
@@ -397,13 +414,6 @@ namespace GRAL_2001
 
                 //Set the maximum number of threads to be used in each parallelized region
                 ReaderClass.ReadMaxNumbProc();
-
-                // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
-                if (ThreadWriteGffFiles != null)
-                {
-                    ThreadWriteGffFiles.Join(); // wait, until thread has been finished
-                    ThreadWriteGffFiles = null; // Release ressources				
-                }
 
                 //read meteorological input data 
                 if (IStatistics == 4)
