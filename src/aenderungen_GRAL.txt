@@ -650,3 +650,7 @@ Ergänze Berechnung und Ausgabe der mittleren Austrittstemp.und Austrittsgeschwi
 6.6.2020 (Kuntner)
 Neues *.gff File Format
 Zusätzliche Ausgaben für Zeitreihen Austrittsgeschw./Austrittstemp. bei transienter Berechnung
+
+8.6.2020 (Kuntner)
+Fange GRAMM Gebiete < GRAL Gebiet ab, aber ermögliche trotzdem Berechnung ohne Absturz
+Zeige die Fortdauer des *.gff File Schreibens an, wenn das Schreiben länger dauert, als die Ausbreitungsrechnung
