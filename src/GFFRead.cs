@@ -308,7 +308,7 @@ namespace GRAL_2001
                                 WK_L[k] = (float)(BitConverter.ToInt16(readData, index) * 0.01F);
                                 index += 2;
                             }
-                            // if (i == 56 && j == 30 )
+                            // if (i == 26 && j == 23 )
                             // {
                             //     int k =12;
                             //     Console.WriteLine(UK_L[k-1] + "/" + VK_L[k-1] + "/" + WK_L[k]);

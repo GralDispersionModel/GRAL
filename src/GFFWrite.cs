@@ -401,9 +401,9 @@ namespace GRAL_2001
                             writer.Write(header);
 
                             //Write KKART
+                            Span<byte> _kkartBuffer = new byte[Program.NJJ * 2];
                             for (int i = 1; i < Program.NII + 1; i++)
                             {
-                                Span<byte> _kkartBuffer = new byte[Program.NJJ * 2];
                                 int bytecounter = 0;
                                 for (int j = 1; j < Program.NJJ + 1; j++)
                                 {
@@ -413,6 +413,7 @@ namespace GRAL_2001
                                 }
                                 writer.Write(_kkartBuffer);
                             }
+                            _kkartBuffer = null;
 
                             //Write the vectors
                             Span<byte> WriteBuffer = new byte[(Program.NKK + 1) * 6]; // byte-buffer
@@ -493,7 +494,7 @@ namespace GRAL_2001
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
-                                    // if (i==56 && j == 30)
+                                    // if (i==26 && j == 23)
                                     // {
                                     //     int km=11; int k = 12;
                                     //     Console.WriteLine(UK_L[km]+"/"+VK_L[km] + "/" + WK_L[k]);
