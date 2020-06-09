@@ -591,6 +591,20 @@ namespace GRAL_2001
                 EtaMaxGral -= (float)JKOOAGRAL;
                 XsiMaxGramm = DDX[1] * (float)NX;
                 EtaMaxGramm = DDY[1] * (float)NY;
+
+                if (GrammWest > GralWest || GrammSouth > GralSouth || (GrammWest + XsiMaxGramm) < GralEast || (GrammSouth + EtaMaxGramm) < GralNorth)
+                {
+                    string err = "WARNING: the GRAL domain area is larger than GRAMM domain area!";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    err = "The calculation outside the GRAMM area will be interpolated! It is recommended to cancel the calculation.";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+
+                    Console.WriteLine("Press a key to continue or close the calculation terminal");
+                    Console.ReadKey(true); 	// wait for a key input
+                    //Environment.Exit(-1);
+                }
             }
         }
 
