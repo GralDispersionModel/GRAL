@@ -395,72 +395,77 @@ namespace GRAL_2001
         } // Read GRAL_Topography.txt
 
         /// <summary>
-        /// Read the file RoughnessLenghtsGral.dat 
+        /// Read the file RoughnessLengthsGral.dat
         /// </summary>
         public bool ReadRoughnessGral(float[][] RoughnessArray)
         {
             bool fileReadingOK = false;
-            if (File.Exists("RoughnessLenghtsGral.dat"))
-            {
-                Console.WriteLine("Reading RoughnessLenghtsGral.dat");
-                string[] data ;
 
-                try
+            Console.WriteLine("Reading RoughnessLengthsGral.dat");
+            string[] data;
+
+            try
+            {
+                using (StreamReader myReader = new StreamReader("RoughnessLengthsGral.dat"))
                 {
-                    using (StreamReader myReader = new StreamReader("RoughnessLenghtsGral.dat"))
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    int nx = Convert.ToInt32(data[1]);
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    int ny = Convert.ToInt32(data[1]);
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    double x11 = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    double y11 = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    double dx = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    int nodata = Convert.ToInt32(data[1]);
+                    data = new string[nx + 1];
+                    if (nx != Program.NII || ny != Program.NJJ)
+                    {
+                        throw new ArgumentOutOfRangeException("Microscale Roughness grid cell count is not equal to the flow field grid cell count");
+                    }
+                    if (Math.Abs(x11 - Program.GralWest) > 0.1 || Math.Abs(y11 - Program.GralSouth) > 0.1)
+                    {
+                        throw new ArgumentOutOfRangeException("Microscale Roughness grid does not match the GRAL Domain grid");
+                    }
+                    if (Math.Abs(dx - Program.DXK) > 0.1)
+                    {
+                        throw new ArgumentOutOfRangeException("Microscale Roughness grid size does not match the GRAL Domain grid size");
+                    }
+
+                    double sum = 0;
+                    int count = 0;
+                    for (int j = ny; j > 0; j--)
                     {
                         data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        int nx = Convert.ToInt32(data[1]);
-                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        int ny = Convert.ToInt32(data[1]);
-                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        double x11 = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
-                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        double y11 = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
-                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        double dx = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
-                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        int nodata = Convert.ToInt32(data[1]);
-                        data = new string[nx + 1];
-                        if (nx != Program.NII || ny != Program.NJJ)
+                        for (int i = 1; i <= nx; i++)
                         {
-                            throw new ArgumentOutOfRangeException("Microscale Roughness grid cell count is not equal to the flow field grid cell count");
-                        }
-                        if (Math.Abs(x11 - Program.GralWest) > 0.1 || Math.Abs(y11 - Program.GralSouth) > 0.1)
-                        {
-                            throw new ArgumentOutOfRangeException("Microscale Roughness grid does not match the GRAL Domain grid");
-                        }
-                        if (Math.Abs(dx - Program.DXK) > 0.1)
-                        {
-                            throw new ArgumentOutOfRangeException("Microscale Roughness grid size does not match the GRAL Domain grid size");
-                        }
-
-                        for (int i = ny; i > 0; i--)
-                        {
-                            data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                            for (int j = 1; j <= nx; j++)
+                            float _val = Convert.ToSingle(data[j - 1], ic);
+                            if (Convert.ToInt32(_val) != nodata)
                             {
-                                float _val = Convert.ToSingle(data[j - 1], ic);
-                                if (Convert.ToInt32(_val) != nodata)
-                                {
-                                    RoughnessArray[i][j] = _val;
-                                }
-                                else
-                                {
-                                    RoughnessArray[i][j] = Program.Z0;
-                                }
+                                RoughnessArray[i][j] = _val;
                             }
+                            else
+                            {
+                                RoughnessArray[i][j] = Program.Z0;
+                            }
+                            count++;
+                            sum += RoughnessArray[i][j];
                         }
                     }
-                    Console.WriteLine("...finished");
-                    fileReadingOK = true;
+                    if (count > 0)
+                    {
+                        Console.WriteLine("...finished - mean roughness lenght: " + Math.Round(sum / count, 2).ToString() + " m");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.Write(ex.Message.ToString());
-                    Console.WriteLine("...reading error - finished");
-                    ProgramWriters.LogfileProblemreportWrite(ex.Message.ToString() + "...reading error - finished");
-                }
+                fileReadingOK = true;
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message.ToString());
+                Console.WriteLine("...reading error - finished");
+                ProgramWriters.LogfileProblemreportWrite(ex.Message.ToString() + "...reading error - finished");
             }
             return fileReadingOK;
         } // Read file RoughnessLenghtsGral.dat 
