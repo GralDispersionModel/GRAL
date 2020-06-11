@@ -28,6 +28,7 @@ namespace GRAL_2001
         {
             try
             {
+                Console.Write("Writing result files.");
                 if (Program.ResultFileZipped)
                 {
                     using (FileStream zipToOpen = new FileStream(Program.ZippedFile, FileMode.OpenOrCreate))
@@ -38,6 +39,10 @@ namespace GRAL_2001
                             {
                                 for (int II = 0; II < Program.NS; II++)
                                 {
+                                    if ((IQ + II) % 2 == 0)
+                                    {
+                                        Console.Write(".");
+                                    }
                                     string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
 
                                     if (Program.WriteASCiiResults) // aditional ASCii Output
@@ -96,8 +101,12 @@ namespace GRAL_2001
                     {
                         for (int II = 0; II < Program.NS; II++)
                         {
-                            string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                            if ((IQ + II) % 2 == 0)
+                            {
+                                Console.Write(".");
+                            }
 
+                            string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
                             if (Program.WriteASCiiResults) // aditional ASCii Output
                             {
                                 writeConDataAscii(fname, IQ, II);
@@ -123,6 +132,7 @@ namespace GRAL_2001
             }
             catch (Exception exc)
             {
+                Console.WriteLine();
                 LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing con file: " + exc.Message);
             } //Output of concentration files
 
@@ -138,6 +148,11 @@ namespace GRAL_2001
                 {
                     for (int II = 0; II < Program.NS; II++)
                     {
+                        if ((IQ + II) % 2 == 0)
+                        {
+                            Console.Write(".");
+                        }
+
                         Object thisLock = new Object();
 
                         Parallel.For(1, Program.NXL + 1, Program.pOptions, i =>
@@ -167,6 +182,8 @@ namespace GRAL_2001
                                     double eta = yco - Program.JKOOAGRAL;
                                     IUst = (int)(xsi1 / Program.DDX[1]) + 1;
                                     JUst = (int)(eta1 / Program.DDY[1]) + 1;
+                                    IUst = Math.Clamp(IUst, 1, Program.NX);
+                                    JUst = Math.Clamp(JUst, 1, Program.NY);
 
                                     IndexI = (int)(xsi / Program.DXK) + 1;
                                     IndexJ = (int)(eta / Program.DYK) + 1;
@@ -288,6 +305,7 @@ namespace GRAL_2001
                         {
                             if (IQ == 1)
                             {
+                                Console.WriteLine();
                                 LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing odr file: " + exc.Message);
                             }
                         }
@@ -296,6 +314,7 @@ namespace GRAL_2001
             }
 
             //reset concentrations
+            Console.WriteLine(".");
             for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
             {
                 for (int II = 0; II < Program.NS; II++)
@@ -317,6 +336,7 @@ namespace GRAL_2001
                     }
                 }
             }
+            Console.WriteLine();
         }//output of 2-D concentration files (concentrations, deposition, odour-files)
 
         /// <summary>
