@@ -21,17 +21,18 @@ namespace GRAL_2001
         ///Vertical interpolation of the horizontal standard deviations of wind component fluctuations
         /// </summary>
         /// <param name="nteil">Particle number</param>
-        /// <param name="IUstern">X pos. of particle in the GRAMM grid</param>
-        /// <param name="JUstern">Y pos. of particle in the GRAMM grid</param>
-        /// <param name="DiffBuilding">Height of particle</param>
+        /// <param name="Roughness">Roughness lenght</param>
+        /// <param name="DiffBuilding">Height of particle above ground or buildings</param>
         /// <param name="windge">GRAL wind velocity</param>
-        /// <param name="sigmauhurly">Sigma for plume rise</param>
+        /// <param name="sigmauHurley">Sigma for plume rise</param>
         /// <param name="U0int">Return parameter - standard deviation of u wind fluctuation</param>
         /// <param name="V0int">Return parameter - standard deviation of v wind fluctuation</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IntStandCalculate(int nteil, int IUstern, int JUstern, float DiffBuilding, float windge, float sigmauhurly, ref float U0int, ref float V0int)
+        public static (float, float) IntStandCalculate(int nteil, float Roughness, float DiffBuilding, float windge, float sigmauHurley)
         {
-            if ((Program.IStatistics == 0) || (Program.IStatistics == 3))
+            float U0int = 0;
+            float V0int = 0;
+            if ((Program.IStatistics == 0) || (Program.IStatistics == 3)) 
             {
                 if (DiffBuilding <= Program.MeasurementHeight[1])
                 {
@@ -49,7 +50,9 @@ namespace GRAL_2001
                     for (int iprof = 1; iprof <= Program.MetProfileNumb; iprof++)
                     {
                         if (DiffBuilding > Program.MeasurementHeight[iprof])
+                        {
                             ipo = iprof + 1;
+                        }
                     }
                     float help = 1 / (Program.MeasurementHeight[ipo] - Program.MeasurementHeight[ipo - 1]) * (DiffBuilding - Program.MeasurementHeight[ipo - 1]);
                     U0int = Program.U0[ipo - 1] + (Program.U0[ipo] - Program.U0[ipo - 1]) * help;
@@ -58,7 +61,7 @@ namespace GRAL_2001
             }
             else // Wind speed, wind direction, stability class - default case when using meteopgt.all
             {
-                U0int = windge * (0.2F * MathF.Pow(windge, -0.9F) + 0.32F * Program.Z0Gramm[IUstern][JUstern] + 0.18F);
+                U0int = windge * (0.2F * MathF.Pow(windge, -0.9F) + 0.32F * Roughness + 0.18F);
                 U0int = Program.FloatMax(U0int, 0.3F) * Program.StdDeviationV;
                 V0int = U0int;
             }
@@ -68,9 +71,10 @@ namespace GRAL_2001
             {
                 //U0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));
                 //V0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));
-                U0int += MathF.Abs(sigmauhurly);
-                V0int += MathF.Abs(sigmauhurly);
+                U0int += MathF.Abs(sigmauHurley);
+                V0int += MathF.Abs(sigmauHurley);
             }
+            return (U0int, V0int);
         }
 
     }

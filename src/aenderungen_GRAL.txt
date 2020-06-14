@@ -584,3 +584,76 @@ Als RC1 versioniert
 Auf Open Source vorbereitet; 
 Ausgabe der Rezeptorpunkte um Meteodaten am Rezeptorpunkt erweitert im transienten GRAL Modus; Ausgabe des Rezeptorfiles mit Unicode Encoding
 Als 20.01 (final) versioniert
+
+17.1.2020 (Öttl)
+Bessere Zuordnung der Wettersituationen von mettimeseries zu meteopgt.all
+
+27.1.2020 (Kuntner)
+Besserer Support für steile Linienquellen, indem die Länge aus dx, dy und dz berechnet wird
+
+3.3.2020 (Kuntner)
+BugFix für die geänderten File-Formate für die GRAL GRAL_Meteozeitreihe
+
+13.3.2020 (Kuntner)
+Neues Ausgabeformat für die GRAL Konzentrations-Zeitreihe
+Splitten der großen Klassen zum Lesen der Eingangsdaten
+
+19.3.2020 (Kuntner)
+Schreibe in den Zip-Container keine Pfadangaben
+
+30.20.2020 (Kuntner)
+Die ModelTopHeight wurde immer aus Zelle 1,1 genommen, aber wenn dort keine Sub Domain ist und hohes Gelände, ist die Windgeschw. 0 -> Division durch 0
+
+31.3.2020 (Kuntner)
+Verwende auch den Index 0 für die Konzentrationen -> spare 1 mal SG-Anzahl Indizes
+
+1.4.2020 (Kuntner)
+Verwende auch den Index 0 für die Quellgruppen -> spare Konzentrationen mal 1 Indizes
+Zeige bereits berechnete Emissionssummen an, wenn eine abgebrochene transiente Berechnung neu gestartet wird
+
+25.4.2020 (Kuntner)
+Bereinige Inidizes für Flow-Field und GRAMM Zellen in den Zeitschleifen 
+Lege die Gebäudereflexion für ebenes und komplexes Gelände zusammen
+Verwende Tuples für Intwind() und Intstand()
+Bereinige Indizes in Intstand()
+Verwerfe Partikel im transienten Modus nicht, wenn diese die BLH überschreiten würden
+Das GRAMM Grid ist immer größer als das GRAL Grid. Wenn in einem ungünstigen Fall durch Rundungsfehler ein Index im Gramm Grid außerhalb des Netzes auftritt, wird 
+aktuell das Partikel entfernt. Neu wird die nächste GRAMM Zelle im Grid weiter verwendet, entfernt wird das Partikel, wenn es das FlowField Grid verlässt.
+
+28.4.2020 (Kuntner)
+Teile die Leseroutine Input_pgt auf, verwende MathF, verringere Array-Zugriffe und verwende Tuples 
+
+29.4.2020 (Kuntner)
+Behebe Fehler bei der Berechnung des GRAMM Indes in der Flow Field Berechnung -> bisher wurde immer die Rauigkeit am Index [1][1] verwendet, auch wenn Gelände mit variabler Rauigkeit vorhanden war!
+Estelle Routine InitAdaptiveRoughness.cs zur Initialisierung der GRAL Rauigkeitslängen
+Integriere meine Filterroutine (adaptiver 2 dimensionaler Low-Pass Filter)
+Baue GRAL Rauigkeitslänge in Flow Field Berechnung, Zeitschleifen und input_pgt.cs ein
+
+5.5.2020 (Kuntner)
+Addiere blockierte Zellen bei Gebäuden mit Gelände nur, wenn diese höher sind als das Gelände 
+
+8.5.2020 (Kuntner)
+Initialisiere Plume Rise mit standwind statt mit windge, um die Überhöhung nicht zu stark zu vermindern und begrenze standwind-Faktor auf 0.5-1.5 am Beginn und 0-5 in TimeLoop
+
+10.5.2020 (Kuntner)
+Korrigiere Windrichtung für inputzr.dat für Vielfache von 2Pi
+
+17.5.2020 (Kuntner)
+Berichtige Rauigkeit von Gebäuden in der Flow-Field Berechnung, wobei nur Gebäude > 1 m Höhe als Gebäude herangezogen werden. Darunter wird die Rauigkeit des Geländes verwendet.
+
+1.6.2020 (Kuntner)
+Teile transiente Partikel mit hoher Zellkonzentration in Sub-Partikel, um Partikel mit hoher Masse zu vermeiden
+
+3.6.2020 (Kuntner)
+Ergänze Berechnung und Ausgabe der mittleren Austrittstemp.und Austrittsgeschwindigkeit bei Zeitreihenrechnungen
+
+6.6.2020 (Kuntner)
+Neues *.gff File Format
+Zusätzliche Ausgaben für Zeitreihen Austrittsgeschw./Austrittstemp. bei transienter Berechnung
+
+8.6.2020 (Kuntner)
+Fange GRAMM Gebiete < GRAL Gebiet ab, aber ermögliche trotzdem Berechnung ohne Absturz
+Zeige die Fortdauer des *.gff File Schreibens an, wenn das Schreiben länger dauert, als die Ausbreitungsrechnung
+
+11.6.2020 (Kuntner)
+Zeige Fortschritt beim Speichern der Konzentrationsfiles

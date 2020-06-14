@@ -292,8 +292,8 @@ namespace GRAL_2001
                                     for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                                     {
                                         // write receptor meteo data
-                                        int I_SC = (int)((Program.ReceptorX[ianz] - Program.IKOOA) / Program.DDX[1]) + 1;
-                                        int J_SC = (int)((Program.ReceptorY[ianz] - Program.JKOOA) / Program.DDY[1]) + 1;
+                                        int I_SC = (int)((Program.ReceptorX[ianz] - Program.GrammWest) / Program.DDX[1]) + 1;
+                                        int J_SC = (int)((Program.ReceptorY[ianz] - Program.GrammSouth) / Program.DDY[1]) + 1;
                                         StB.Append(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00"));
                                         StB.Append("\t");
                                         StB.Append(Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00"));
@@ -306,9 +306,13 @@ namespace GRAL_2001
                                         else
                                         {
                                             if (Program.StabClassGramm > 0)
+                                            {
                                                 Ak = Program.StabClassGramm;
+                                            }
                                             else
+                                            {
                                                 Ak = Program.StabClass;
+                                            }
                                         }
                                         StB.Append(Ak.ToString());
                                         StB.Append("\t");
@@ -444,8 +448,8 @@ namespace GRAL_2001
                         {
                             if (Program.Topo == 1 && Program.AKL_GRAMM[0, 0] != 0) // 11.9.2017 Kuntner Write Local SCL
                             {
-                                int I_SC = (int)((Program.ReceptorX[ianz] - Program.IKOOA) / Program.DDX[1]) + 1;
-                                int J_SC = (int)((Program.ReceptorY[ianz] - Program.JKOOA) / Program.DDY[1]) + 1;
+                                int I_SC = (int)((Program.ReceptorX[ianz] - Program.GrammWest) / Program.DDX[1]) + 1;
+                                int J_SC = (int)((Program.ReceptorY[ianz] - Program.GrammSouth) / Program.DDY[1]) + 1;
 
                                 if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1)
                                 {
@@ -458,9 +462,13 @@ namespace GRAL_2001
                                 {
                                     int Ak;
                                     if (Program.StabClassGramm > 0)
+                                    {
                                         Ak = Program.StabClassGramm;
+                                    }
                                     else
+                                    {
                                         Ak = Program.StabClass;
+                                    }
 
                                     write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                                 "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +

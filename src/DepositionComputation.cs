@@ -266,7 +266,10 @@ namespace GRAL_2001
             // dm = diameter of particle [µm]
             // dns_mat = density of particle [kg/m³]
 
-            if (dns_mat < 0.0000001) return 0.0f; // density = 0 -> vts = 0;
+            if (dns_mat < 0.0000001)
+            {
+                return 0.0f; // density = 0 -> vts = 0;
+            }
 
             // computation according to VDI 3782 Blatt 1
             double dns_din = dns_mat / 1000;                // density in [g/cm³]
@@ -274,7 +277,9 @@ namespace GRAL_2001
             double v_din = 1000;                            // initial value 	
             double nre;
             if (w < 0.003)
+            {
                 v_din = 0;
+            }
             else if (w < 0.24)
             {
                 nre = w / 24;                               // Reynolds number

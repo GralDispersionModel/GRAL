@@ -28,6 +28,7 @@ namespace GRAL_2001
         {
             try
             {
+                Console.Write("Writing result files.");
                 if (Program.ResultFileZipped)
                 {
                     using (FileStream zipToOpen = new FileStream(Program.ZippedFile, FileMode.OpenOrCreate))
@@ -38,6 +39,10 @@ namespace GRAL_2001
                             {
                                 for (int II = 0; II < Program.NS; II++)
                                 {
+                                    if ((IQ + II) % 2 == 0)
+                                    {
+                                        Console.Write(".");
+                                    }
                                     string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
 
                                     if (Program.WriteASCiiResults) // aditional ASCii Output
@@ -96,8 +101,12 @@ namespace GRAL_2001
                     {
                         for (int II = 0; II < Program.NS; II++)
                         {
-                            string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                            if ((IQ + II) % 2 == 0)
+                            {
+                                Console.Write(".");
+                            }
 
+                            string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
                             if (Program.WriteASCiiResults) // aditional ASCii Output
                             {
                                 writeConDataAscii(fname, IQ, II);
@@ -123,6 +132,7 @@ namespace GRAL_2001
             }
             catch (Exception exc)
             {
+                Console.WriteLine();
                 LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing con file: " + exc.Message);
             } //Output of concentration files
 
@@ -138,6 +148,11 @@ namespace GRAL_2001
                 {
                     for (int II = 0; II < Program.NS; II++)
                     {
+                        if ((IQ + II) % 2 == 0)
+                        {
+                            Console.Write(".");
+                        }
+
                         Object thisLock = new Object();
 
                         Parallel.For(1, Program.NXL + 1, Program.pOptions, i =>
@@ -151,8 +166,7 @@ namespace GRAL_2001
                                 int JUst = 1;
                                 int IndexI = 1;
                                 int IndexJ = 1;
-                                int IndexId = 1;
-                                int IndexJd = 1;
+
                                 int IndexK = 1;
                                 float UXint = 0, UYint = 0, UZint = 0, U0int = 0, V0int = 0;
                                 float W0int = 0;
@@ -160,16 +174,17 @@ namespace GRAL_2001
                                 double yco = Convert.ToDouble((float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL);
 
                                 //horizontal cell indices
-                                double xsi1 = (float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL - Program.IKOOA;
-                                double eta1 = (float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL - Program.JKOOA;
+                                double xsi1 = (float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL - Program.GrammWest;
+                                double eta1 = (float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL - Program.GrammSouth;
                                 if (Program.Topo == 1)
                                 {
                                     double xsi = xco - Program.IKOOAGRAL;
                                     double eta = yco - Program.JKOOAGRAL;
                                     IUst = (int)(xsi1 / Program.DDX[1]) + 1;
                                     JUst = (int)(eta1 / Program.DDY[1]) + 1;
-                                    IndexId = (int)(xsi / Program.DXK) + 1;
-                                    IndexJd = (int)(eta / Program.DYK) + 1;
+                                    IUst = Math.Clamp(IUst, 1, Program.NX);
+                                    JUst = Math.Clamp(JUst, 1, Program.NY);
+
                                     IndexI = (int)(xsi / Program.DXK) + 1;
                                     IndexJ = (int)(eta / Program.DYK) + 1;
                                 }
@@ -177,41 +192,56 @@ namespace GRAL_2001
                                 {
                                     double xsi = xco - Program.IKOOAGRAL;
                                     double eta = yco - Program.JKOOAGRAL;
-                                    IndexId = (int)(xsi / Program.DXK) + 1;
-                                    IndexJd = (int)(eta / Program.DYK) + 1;
+                                    IndexI = (int)(xsi / Program.DXK) + 1;
+                                    IndexJ = (int)(eta / Program.DYK) + 1;
                                 }
                                 //surface height
                                 float AHint = 0;
                                 if (Program.Topo == 1)
                                 {
-                                    AHint = Program.AHK[IndexId][IndexJd];
+                                    AHint = Program.AHK[IndexI][IndexJ];
                                 }
                                 //wind speed
-                                Zeitschleife.IntWindCalculate(IndexI, IndexJ, IndexId, IndexJd, AHint, ref UXint, ref UYint, ref UZint, ref IndexK, xco, yco, Program.HorSlices[II]);
+                                (UXint, UYint, UZint, IndexK) = Zeitschleife.IntWindCalculate(IndexI, IndexJ, AHint, xco, yco, Program.HorSlices[II]);
                                 float windge = (float)Math.Sqrt(Program.Pow2(UXint) + Program.Pow2(UYint));
-                                if (windge <= 0) windge = 0.01F;
+                                if (windge <= 0)
+                                {
+                                    windge = 0.01F;
+                                }
+
+                                float ObLength = Program.Ob[IUst][JUst];
+                                float Z0 = Program.Z0Gramm[IUst][JUst];
+                                float ust = Program.Ustern[IUst][JUst];
+                                if (Program.AdaptiveRoughnessMax > 0)
+                                {
+                                    ObLength = Program.OLGral[i][j];
+                                    Z0 = Program.Z0Gral[i][j];
+                                    ust = Program.USternGral[i][j];
+                                }
 
                                 //horizontal wind standard deviations
-                                Zeitschleife.IntStandCalculate(1, IUst, JUst, Program.HorSlices[II], windge, 0, ref U0int, ref V0int);
+                                (U0int, V0int) = Zeitschleife.IntStandCalculate(1, Z0, Program.HorSlices[II], windge, 0);
 
                                 //vertical wind standard deviation
                                 if (Program.IStatistics == 3)
+                                {
                                     W0int = Program.W0int;
+                                }
                                 else
                                 {
-                                    if (Program.Ob[IUst][JUst] >= 0)
+                                    if (ObLength >= 0)
                                     {
-                                        W0int = Program.Ustern[IUst][JUst] * Program.StdDeviationW * 1.25F;
+                                        W0int = ust * Program.StdDeviationW * 1.25F;
                                     }
                                     else
                                     {
-                                        W0int = (float)(Program.Ustern[IUst][JUst] * (1.15F + 0.1F * Math.Pow(Program.BdLayHeight / (-Program.Ob[IUst][JUst]), 0.67)) * Program.StdDeviationW);
+                                        W0int = (float)(ust * (1.15F + 0.1F * Math.Pow(Program.BdLayHeight / (-ObLength), 0.67)) * Program.StdDeviationW);
                                     }
                                 }
 
                                 //dissipation
-                                float eps = (float)(Program.Pow3(Program.Ustern[IUst][JUst]) / Math.Max(Program.HorSlices[II], Program.Z0Gramm[IUst][JUst]) / 0.4F *
-                                                    Math.Pow(1 + 0.5F * Math.Pow(Program.HorSlices[II] / Math.Abs(Program.Ob[IUst][JUst]), 0.8), 1.8));
+                                float eps = (float)(Program.Pow3(ust) / Math.Max(Program.HorSlices[II], Z0) / 0.4F *
+                                                    Math.Pow(1 + 0.5F * Math.Pow(Program.HorSlices[II] / Math.Abs(ObLength), 0.8), 1.8));
 
                                 Q_cv0_L += (float)(4 / eps * (Program.Pow4(U0int) / 3 + Program.Pow4(V0int) / 3 + Program.Pow4(W0int) / 4));
                                 td_L += (float)(2 * Program.Pow2(W0int) / 4 / eps);
@@ -275,6 +305,7 @@ namespace GRAL_2001
                         {
                             if (IQ == 1)
                             {
+                                Console.WriteLine();
                                 LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing odr file: " + exc.Message);
                             }
                         }
@@ -283,6 +314,7 @@ namespace GRAL_2001
             }
 
             //reset concentrations
+            Console.WriteLine(".");
             for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
             {
                 for (int II = 0; II < Program.NS; II++)
@@ -304,6 +336,7 @@ namespace GRAL_2001
                     }
                 }
             }
+            Console.WriteLine();
         }//output of 2-D concentration files (concentrations, deposition, odour-files)
 
         /// <summary>
@@ -314,7 +347,10 @@ namespace GRAL_2001
             try
             {
                 //flag for stream file (not for SOUNDPLAN)
-                if (Program.IOUTPUT <= 0) sw.Write(Program.ResultFileHeader);
+                if (Program.IOUTPUT <= 0)
+                {
+                    sw.Write(Program.ResultFileHeader);
+                }
 
                 for (int i = 1; i <= Program.NXL; i++)
                 {
@@ -459,7 +495,10 @@ namespace GRAL_2001
             try
             {
                 //flag for stream file (not for SOUNDPLAN)
-                if (Program.IOUTPUT <= 0) sw.Write(Program.ResultFileHeader);
+                if (Program.IOUTPUT <= 0)
+                {
+                    sw.Write(Program.ResultFileHeader);
+                }
 
                 for (int i = 1; i <= Program.NXL; i++)
                 {
@@ -706,7 +745,10 @@ namespace GRAL_2001
             try
             {
                 //flag for stream file (not for SOUNDPLAN)
-                if (Program.IOUTPUT <= 0) sw.Write(Program.ResultFileHeader);
+                if (Program.IOUTPUT <= 0)
+                {
+                    sw.Write(Program.ResultFileHeader);
+                }
 
                 for (int i = 1; i <= Program.NXL; i++)
                 {

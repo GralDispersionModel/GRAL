@@ -27,11 +27,11 @@ namespace GRAL_2001
         /// <summary>
         ///Read the buildings in case of terrain
         /// </summary>
-        public void ReadBuildingsTerrain()
+        public void ReadBuildingsTerrain(float[][] BuildingHeights)
         {
             if (File.Exists("buildings.dat") == true)
             {
-                Program.BuildingTerrExist = true;
+                Program.BuildingsExist = true;
                 int block = 0;
                 Console.WriteLine();
                 Console.WriteLine("Reading building file buildings.dat");
@@ -46,7 +46,6 @@ namespace GRAL_2001
                         Int32 IYCUT;
                         while ((text1 = read.ReadLine()) != null)
                         {
-                            block++;
                             text = text1.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
                             double cic = Convert.ToDouble(text[0].Replace(".", Program.Decsep));
                             double cjc = Convert.ToDouble(text[1].Replace(".", Program.Decsep));
@@ -64,9 +63,12 @@ namespace GRAL_2001
                                         {
                                             czo = Math.Abs(czo) - Program.AHKOri[IXCUT][IYCUT]; // compute relative building height for this cell
                                             czo = Math.Max(0, czo); // if czo < AHK -> set building height to 0
+                                            block++;
                                         }
                                         else
+                                        {
                                             czo = 0; // building height = 0
+                                        }
                                     }
                                     else
                                     {
@@ -74,12 +76,19 @@ namespace GRAL_2001
                                         Console.WriteLine(err);
                                         ProgramWriters.LogfileProblemreportWrite(err);
 
-                                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                                        {
+                                            ;
+                                        }
 
                                         Environment.Exit(0);
                                     }
                                 }
-                                Program.CUTK[IXCUT][IYCUT] = (float)Math.Max(czo, Program.CUTK[IXCUT][IYCUT]);
+                                else
+                                {
+                                    block++;
+                                }
+                                BuildingHeights[IXCUT][IYCUT] = (float)Math.Max(czo, BuildingHeights[IXCUT][IYCUT]);
                             }
                         }
                     }
@@ -91,7 +100,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }
@@ -108,12 +122,12 @@ namespace GRAL_2001
         /// <summary>
         ///Read the buildings in case of flat terrain
         /// </summary>
-        public void ReadBuildingsFlat()
+        public void ReadBuildingsFlat(float[][] BuildingHeights)
         {
             string Info;
             if (File.Exists("buildings.dat") == true)
             {
-                Program.BuildingFlatExist = true;
+                Program.BuildingsExist = true;
                 int block = 0;
                 Console.WriteLine();
                 Console.WriteLine("Reading building file buildings.dat");
@@ -136,6 +150,7 @@ namespace GRAL_2001
                             double czo = Convert.ToDouble(text[3].Replace(".", Program.Decsep));
                             IXCUT = (int)((cic - Program.XsiMinGral) / Program.DXK) + 1;
                             IYCUT = (int)((cjc - Program.EtaMinGral) / Program.DYK) + 1;
+
                             if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
                             {
                                 if (czo < 0) // absolute height of building
@@ -144,11 +159,14 @@ namespace GRAL_2001
                                     Console.WriteLine(err);
                                     ProgramWriters.LogfileProblemreportWrite(err);
 
-                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                                    {
+                                        ;
+                                    }
 
                                     Environment.Exit(0);
                                 }
-                                Program.CUTK[IXCUT][IYCUT] = (float)Math.Max(czo, Program.CUTK[IXCUT][IYCUT]);
+                                BuildingHeights[IXCUT][IYCUT] = (float)Math.Max(czo, BuildingHeights[IXCUT][IYCUT]);
                             }
                         }
                     }
@@ -160,7 +178,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }

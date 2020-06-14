@@ -59,25 +59,25 @@ namespace GRAL_2001
                     for (int k = 1; k <= Program.MetProfileNumb; k++)
                     {
                         n1 = (k - 1) * 2;
-                        Program.UX[k] = Convert.ToSingle(text[1 + n1].Replace(".", Program.Decsep));
-                        Program.UY[k] = Convert.ToSingle(text[2 + n1].Replace(".", Program.Decsep));
+                        Program.ObsWindU[k] = Convert.ToSingle(text[1 + n1].Replace(".", Program.Decsep));
+                        Program.ObsWindV[k] = Convert.ToSingle(text[2 + n1].Replace(".", Program.Decsep));
                     }
 
                     int ianzi = 0;
                     for (int iprof = 1; iprof <= Program.MetProfileNumb; iprof++)
                     {
                         ianzi++;
-                        if ((Program.UX[ianzi] == 0) && (Program.UY[ianzi] == 0))
+                        if ((Program.ObsWindU[ianzi] == 0) && (Program.ObsWindV[ianzi] == 0))
                         {
                             Program.MeasurementHeight[ianzi] = Program.MeasurementHeight[ianzi + 1];
                             Program.MeasurementHeight[ianzi + 1] = Program.MeasurementHeight[ianzi + 2];
                             Program.MeasurementHeight[ianzi + 2] = Program.MeasurementHeight[ianzi + 3];
-                            Program.UX[ianzi] = Program.UX[ianzi + 1];
-                            Program.UX[ianzi + 1] = Program.UX[ianzi + 2];
-                            Program.UX[ianzi + 2] = Program.UX[ianzi + 3];
-                            Program.UY[ianzi] = Program.UY[ianzi + 1];
-                            Program.UY[ianzi + 1] = Program.UY[ianzi + 2];
-                            Program.UY[ianzi + 2] = Program.UY[ianzi + 3];
+                            Program.ObsWindU[ianzi] = Program.ObsWindU[ianzi + 1];
+                            Program.ObsWindU[ianzi + 1] = Program.ObsWindU[ianzi + 2];
+                            Program.ObsWindU[ianzi + 2] = Program.ObsWindU[ianzi + 3];
+                            Program.ObsWindV[ianzi] = Program.ObsWindV[ianzi + 1];
+                            Program.ObsWindV[ianzi + 1] = Program.ObsWindV[ianzi + 2];
+                            Program.ObsWindV[ianzi + 2] = Program.ObsWindV[ianzi + 3];
                             ianzi--;
                         }
                     }
@@ -85,7 +85,7 @@ namespace GRAL_2001
                     Program.MetProfileNumb = ianzi;
 
                     //friction velocity
-                    Program.WindVelGral = (float)Math.Sqrt(Math.Pow(Program.UX[Program.MetProfileNumb], 2) + Math.Pow(Program.UY[Program.MetProfileNumb], 2));
+                    Program.WindVelGral = (float)Math.Sqrt(Math.Pow(Program.ObsWindU[Program.MetProfileNumb], 2) + Math.Pow(Program.ObsWindV[Program.MetProfileNumb], 2));
 
                     for (int ix = 1; ix <= Program.NX; ix++)
                     {
@@ -121,7 +121,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }
@@ -135,7 +140,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }

@@ -55,7 +55,11 @@ namespace GRAL_2001
                 {
                     using (StreamReader reader = new StreamReader("GFF_FilePath.txt"))
                     {
-                        if (Program.RunOnUnix) reader.ReadLine(); //19.05.25 Ku: read 1st line -> reserved for windows, 2nd line for LINUX
+                        if (Program.RunOnUnix)
+                        {
+                            reader.ReadLine(); //19.05.25 Ku: read 1st line -> reserved for windows, 2nd line for LINUX
+                        }
+
                         string filepath = reader.ReadLine();
                         if (Directory.Exists(filepath))
                         {

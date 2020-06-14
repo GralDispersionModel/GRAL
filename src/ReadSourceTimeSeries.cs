@@ -20,8 +20,8 @@ namespace GRAL_2001
     public class ReadSourceTimeSeries
     {
         /// <summary>
-	    /// Read Time Series of Source Parameters at Transient Calculations
-	    /// </summary>
+        /// Read Time Series of Source Parameters at Transient Calculations
+        /// </summary>
         public bool ReadTimeSeries(ref List<TimeSeriesColumn> TSColList, string Filename)
         {
             bool isOK = false;

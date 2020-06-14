@@ -13,35 +13,39 @@
 namespace GRAL_2001
 {
     ///<summary>
-    ///Point structure for integer values
+    ///Min Max structure for integer values
     ///</summary>
-    public struct IntPoint
+    public struct GridBounds
     {
-        public int X;
-        public int Y;
+        public IntPoint Min;
+        public IntPoint Max;
 
-        public IntPoint(int x, int y)
+        public GridBounds(IntPoint min, IntPoint max)
         {
-            X = x;
-            Y = y;
+            Min = min;
+            Max = max;
+        }
+        public GridBounds(int minX, int minY, int maxX, int maxY)
+        {
+            Min = new IntPoint(minX, minY);
+            Max = new IntPoint(maxX, maxY);
         }
 
         public override bool Equals(object obj)
         {
-            return obj is IntPoint && this == (IntPoint)obj;
+            return obj is GridBounds && this == (GridBounds)obj;
         }
         public override int GetHashCode()
         {
-            return X.GetHashCode() ^ Y.GetHashCode();
+            return Min.X.GetHashCode() ^ Min.Y.GetHashCode() ^ Max.X.GetHashCode() ^ Max.Y.GetHashCode();
         }
-        public static bool operator ==(IntPoint a, IntPoint b)
+        public static bool operator ==(GridBounds a, GridBounds b)
         {
-            return a.X == b.X && a.Y == b.Y;
+            return a.Min == b.Min && a.Max == b.Max;
         }
-        public static bool operator !=(IntPoint a, IntPoint b)
+        public static bool operator !=(GridBounds a, GridBounds b)
         {
             return !(a == b);
         }
     }
-
 }

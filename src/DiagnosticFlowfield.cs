@@ -18,20 +18,22 @@ namespace GRAL_2001
     class DiagnosticFlowfield
     {
         /// <summary>
-	    ///Solving the pressure equation using the TDMA for diagnostic wind fields
-	    /// </summary>
+        ///Solving the pressure equation using the TDMA for diagnostic wind fields
+        /// </summary>
         public static void Calculate()
         {
             float DXK = Program.DXK;
             float DYK = Program.DYK;
 
-            int IV = 1;
+            int IterationLoops = 1;
             float DTIME = (float)(0.5 * Math.Min(DXK, DYK) / (Math.Sqrt(Program.Pow2(Program.UK[1][1][Program.KADVMAX]) + (Program.Pow2(Program.VK[1][1][Program.KADVMAX])))));
             DTIME = Math.Min(DTIME, 5);
             int MAXHOEH = Program.VertCellsFF;
             int Iterations = 5;
             if (Program.FlowFieldLevel == 2)
+            {
                 Iterations = 10;
+            }
 
             //set non-hydrostatic pressure equal to zero
             Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
@@ -46,8 +48,7 @@ namespace GRAL_2001
             });
 
             //main loop
-            int COUNT = 1;
-            while (IV <= Iterations)
+            while (IterationLoops <= Iterations)
             {
                 //mass divergence in each cell
                 Parallel.For(2, Program.NII, Program.pOptions, i =>
@@ -67,9 +68,13 @@ namespace GRAL_2001
                             if (KKART < k)
                             {
                                 if (k > KKART + 1)
-                                    DIV_L[k] = (float)((UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] + (WK_L[k] - WK_L[k + 1]) * DXK * DYK);
+                                {
+                                    DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] + (WK_L[k] - WK_L[k + 1]) * DXK * DYK;
+                                }
                                 else
-                                    DIV_L[k] = (float)((UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] - WK_L[k + 1] * DXK * DYK);
+                                {
+                                    DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] - WK_L[k + 1] * DXK * DYK;
+                                }
                             }
                         }
                     }
@@ -79,7 +84,7 @@ namespace GRAL_2001
                 EQUATION TDMA (PATANKAR 1980, S125)*/
 
                 //switch the loop to improve convergence
-                if (COUNT == 1)
+                if (IterationLoops % 4 == 0)
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
@@ -103,16 +108,20 @@ namespace GRAL_2001
                             {
                                 if (KKART < k)
                                 {
-                                    float DIM = (float)(DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k]);
-                                    APP[k] = (float)(2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]));
+                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                     if (k > KKART + 1)
-                                        ABP[k] = (float)(DXK * DYK / (0.5 * (Program.DZK[k - 1] + Program.DZK[k])));
+                                    {
+                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                    }
                                     else
-                                        ABP[k] = (float)(DXK * DYK / Program.DZK[k]);
+                                    {
+                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                    }
 
-                                    ATP[k] = (float)((DXK * DYK) / (0.5 * (Program.DZK[k + 1] + Program.DZK[k])));
+                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
                                     float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
                                     PIMP[k] = ABP[k] * TERMP;
                                     QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
@@ -135,7 +144,7 @@ namespace GRAL_2001
                         }
                     });
                 }
-                else if (COUNT == 2)
+                else if (IterationLoops % 4 == 1)
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
@@ -160,16 +169,20 @@ namespace GRAL_2001
                             {
                                 if (KKART < k)
                                 {
-                                    float DIM = (float)(DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k]);
-                                    APP[k] = (float)(2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]));
+                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                     if (k > KKART + 1)
-                                        ABP[k] = (float)(DXK * DYK / (0.5 * (Program.DZK[k - 1] + Program.DZK[k])));
+                                    {
+                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                    }
                                     else
-                                        ABP[k] = (float)(DXK * DYK / Program.DZK[k]);
+                                    {
+                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                    }
 
-                                    ATP[k] = (float)((DXK * DYK) / (0.5 * (Program.DZK[k + 1] + Program.DZK[k])));
+                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
                                     float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
                                     PIMP[k] = ABP[k] * TERMP;
                                     QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
@@ -192,7 +205,7 @@ namespace GRAL_2001
                         }
                     });
                 }
-                else if (COUNT == 3)
+                else if (IterationLoops % 4 == 2)
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
@@ -217,16 +230,20 @@ namespace GRAL_2001
                             {
                                 if (KKART < k)
                                 {
-                                    float DIM = (float)(DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k]);
-                                    APP[k] = (float)(2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]));
+                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                     if (k > KKART + 1)
-                                        ABP[k] = (float)(DXK * DYK / (0.5 * (Program.DZK[k - 1] + Program.DZK[k])));
+                                    {
+                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                    }
                                     else
-                                        ABP[k] = (float)(DXK * DYK / Program.DZK[k]);
+                                    {
+                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                    }
 
-                                    ATP[k] = (float)((DXK * DYK) / (0.5 * (Program.DZK[k + 1] + Program.DZK[k])));
+                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
                                     float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
                                     PIMP[k] = ABP[k] * TERMP;
                                     QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
@@ -249,7 +266,7 @@ namespace GRAL_2001
                         }
                     });
                 }
-                else if (COUNT == 4)
+                else 
                 {
                     Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
@@ -273,16 +290,20 @@ namespace GRAL_2001
                             {
                                 if (KKART < k)
                                 {
-                                    float DIM = (float)(DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k]);
-                                    APP[k] = (float)(2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]));
+                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                     if (k > KKART + 1)
-                                        ABP[k] = (float)(DXK * DYK / (0.5 * (Program.DZK[k - 1] + Program.DZK[k])));
+                                    {
+                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                    }
                                     else
-                                        ABP[k] = (float)(DXK * DYK / Program.DZK[k]);
+                                    {
+                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                    }
 
-                                    ATP[k] = (float)((DXK * DYK) / (0.5 * (Program.DZK[k + 1] + Program.DZK[k])));
+                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
                                     float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
                                     PIMP[k] = ABP[k] * TERMP;
                                     QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
@@ -328,31 +349,45 @@ namespace GRAL_2001
                                 DDPX = DPMim_L[k] - DPM_L[k];
                                 DDPY = DPMjm_L[k] - DPM_L[k];
                                 if (k > KKART + 1)
+                                {
                                     DDPZ = DPM_L[k - 1] - DPM_L[k];
+                                }
                                 else
+                                {
                                     DDPZ = 0;
+                                }
 
                                 if ((KKART < k) && (Program.KKART[i - 1][j] < k))
-                                    UK_L[k] += (float)(DDPX / DXK * DTIME);
+                                {
+                                    UK_L[k] += (DDPX / DXK * DTIME);
+                                }
                                 else
+                                {
                                     UK_L[k] = 0;
+                                }
 
                                 if ((KKART < k) && (Program.KKART[i][j - 1] < k))
-                                    VK_L[k] += (float)(DDPY / DYK * DTIME);
+                                {
+                                    VK_L[k] += (DDPY / DYK * DTIME);
+                                }
                                 else
+                                {
                                     VK_L[k] = 0;
+                                }
 
                                 if (KKART + 1 < k)
-                                    WK_L[k] += (float)(DDPZ * 2 / (Program.DZK[k] + Program.DZK[k - 1]) * DTIME);
+                                {
+                                    WK_L[k] += (DDPZ * 2 / (Program.DZK[k] + Program.DZK[k - 1]) * DTIME);
+                                }
                                 else
+                                {
                                     WK_L[k] = 0;
+                                }
                             }
                         }
                     });
 
-                IV++;
-                COUNT++;
-                if (COUNT > 4) COUNT = 1;
+                IterationLoops++;
             }
 
             //online output of simulated GRAL flow fields

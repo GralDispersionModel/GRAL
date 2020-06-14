@@ -36,6 +36,7 @@ namespace GRAL_2001
 
             if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
             {
+                //Read surface roughness length from the GRAMM landuse file
                 string[] text = new string[(Program.NI + 2) * (Program.NJ + 2)];
 
                 try
@@ -75,6 +76,7 @@ namespace GRAL_2001
             }
             else
             {
+                //set default surface roughness length at the whole array
                 for (int ix = 1; ix <= Program.NX; ix++)
                 {
                     for (int iy = 1; iy <= Program.NY; iy++)

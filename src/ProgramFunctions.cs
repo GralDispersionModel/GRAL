@@ -65,7 +65,7 @@ namespace GRAL_2001
                 {
                     Console.WriteLine(HOKART[i].ToString());
                 }
-                if (HOKART[i] >= 800)  
+                if (HOKART[i] >= 800)
                 {
                     nkk = i;
                     break;
@@ -195,24 +195,44 @@ namespace GRAL_2001
                     Console.Write("Init meteo:  wind speed [m/s]: " + WindVelGral.ToString("F2"));
                     double dir = Math.Round(270 - WindDirGral * 180 / Math.PI, 1);
                     if (dir < 0)
+                    {
                         dir = 270 + 360 + dir;
+                    }
+
                     if (dir > 360)
-                        dir -= 360;
+                    {
+                        
+                        int k = (int)(dir / 360); // Ku: 10.5.2020 avoid dir >> 360°
+                        dir -= 360 * k;
+                    }
+
                     Console.Write("  direction [deg]: " + dir.ToString("F0"));
                 }
                 else
+                {
                     Console.Write("Init meteo:  weather situation token: " + WindVelGral.ToString("F2"));
+                }
+
                 if (StabClass > 0)
+                {
                     Console.Write("  Stability class [-]: " + StabClass.ToString("F0"));
+                }
+
                 Console.WriteLine("");
             }
             if (WindVelGramm > -1)
             {
                 Console.Write("GRAMM meteo: wind speed [m/s]: " + WindVelGramm.ToString("F2"));
                 if (WindDirGramm >= 0)
+                {
                     Console.Write("  direction [deg]: " + WindDirGramm.ToString("F0"));
+                }
+
                 if (StabClassGramm > 0)
+                {
                     Console.Write("  Stability class [-]: " + StabClassGramm.ToString("F0"));
+                }
+
                 Console.WriteLine("");
             }
             Console.WriteLine("                           ----------");
@@ -225,19 +245,33 @@ namespace GRAL_2001
         {
             double z_L = 1 / Ob[1][1];
             if ((z_L <= 0.005) && (z_L > -0.02))
+            {
                 PotdTdz = 0;
+            }
             else if ((z_L <= -0.02) && (z_L > -0.06))
+            {
                 PotdTdz = (float)((0.9 - 1.6) * 0.01);
+            }
             else if ((z_L <= -0.06) && (z_L > -0.1))
+            {
                 PotdTdz = (float)((0.9 - 1.8) * 0.01);
+            }
             else if (z_L <= -0.1)
+            {
                 PotdTdz = (float)((0.9 - 2) * 0.01);
+            }
             else if ((z_L <= 0.02) && (z_L > 0.005))
+            {
                 PotdTdz = (float)((0.9 + 1) * 0.01);
+            }
             else if ((z_L <= 0.05) && (z_L > 0.02))
+            {
                 PotdTdz = (float)((0.9 + 2.5) * 0.01);
+            }
             else if (z_L > 0.05)
+            {
                 PotdTdz = (float)((0.9 + 5) * 0.01);
+            }
         }
 
         /// <summary>
@@ -410,16 +444,19 @@ namespace GRAL_2001
             {
                 for (int j = 1; j <= NJ; j++)
                 {
-                    if ((IKOOA + DDX[1] * i >= XsiMinGral) && (IKOOA + DDX[1] * (i - 1) <= XsiMaxGral) &&
-                        (JKOOA + DDY[1] * j >= EtaMinGral) && (JKOOA + DDY[1] * (j - 1) <= EtaMaxGral))
+                    if ((GrammWest + DDX[1] * i >= XsiMinGral) && (GrammWest + DDX[1] * (i - 1) <= XsiMaxGral) &&
+                        (GrammSouth + DDY[1] * j >= EtaMinGral) && (GrammSouth + DDY[1] * (j - 1) <= EtaMaxGral))
                     {
                         if (AH[i][j] < AHMIN)
+                        {
                             AHMIN = AH[i][j];
+                        }
+
                         AHMAX = Math.Max(AH[i][j], AHMAX);
                     }
                 }
             }
-            
+
             //number of grid cells of the GRAL microscale flow field
             NII = (int)((XsiMaxGral - XsiMinGral) / DXK);
             NJJ = (int)((EtaMaxGral - EtaMinGral) / DYK);
@@ -428,7 +465,7 @@ namespace GRAL_2001
 
             NKK = GenerateVerticalGridTerrain();
             NKK = Math.Max(SIMD, Math.Min(NKK, VerticalCellMaxBound - 2)); // at least SIMD vertical cells
-                                                       //array declaration block
+                                                                           //array declaration block
             Console.WriteLine();
             Console.Write("Array declarations...");
             // create jagged arrays manually to keep memory areas of similar indices togehter -> reduce false sharing & 
@@ -448,7 +485,9 @@ namespace GRAL_2001
                     Program.WK[i][j] = new float[NKK + 2];
                 }
                 if (i % 50 == 0)
+                {
                     Console.Write(".");
+                }
             }
             //TURB = CreateArray<float[][]>(NII + 2, () => CreateArray<float[]>(NJJ + 2, () => new float[NKK + 2]));
             //Console.Write(".");
@@ -499,7 +538,9 @@ namespace GRAL_2001
                     Program.WK[i][j] = new float[NKK + 2];
                 }
                 if (i % 50 == 0)
+                {
                     Console.Write(".");
+                }
             }
             //TURB = CreateArray<float[][]>(NII + 2, () => CreateArray<float[]>(NJJ + 2, () => new float[NKK + 2]));
             //Console.Write(".");
@@ -524,16 +565,17 @@ namespace GRAL_2001
         {
             if (Topo == 0)
             {
+                //Set GRAMM bounds to GRAL bounds in flat terrain
                 IKOOAGRAL = (int)XsiMinGral;
                 JKOOAGRAL = (int)EtaMinGral;
-                IKOOA = (int)XsiMinGral;
-                JKOOA = (int)EtaMinGral;
+                GrammWest = (int)XsiMinGral;
+                GrammSouth = (int)EtaMinGral;
                 DDX[1] = (float)(XsiMaxGral - XsiMinGral);
                 DDY[1] = (float)(EtaMaxGral - EtaMinGral);
                 XsiMinGral = 0;
-                XsiMaxGral -= (float)IKOOA;
+                XsiMaxGral -= (float)GrammWest;
                 EtaMinGral = 0;
-                EtaMaxGral -= (float)JKOOA;
+                EtaMaxGral -= (float)GrammSouth;
                 NI = 1;
                 NJ = 1;
             }
@@ -549,6 +591,20 @@ namespace GRAL_2001
                 EtaMaxGral -= (float)JKOOAGRAL;
                 XsiMaxGramm = DDX[1] * (float)NX;
                 EtaMaxGramm = DDY[1] * (float)NY;
+
+                if (GrammWest > GralWest || GrammSouth > GralSouth || (GrammWest + XsiMaxGramm) < GralEast || (GrammSouth + EtaMaxGramm) < GralNorth)
+                {
+                    string err = "WARNING: the GRAL domain area is larger than GRAMM domain area!";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    err = "The calculation outside the GRAMM area will be interpolated! It is recommended to cancel the calculation.";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+
+                    Console.WriteLine("Press a key to continue or close the calculation terminal");
+                    Console.ReadKey(true); 	// wait for a key input
+                    //Environment.Exit(-1);
+                }
             }
         }
 
@@ -558,17 +614,25 @@ namespace GRAL_2001
         private static void ReadMeteoData()
         {
             //read meteorological input data (wind speed, wind direction, stability class)
-            if (IStatistics == 4)
+            if (IStatistics == 4) // meteopgt.all 
+            {
                 Input_MeteopgtAll.Read();
+            }
             //read meteorological input data (friction velocity, Obukhov length, boundary-layer height, standard deviation of horizontal wind fluctuations, u- and v-wind components)
             if (IStatistics == 0)
+            {
                 Input_zr.Read();
+            }
             //read meteorological input data (friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components)
             if (IStatistics == 2)
+            {
                 Input_Eki.Read();
+            }
             //read meteorological input data (velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters)
             if (IStatistics == 3)
+            {
                 Input_Sonic.Read();
+            }
         }
 
         /// <summary>
@@ -581,7 +645,11 @@ namespace GRAL_2001
             {
                 using (StreamReader sr = new StreamReader("windfeld.txt"))
                 {
-                    if (Program.RunOnUnix) sr.ReadLine(); // read 1st line at unix
+                    if (Program.RunOnUnix)
+                    {
+                        sr.ReadLine(); // read 1st line at unix
+                    }
+
                     path = sr.ReadLine();
                 }
             }
@@ -597,12 +665,29 @@ namespace GRAL_2001
         {
             double winkel = 0;
             if (v == 0)
+            {
                 winkel = 90;
+            }
             else
+            {
                 winkel = Math.Abs(Math.Atan(u / v)) * 180 / Math.PI;
-            if ((v > 0) && (u <= 0)) winkel = 180 - winkel;
-            if ((v >= 0) && (u > 0)) winkel = 180 + winkel;
-            if ((v < 0) && (u >= 0)) winkel = 360 - winkel;
+            }
+
+            if ((v > 0) && (u <= 0))
+            {
+                winkel = 180 - winkel;
+            }
+
+            if ((v >= 0) && (u > 0))
+            {
+                winkel = 180 + winkel;
+            }
+
+            if ((v < 0) && (u >= 0))
+            {
+                winkel = 360 - winkel;
+            }
+
             return winkel;
         }
 
@@ -619,7 +704,10 @@ namespace GRAL_2001
             float _val1 = val1; // avoid "starg" optocode
             float _val2 = val2;
             if (_val1 > _val2)
+            {
                 return _val1;
+            }
+
             return _val2;
         }
 
@@ -798,7 +886,7 @@ namespace GRAL_2001
         /// </summary>
         private static void VolumeCorrection()
         {
-            if ((Program.BuildingTerrExist == true) || (Program.BuildingFlatExist == true))
+            if (Program.BuildingsExist == true)
             {
                 ProgramHelper prgH = new ProgramHelper();
 

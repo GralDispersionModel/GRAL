@@ -56,7 +56,11 @@ namespace GRAL_2001
                     Program.V0[1] = Convert.ToSingle(text[4].Replace(".", Program.Decsep));
                     Program.W0int = Convert.ToSingle(text[5].Replace(".", Program.Decsep));
                     Program.Ob[1][1] = Convert.ToSingle(text[6].Replace(".", Program.Decsep));
-                    if (Program.Ob[1][1] == 0) Program.Ob[1][1] = 1.0F;
+                    if (Program.Ob[1][1] == 0)
+                    {
+                        Program.Ob[1][1] = 1.0F;
+                    }
+
                     Program.MWindMEander = Convert.ToSingle(text[8].Replace(".", Program.Decsep));
                     Program.TWindMeander = Convert.ToSingle(text[9].Replace(".", Program.Decsep));
 
@@ -69,8 +73,8 @@ namespace GRAL_2001
                     // }
 
                     Program.WindDirGral = (float)((270 - Program.WindDirGral) * Math.PI / 180);
-                    Program.UX[1] = (float)(Program.WindVelGral * Math.Cos(Program.WindDirGral));
-                    Program.UY[1] = (float)(Program.WindVelGral * Math.Sin(Program.WindDirGral));
+                    Program.ObsWindU[1] = (float)(Program.WindVelGral * Math.Cos(Program.WindDirGral));
+                    Program.ObsWindV[1] = (float)(Program.WindVelGral * Math.Sin(Program.WindDirGral));
 
                     //friction velocity and boundary-layer height
                     for (int ix = 1; ix <= Program.NX; ix++)
@@ -91,7 +95,12 @@ namespace GRAL_2001
                     ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                        {
+                            ;
+                        }
+                    }
 
                     Environment.Exit(0);
                 }
@@ -105,7 +114,12 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err);
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                {
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
 
                 Environment.Exit(0);
             }

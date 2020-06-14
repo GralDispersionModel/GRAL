@@ -89,10 +89,25 @@ namespace GRAL_2001
                                 Program.ReceptorJInd[block] = (int)(eta / Program.GralDy) + 1;
                                 Program.ReceptorKInd[block] = (int)(Program.ReceptorZ[block] / Program.GralDz);
 
-                                if (Program.ReceptorIInd[block] > Program.NXL) Program.ReceptorIInd[block] = Program.NXL;
-                                if (Program.ReceptorJInd[block] > Program.NYL) Program.ReceptorJInd[block] = Program.NYL;
-                                if (Program.ReceptorIInd[block] < 1) Program.ReceptorIInd[block] = 1;
-                                if (Program.ReceptorJInd[block] < 1) Program.ReceptorJInd[block] = 1;
+                                if (Program.ReceptorIInd[block] > Program.NXL)
+                                {
+                                    Program.ReceptorIInd[block] = Program.NXL;
+                                }
+
+                                if (Program.ReceptorJInd[block] > Program.NYL)
+                                {
+                                    Program.ReceptorJInd[block] = Program.NYL;
+                                }
+
+                                if (Program.ReceptorIInd[block] < 1)
+                                {
+                                    Program.ReceptorIInd[block] = 1;
+                                }
+
+                                if (Program.ReceptorJInd[block] < 1)
+                                {
+                                    Program.ReceptorJInd[block] = 1;
+                                }
 
                                 //receptor indices in the GRAL flow-field grid
                                 if (Program.FlowFieldLevel > 0)
@@ -104,7 +119,9 @@ namespace GRAL_2001
                                     for (int k = Program.NKK; k >= 1; k--)
                                     {
                                         if (Program.HOKART[k] + Program.AHMIN > Program.ReceptorZ[block] + Program.AHK[Program.ReceptorIIndFF[block]][Program.ReceptorJIndFF[block]])
+                                        {
                                             Program.ReceptorKIndFF[block] = k;
+                                        }
                                     }
 
                                     if (Program.LogLevel > 0) // additional log output
@@ -112,10 +129,25 @@ namespace GRAL_2001
                                         Console.WriteLine("Vertical index of receptor " + block.ToString() + " = " + Program.ReceptorKIndFF[block].ToString());
                                     }
 
-                                    if (Program.ReceptorIIndFF[block] > Program.NII) Program.ReceptorIIndFF[block] = Program.NII;
-                                    if (Program.ReceptorJIndFF[block] > Program.NJJ) Program.ReceptorJIndFF[block] = Program.NJJ;
-                                    if (Program.ReceptorIIndFF[block] < 1) Program.ReceptorIIndFF[block] = 1;
-                                    if (Program.ReceptorJIndFF[block] < 1) Program.ReceptorJIndFF[block] = 1;
+                                    if (Program.ReceptorIIndFF[block] > Program.NII)
+                                    {
+                                        Program.ReceptorIIndFF[block] = Program.NII;
+                                    }
+
+                                    if (Program.ReceptorJIndFF[block] > Program.NJJ)
+                                    {
+                                        Program.ReceptorJIndFF[block] = Program.NJJ;
+                                    }
+
+                                    if (Program.ReceptorIIndFF[block] < 1)
+                                    {
+                                        Program.ReceptorIIndFF[block] = 1;
+                                    }
+
+                                    if (Program.ReceptorJIndFF[block] < 1)
+                                    {
+                                        Program.ReceptorJIndFF[block] = 1;
+                                    }
 
                                     // check, if a building higher than the receptor is nearby the receptor or the receptor is at the border
                                     int dx = (int)(Program.GralDx / Program.DXK);

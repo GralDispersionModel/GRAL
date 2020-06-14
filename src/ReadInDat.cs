@@ -196,6 +196,24 @@ namespace GRAL_2001
                                 }
                             }
 
+                            Program.AdaptiveRoughnessMax = 0;
+                            if (sr.EndOfStream == false)
+                            {
+                                try
+                                {
+                                    _line++;
+                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (text.Length > 0 && float.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out float r) && Program.IStatistics == 4)
+                                    {
+                                        Program.AdaptiveRoughnessMax = r;
+                                    }
+                                }
+                                catch
+                                {
+
+                                }
+                            }
+
                         }
                     }
                 }

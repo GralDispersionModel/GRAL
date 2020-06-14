@@ -75,14 +75,16 @@ namespace GRAL_2001
 
             float height = Program.ModelTopHeight;
             if (Program.AHMIN < 9999)
+            {
                 height += Program.AHMIN;
+            }
 
             err = "  Top height of the GRAL domain (abs) [m]: " + (Math.Round(height)).ToString();
             LogfileGralCoreWrite(err);
 
             LogfileGralCoreWrite("");
 
-            if ((Program.Topo == 1) || (Program.BuildingFlatExist == true) || (Program.BuildingTerrExist == true)) // compute prognostic flow field in these cases
+            if ((Program.Topo == 1) || (Program.BuildingsExist == true)) // compute prognostic flow field in these cases
             {
                 err = "  Flow field grid cell nr. in x-direction: " + Program.NII.ToString();
                 LogfileGralCoreWrite(err);
@@ -118,10 +120,14 @@ namespace GRAL_2001
                     {
                         height = 0;
                         for (int i = 1; i < Program.KADVMAX + 1; i++)
+                        {
                             height += Program.DZK[i];
+                        }
 
                         if (Program.AHMIN < 9999)
+                        {
                             height += Program.AHMIN;
+                        }
 
                         err = "  Flow field grid maximum elevation (abs) [m]: " + Math.Round(height).ToString();
                         LogfileGralCoreWrite(err);
@@ -199,9 +205,14 @@ namespace GRAL_2001
             else if (Program.Topo == 1)
             {
                 if (File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 100000) // Gral topofile not available or corrupt (AHK_Ori_Min)
+                {
                     err = "Complex terrain - using interpolated GRAMM topography";
+                }
                 else
+                {
                     err = "Complex terrain - using GRAL_topofile.txt";
+                }
+
                 LogfileGralCoreWrite(err);
 
                 // get GRAMM Path if available
@@ -230,7 +241,9 @@ namespace GRAL_2001
             }
 
             if (Program.LandUseAvailable == true)
+            {
                 err = "Roughness length from landuse file available";
+            }
             else
             {
                 //                if (topo == 1)
@@ -242,11 +255,18 @@ namespace GRAL_2001
 
 
             if (Program.FlowFieldLevel == 0)
+            {
                 err = "No buildings";
+            }
             else if (Program.FlowFieldLevel == 1)
+            {
                 err = "Diagnostic approach for buildings";
+            }
             else
+            {
                 err = "Prognostic approach for buildings";
+            }
+
             LogfileGralCoreWrite(err);
 
             err = "Number of receptor points: " + Program.ReceptorNumber.ToString();
@@ -266,7 +286,9 @@ namespace GRAL_2001
             {
                 err = "Computing pollutant " + Program.PollutantType;
                 if (Program.DepositionExist == true)
+                {
                     err += " with deposition";
+                }
             }
             LogfileGralCoreWrite(err);
 

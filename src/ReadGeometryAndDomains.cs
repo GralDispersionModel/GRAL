@@ -393,5 +393,81 @@ namespace GRAL_2001
             }
             return GRAL_Topofile;
         } // Read GRAL_Topography.txt
+
+        /// <summary>
+        /// Read the file RoughnessLengthsGral.dat
+        /// </summary>
+        public bool ReadRoughnessGral(float[][] RoughnessArray)
+        {
+            bool fileReadingOK = false;
+
+            Console.WriteLine("Reading RoughnessLengthsGral.dat");
+            string[] data;
+
+            try
+            {
+                using (StreamReader myReader = new StreamReader("RoughnessLengthsGral.dat"))
+                {
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    int nx = Convert.ToInt32(data[1]);
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    int ny = Convert.ToInt32(data[1]);
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    double x11 = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    double y11 = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    double dx = Convert.ToDouble(data[1].Replace(".", Program.Decsep));
+                    data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    int nodata = Convert.ToInt32(data[1]);
+                    data = new string[nx + 1];
+                    if (nx != Program.NII || ny != Program.NJJ)
+                    {
+                        throw new ArgumentOutOfRangeException("Microscale Roughness grid cell count is not equal to the flow field grid cell count");
+                    }
+                    if (Math.Abs(x11 - Program.GralWest) > 0.1 || Math.Abs(y11 - Program.GralSouth) > 0.1)
+                    {
+                        throw new ArgumentOutOfRangeException("Microscale Roughness grid does not match the GRAL Domain grid");
+                    }
+                    if (Math.Abs(dx - Program.DXK) > 0.1)
+                    {
+                        throw new ArgumentOutOfRangeException("Microscale Roughness grid size does not match the GRAL Domain grid size");
+                    }
+
+                    double sum = 0;
+                    int count = 0;
+                    for (int j = ny; j > 0; j--)
+                    {
+                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        for (int i = 1; i <= nx; i++)
+                        {
+                            float _val = Convert.ToSingle(data[j - 1], ic);
+                            if (Convert.ToInt32(_val) != nodata)
+                            {
+                                RoughnessArray[i][j] = _val;
+                            }
+                            else
+                            {
+                                RoughnessArray[i][j] = Program.Z0;
+                            }
+                            count++;
+                            sum += RoughnessArray[i][j];
+                        }
+                    }
+                    if (count > 0)
+                    {
+                        Console.WriteLine("...finished - mean roughness lenght: " + Math.Round(sum / count, 2).ToString() + " m");
+                    }
+                }
+                fileReadingOK = true;
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message.ToString());
+                Console.WriteLine("...reading error - finished");
+                ProgramWriters.LogfileProblemreportWrite(ex.Message.ToString() + "...reading error - finished");
+            }
+            return fileReadingOK;
+        } // Read file RoughnessLenghtsGral.dat 
     }
 }

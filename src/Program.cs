@@ -67,7 +67,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >          G R A L VERSION: 20.06RC 1       < <   +";
+            string Info =     "+  > >         G R A L VERSION: 20.09Beta1       < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -151,7 +151,7 @@ namespace GRAL_2001
             NJJ = (int)((EtaMaxGral - EtaMinGral) / DYK);
             AHKOri = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             GralTopofile = ReaderClass.ReadGRALTopography(NII, NJJ); // GRAL Topofile OK?
-            
+
             //reading main control file in.dat
             ReaderClass.ReadInDat();
             //total number of particles released for each weather situation
@@ -164,15 +164,15 @@ namespace GRAL_2001
             if (Topo == 1)
             {
                 InitGralTopography(SIMD);
-                ReaderClass.ReadBuildingsTerrain(); //define buildings in GRAL
+                ReaderClass.ReadBuildingsTerrain(Program.CUTK); //define buildings in GRAL
             }
             //flat terrain application
             else
             {
                 InitGralFlat();
-                ReaderClass.ReadBuildingsFlat(); //define buildings in GRAL
+                ReaderClass.ReadBuildingsFlat(Program.CUTK); //define buildings in GRAL
             }
-          
+
             // array declarations for prognostic and diagnostic flow field
             if ((FlowFieldLevel > 0) || (Topo == 1))
             {
@@ -266,7 +266,21 @@ namespace GRAL_2001
             //on the opposite lanes of a highway or where pollutants are sucked into a tunnel portal
             ReaderClass.ReadTunnelfilesOptional();
 
-            //setting the lateral borders of the domain
+            //optional: reading land-use data from file landuse.asc
+            ReaderClass.ReadLanduseFile();
+
+            //Use the adaptive roughness lenght mode?
+            if (AdaptiveRoughnessMax > 0 && BuildingsExist)
+            {
+                //define FlowField dependend Z0, UStar and OL, generate Z0GRAL[][] array and write RoghnessGRAL file
+                InitAdaptiveRouhnessLenght(ReaderClass);
+            }
+            else
+            {
+                AdaptiveRoughnessMax = 0;
+            }
+
+            //setting the lateral borders of the domain -> Attention: changes the GRAL borders from absolute to reletive values!
             InitGralBorders();
 
             //reading point source data
@@ -309,9 +323,6 @@ namespace GRAL_2001
 
             //weather situation to start with
             IWET = IWETstart - 1;
-
-            //optional: reading land-use data from file landuse.asc
-            ReaderClass.ReadLanduseFile();
 
             //read mettimeseries.dat, meteopgt.all and Precipitation.txt in case of transient simulations
             InputMettimeSeries InputMetTimeSeries = new InputMettimeSeries();
@@ -360,27 +371,49 @@ namespace GRAL_2001
             bool FirstLoop = true;
             while (IEND == 0)
             {
-                //next weather situation
+                // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
+                if (ThreadWriteGffFiles != null)
+                {
+                    ThreadWriteGffFiles.Join(5000); // wait up to 5s or until thread has been finished
+                    if (ThreadWriteGffFiles.IsAlive)
+                    {
+                        Console.Write("Writing *.gff file..");
+                        while (ThreadWriteGffFiles.IsAlive)
+                        {
+                            ThreadWriteGffFiles.Join(30000); // wait up to 30s or until thread has been finished
+                            Console.Write(".");
+                        }
+                        Console.WriteLine();
+                    }
+                    ThreadWriteGffFiles = null; // Release ressources				
+                }
+
+                //Next weather situation
                 IWET++;
                 IDISP = IWET;
                 WindVelGramm = -99; WindDirGramm = -99; StabClassGramm = -99; // Reset GRAMM values
 
                 //show actual computed weather situation
                 Console.WriteLine("_".PadLeft(79, '_'));
-                Console.WriteLine("Weather number: " + IWET.ToString());
+                Console.Write("Weather number: " + IWET.ToString());
+                if (ISTATIONAER == 0)
+                {
+                    int _iwet = IWET - 1;
+                    if (_iwet < MeteoTimeSer.Count)
+                    {
+                        Console.WriteLine(" - " + MeteoTimeSer[_iwet].Day + "." + MeteoTimeSer[_iwet].Month + "-" + MeteoTimeSer[_iwet].Hour + ":00");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine();
+                }
 
                 //time stamp to evaluate computation times
                 int StartTime = Environment.TickCount;
 
                 //Set the maximum number of threads to be used in each parallelized region
                 ReaderClass.ReadMaxNumbProc();
-
-                // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
-                if (ThreadWriteGffFiles != null)
-                {
-                    ThreadWriteGffFiles.Join(); // wait, until thread has been finished
-                    ThreadWriteGffFiles = null; // Release ressources				
-                }
 
                 //read meteorological input data 
                 if (IStatistics == 4)
@@ -397,8 +430,9 @@ namespace GRAL_2001
                     }
                     else
                     {
+                        //in stationary mode, meteopgt.all is read here, because we need IEND
                         IEND = Input_MeteopgtAll.Read();
-                        IWETstart--;
+                        IWETstart--; // reset the counter, because metepgt.all is finally read in ReadMeteoData, after the GRAMM wind field is available
                     }
                 }
 
@@ -490,7 +524,7 @@ namespace GRAL_2001
                             MicroscaleTerrain.Calculate(FirstLoop);
                         }
                         //microscale flow field: flat terrain
-                        else if ((Topo == 0) && ((BuildingFlatExist == true) || (File.Exists("vegetation.dat") == true)))
+                        else if ((Topo == 0) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
                         {
                             MicroscaleFlat.Calculate();
                         }
@@ -530,7 +564,7 @@ namespace GRAL_2001
                         //in case of complex terrain and/or the presence of buildings some data is written for usage in the GUI (visualization of vertical slices)
                         WriteClass.WriteGRALGeometries();
                         //optional: write building heights as utilized in GRAL
-                        WriteClass.WriteBuildingHeights();
+                        WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
 
                         Console.WriteLine(Info);
                         ProgramWriters.LogfileGralCoreWrite(Info);

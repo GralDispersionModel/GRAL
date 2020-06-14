@@ -59,6 +59,10 @@ namespace GRAL_2001
                     {
                         WriteStrongCompressedGFFFiles(GRALflowfield);
                     }
+                    if (writingMode == 2)
+                    {
+                        WriteTerrainCompressedGFFFiles(GRALflowfield);
+                    }
                 }
             } // GFF -Files
 
@@ -297,9 +301,9 @@ namespace GRAL_2001
                                         }
                                         else
                                         {
-                                            _valInt16 = (Int16) _val;
+                                            _valInt16 = (Int16)_val;
                                         }
-                                        
+
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
@@ -317,9 +321,9 @@ namespace GRAL_2001
                                         }
                                         else
                                         {
-                                            _valInt16 = (Int16) _val;
+                                            _valInt16 = (Int16)_val;
                                         }
-                                        
+
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
@@ -337,9 +341,9 @@ namespace GRAL_2001
                                         }
                                         else
                                         {
-                                            _valInt16 = (Int16) _val;
+                                            _valInt16 = (Int16)_val;
                                         }
-                                        
+
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
                                         writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
@@ -368,7 +372,158 @@ namespace GRAL_2001
                 }
                 return false;
             }
+        }
 
+        /// <summary>
+        /// Write a stronger compressable *.gff file for areas with terrain
+        /// </summary>
+        /// <param name="GRALflowfield">File name</param>
+        /// <returns></returns>
+        private static bool WriteTerrainCompressedGFFFiles(string GRALflowfield)
+        {
+            try
+            {
+                using (FileStream zipToOpen = new FileStream(GRALflowfield, FileMode.Create))
+                {
+                    using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                    {
+                        ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
+                        using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
+                        {
+                            writer.Write((Int32)(-1) * Program.NKK); // write negative value -> throw an error at old GRAL versions to avoid erroneous wind fields
+                            writer.Write((Int32)Program.NJJ);
+                            writer.Write((Int32)Program.NII);
+                            writer.Write((float)Program.WindDirGral);
+                            writer.Write((float)Program.WindVelGral);
+                            writer.Write((Int32)Program.StabClass);
+                            writer.Write((float)Program.DXK);
+                            int header = -3; //flag for *.gff mode 3
+                            writer.Write(header);
+
+                            //Write KKART
+                            Span<byte> _kkartBuffer = new byte[Program.NJJ * 2];
+                            for (int i = 1; i < Program.NII + 1; i++)
+                            {
+                                int bytecounter = 0;
+                                for (int j = 1; j < Program.NJJ + 1; j++)
+                                {
+                                    Int16 _valInt16 = Program.KKART[i][j];
+                                    _kkartBuffer[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                    _kkartBuffer[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                }
+                                writer.Write(_kkartBuffer);
+                            }
+                            _kkartBuffer = null;
+
+                            //Write the vectors
+                            Span<byte> WriteBuffer = new byte[(Program.NKK + 1) * 6]; // byte-buffer
+                            for (int i = 1; i <= Program.NII + 1; i++)
+                            {
+                                for (int j = 1; j <= Program.NJJ + 1; j++)
+                                {
+                                    float[] UK_L = Program.UK[i][j];
+                                    float[] VK_L = Program.VK[i][j];
+                                    float[] WK_L = Program.WK[i][j];
+
+                                    int KKART = Program.KKART[i][j];
+                                    if (KKART < 1)
+                                    {
+                                        KKART = 1;
+                                    }
+
+                                    Span<byte> writeData = WriteBuffer.Slice((KKART - 1) * 6);  // sliced byte-buffer
+
+                                    //keep each wind component together to get a better compression rate
+                                    int bytecounter = 0;
+                                    for (int k = KKART; k <= Program.NKK + 1; k++)
+                                    {
+                                        Int16 _valInt16 = 0;
+                                        float _val = MathF.Round(UK_L[k - 1] * 100);
+                                        if (_val > Int16.MaxValue)
+                                        {
+                                            _valInt16 = Int16.MaxValue;
+                                        }
+                                        else if (_val < Int16.MinValue)
+                                        {
+                                            _valInt16 = Int16.MinValue;
+                                        }
+                                        else
+                                        {
+                                            _valInt16 = (Int16)_val;
+                                        }
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                    }
+
+                                    for (int k = KKART; k <= Program.NKK + 1; k++)
+                                    {
+                                        Int16 _valInt16 = 0;
+                                        float _val = MathF.Round(VK_L[k -1] * 100);
+                                        if (_val > Int16.MaxValue)
+                                        {
+                                            _valInt16 = Int16.MaxValue;
+                                        }
+                                        else if (_val < Int16.MinValue)
+                                        {
+                                            _valInt16 = Int16.MinValue;
+                                        }
+                                        else
+                                        {
+                                            _valInt16 = (Int16)_val;
+                                        }
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                    }
+
+                                    for (int k = KKART; k <= Program.NKK + 1; k++)
+                                    {
+                                        Int16 _valInt16 = 0;
+                                        float _val = MathF.Round(WK_L[k] * 100);
+                                        if (_val > Int16.MaxValue)
+                                        {
+                                            _valInt16 = Int16.MaxValue;
+                                        }
+                                        else if (_val < Int16.MinValue)
+                                        {
+                                            _valInt16 = Int16.MinValue;
+                                        }
+                                        else
+                                        {
+                                            _valInt16 = (Int16)_val;
+                                        }
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                    }
+                                    // if (i==26 && j == 23)
+                                    // {
+                                    //     int km=11; int k = 12;
+                                    //     Console.WriteLine(UK_L[km]+"/"+VK_L[km] + "/" + WK_L[k]);
+                                    // }
+                                    writer.Write(writeData); // write buffer
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                string err = "Error when writing file " + GRALflowfield + " / " + e.Message.ToString();
+                Console.WriteLine(err);
+                ProgramWriters.LogfileProblemreportWrite(err);
+
+                // delete corrupt flowfield file
+                if (File.Exists(GRALflowfield))
+                {
+                    try
+                    {
+                        File.Delete(GRALflowfield);
+                    }
+                    catch { }
+                }
+                return false;
+            }
         }
 
         public static void WriteGRALGeometries()

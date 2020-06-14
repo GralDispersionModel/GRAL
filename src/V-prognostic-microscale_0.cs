@@ -37,9 +37,16 @@ namespace GRAL_2001
                 for (int j1 = 3; j1 <= Program.NJJ - 1; j1++)
                 {
                     int j = j1;
-                    if (JS == -1) j = Program.NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = Program.NJJ - j1 + 1;
+                    }
+
                     int i = i1;
-                    if (IS == -1) i = Program.NII - i1 + 1;
+                    if (IS == -1)
+                    {
+                        i = Program.NII - i1 + 1;
+                    }
 
                     if (Program.ADVDOM[i][j] == 1)
                     {
@@ -72,10 +79,34 @@ namespace GRAL_2001
                         float Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
                         float Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
                         float CUTK_L = Program.CUTK[i][j];
+                        float Z0 = 0.1F;
+                        if (Program.AdaptiveRoughnessMax < 0.01)
+                        {
+                            //Use GRAMM Roughness with terrain or Roughness from point 1,1 without terrain
+                            int IUstern = 1;
+                            int JUstern = 1;
+                            if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
+                            {
+                                double x = i * Program.DXK + Program.GralWest;
+                                double y = j * Program.DYK + Program.GralSouth;
+                                double xsi1 = x - Program.GrammWest;
+                                double eta1 = y - Program.GrammSouth;
+                                IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX);
+                                JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY);
+                            }
+                            Z0 = Program.Z0Gramm[IUstern][JUstern];
+                        }
+                        else
+                        {
+                            Z0 = Program.Z0Gral[i][j];
+                        }
 
                         int KSTART = 1;
-                        if (CUTK_L == 0)
+                        if (CUTK_L == 0) // building heigth == 0 m
+                        {
                             KSTART = KKART_LL + 1;
+                        }
+
                         for (int k = KSTART; k <= Vert_Index_LL; k++)
                         {
                             float DZK_K = Program.DZK[k];
@@ -90,7 +121,9 @@ namespace GRAL_2001
                             float FT = 0.25F * (WKSjm_L[k] + WKS_L[k] + WKSjm_L[k + 1] + WKS_L[k + 1]) * AREAxy_L;
                             float FB = 0;
                             if (k > KKART_LL + 1)
+                            {
                                 FB = 0.25F * (WKSjm_L[k] + WKS_L[k] + WKSjm_L[k - 1] + WKS_L[k - 1]) * AREAxy_L;
+                            }
 
                             //POWER LAW ADVECTION SCHEME
                             float BIM = Program.FloatMax(-FT, 0);
@@ -108,23 +141,31 @@ namespace GRAL_2001
                                 PrognosticFlowfield.AP0[k] * 0.5 * (VKSjm_L[k] + VKS_L[k]) + DDPY * DXKDZK + Program.CorolisParam * (VG - VK_L[k]) * AREAxy_L * DZK_K);
 
                             //BOUNDARY CONDITION AT SURFACES (OBSTACLES AND TERRAIN)
-                            if ((k == KKART_LL + 1) && (CUTK_L == 0))
+                            if (k == KKART_LL + 1)
                             {
-                                float xhilf = (float)((float)i * (DXK - DXK * 0.5));
-                                float yhilf = (float)((float)j * (DYK - DYK * 0.5));
-                                float windhilf = Program.FloatMax((float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
-                                int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
-                                int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
-                                float Ustern_Buildings = Ustern_terrain_helpterm * windhilf;
-                                if (Program.Z0Gramm[IUstern][JUstern] >= DZK_K * 0.1)
-                                    Ustern_Buildings = Ustern_terrain_helpterm * (float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k + 1]) + UKS_L[k + 1])) + Program.Pow2(0.5 * ((VKSim_L[k + 1]) + VKS_L[k + 1])));
-                                DIMV -= (float)(VK_L[k] / windhilf * Program.Pow2(Ustern_Buildings) * AREAxy_L);
-                            }
-                            else if ((k == KKART_LL + 1) && (CUTK_L == 1))
-                            {
-                                float windhilf = Program.FloatMax((float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
-                                float Ustern_Buildings = Ustern_obstacles_helpterm * windhilf;
-                                DIMV -= (float)(VK_L[k] / windhilf * Program.Pow2(Ustern_Buildings) * AREAxy_L);
+                                if (CUTK_L < 1) // building heigth < 1 m
+                                {
+                                    //above terrain
+                                    float xhilf = (float)((float)i * (DXK - DXK * 0.5));
+                                    float yhilf = (float)((float)j * (DYK - DYK * 0.5));
+                                    float windhilf = Program.FloatMax((float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
+                                    int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
+                                    int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
+                                    float Ustern_Buildings = Ustern_terrain_helpterm * windhilf;
+                                    if (Z0 >= DZK_K * 0.1)
+                                    {
+                                        Ustern_Buildings = Ustern_terrain_helpterm * (float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k + 1]) + UKS_L[k + 1])) + Program.Pow2(0.5 * ((VKSim_L[k + 1]) + VKS_L[k + 1])));
+                                    }
+
+                                    DIMV -= (float)(VK_L[k] / windhilf * Program.Pow2(Ustern_Buildings) * AREAxy_L);
+                                }
+                                else if ((k == KKART_LL + 1) && (CUTK_L == 1))
+                                {
+                                    //above building
+                                    float windhilf = Program.FloatMax((float)Math.Sqrt(Program.Pow2(0.5 * ((UKSim_L[k]) + UKS_L[k])) + Program.Pow2(0.5 * ((VKSim_L[k]) + VKS_L[k]))), 0.01F);
+                                    float Ustern_Buildings = Ustern_obstacles_helpterm * windhilf;
+                                    DIMV -= (float)(VK_L[k] / windhilf * Program.Pow2(Ustern_Buildings) * AREAxy_L);
+                                }
                             }
 
                             //RECURRENCE FORMULA
@@ -151,20 +192,5 @@ namespace GRAL_2001
                 }
             });
         }
-
-        //should be faster than MyPow - Function
-        static Func<double, int, double> MyPow = (double num, int exp) =>
-        {
-            double result = 1.0;
-            while (exp > 0)
-            {
-                if (exp % 2 == 1)
-                    result *= num;
-                exp >>= 1;
-                num *= num;
-            };
-            return result;
-        };
-
     }
 }

@@ -28,13 +28,17 @@ namespace GRAL_2001
                 using (BinaryReader windfieldb = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
                 {
                     for (int i = 1; i <= NX; i++)
+                    {
                         for (int j = 1; j <= NY; j++)
+                        {
                             for (int k = 1; k <= NZ; k++)
                             {
                                 UWI[i][j][k] = windfieldb.ReadSingle();
                                 VWI[i][j][k] = windfieldb.ReadSingle();
                                 WWI[i][j][k] = windfieldb.ReadSingle();
                             }
+                        }
+                    }
                 }
 
                 return true; // Reader OK

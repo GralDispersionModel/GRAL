@@ -38,9 +38,16 @@ namespace GRAL_2001
                 for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
                 {
                     int j = j1;
-                    if (JS == -1) j = Program.NJJ - j1 + 1;
+                    if (JS == -1)
+                    {
+                        j = Program.NJJ - j1 + 1;
+                    }
+
                     int i = i1;
-                    if (IS == -1) i = Program.NII - i1 + 1;
+                    if (IS == -1)
+                    {
+                        i = Program.NII - i1 + 1;
+                    }
 
                     if (Program.ADVDOM[i][j] == 1)
                     {
@@ -72,11 +79,36 @@ namespace GRAL_2001
                         float[] WKjp_L = Program.WK[i][j + 1];
                         float[] WKjm_L = Program.WK[i][j - 1];
 
+                        float Z0 = 0.1F;
+                        if (Program.AdaptiveRoughnessMax < 0.01)
+                        {
+                            //Use GRAMM Roughness with terrain or Roughness from point 1,1 without terrain
+                            int IUstern = 1;
+                            int JUstern = 1;
+                            if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
+                            {
+                                double x = i * Program.DXK + Program.GralWest;
+                                double y = j * Program.DYK + Program.GralSouth;
+                                double xsi1 = x - Program.GrammWest;
+                                double eta1 = y - Program.GrammSouth;
+                                IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX);
+                                JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY);
+                            }
+                            Z0 = Program.Z0Gramm[IUstern][JUstern];
+                        }
+                        else
+                        {
+                            Z0 = Program.Z0Gral[i][j];
+                        }
+
                         int KKART = Program.KKART[i][j];
 
                         int KSTART = 1;
                         if (Program.CUTK[i][j] == 0)
+                        {
                             KSTART = KKART + 1;
+                        }
+
                         for (int k = KSTART; k <= Program.VerticalIndex[i][j]; k++)
                         {
                             float DXKDZK = DXK * Program.DZK[k];
@@ -104,13 +136,24 @@ namespace GRAL_2001
 
                             //BOUNDARY CONDITIONS FOR DIFFUSION TERMS
                             if ((Program.ADVDOM[i][j - 1] < 1) || (j == 2))
+                            {
                                 DS = 0;
+                            }
+
                             if ((Program.ADVDOM[i][j + 1] < 1) || (j == Program.NJJ - 1))
+                            {
                                 DN = 0;
+                            }
+
                             if ((Program.ADVDOM[i - 1][j] < 1) || (i == 2))
+                            {
                                 DW = 0;
+                            }
+
                             if ((Program.ADVDOM[i + 1][j] < 1) || (i == Program.NII - 1))
+                            {
                                 DE = 0;
+                            }
 
 
                             //ADVECTION TERMS
@@ -121,7 +164,9 @@ namespace GRAL_2001
                             float FT = WK_L[k + 1] * AREAxy;
                             float FB = 0;
                             if (k > KKART + 1)
+                            {
                                 FB = WK_L[k] * AREAxy;
+                            }
 
                             //PECLET NUMBERS
                             DE = Math.Max(DE, 0.0001F);
@@ -232,23 +277,25 @@ namespace GRAL_2001
 
                                 if ((k == KKART + 1) && (Program.CUTK[i][j] == 0))
                                 {
-                                    float xhilf = (float)i * (DXK - DXK * 0.5F);
-                                    float yhilf = (float)j * (DYK - DYK * 0.5F);
-                                    int IUstern = (int)(xhilf / Program.DDX[1]) + 1;
-                                    int JUstern = (int)(yhilf / Program.DDY[1]) + 1;
+                                    double x = i * Program.DXK + Program.GralWest;
+                                    double y = j * Program.DYK + Program.GralSouth;
+                                    double xsi1 = x - Program.GrammWest;
+                                    double eta1 = y - Program.GrammSouth;
+                                    int IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX);
+                                    int JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY);
 
                                     //surface-layer similarity is not applicable within the roughness layer
                                     //orographical surface
-                                    if (Program.Z0Gramm[IUstern][JUstern] >= Program.DZK[k] * 0.5)
+                                    if (Z0 >= Program.DZK[k] * 0.5)
                                     {
-                                        Ustern_Buildings = (float)(0.4 / Math.Log((Program.DZK[k] + Program.DZK[k + 1] * 0.5) / Program.Z0Gramm[IUstern][JUstern]) *
+                                        Ustern_Buildings = (float)(0.4 / Math.Log((Program.DZK[k] + Program.DZK[k + 1] * 0.5) / Z0) *
                                             Math.Sqrt(Program.Pow2(0.5 * (UK_L[k + 1] + UKip_L[k + 1])) + Program.Pow2(0.5 * (VK_L[k + 1] + VKjp_L[k + 1]))));
                                         TURB_L[k] = (float)(3.33 * Program.Pow2(Ustern_Buildings));
                                         TDISS_L[k] = (float)(Program.Pow3(Ustern_Buildings) / ((Program.DZK[k] + Program.DZK[k + 1] * 0.5) * 0.4));
                                     }
                                     else
                                     {
-                                        Ustern_Buildings = (float)(0.4 / Math.Log(Program.DZK[k] * 0.5 / Program.Z0Gramm[IUstern][JUstern]) *
+                                        Ustern_Buildings = (float)(0.4 / Math.Log(Program.DZK[k] * 0.5 / Z0) *
                                             Math.Sqrt(Program.Pow2(0.5 * ((UK_L[k + 1]) + UKip_L[k])) + Program.Pow2(0.5 * ((VK_L[k]) + VKjp_L[k]))));
                                         TURB_L[k] = (float)(3.33 * Program.Pow2(Ustern_Buildings));
                                         TDISS_L[k] = (float)(Program.Pow3(Ustern_Buildings) / (Program.DZK[k] * 0.5 * 0.4));
