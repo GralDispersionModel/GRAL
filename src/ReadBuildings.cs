@@ -29,7 +29,7 @@ namespace GRAL_2001
         /// </summary>
         public void ReadBuildingsTerrain(float[][] BuildingHeights)
         {
-            if (File.Exists("buildings.dat") == true)
+            if (!ReadBuildingsGrid(BuildingHeights) && File.Exists("buildings.dat") == true)
             {
                 Program.BuildingsExist = true;
                 int block = 0;
@@ -53,6 +53,7 @@ namespace GRAL_2001
                             double czo = Convert.ToDouble(text[3].Replace(".", Program.Decsep));
                             IXCUT = (int)((cic - Program.XsiMinGral) / Program.DXK) + 1;
                             IYCUT = (int)((cjc - Program.EtaMinGral) / Program.DYK) + 1;
+                            
                             if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
                             {
                                 if (czo < 0) // absolute height of building
@@ -63,7 +64,12 @@ namespace GRAL_2001
                                         {
                                             czo = Math.Abs(czo) - Program.AHKOri[IXCUT][IYCUT]; // compute relative building height for this cell
                                             czo = Math.Max(0, czo); // if czo < AHK -> set building height to 0
-                                            block++;
+                                            
+                                            if (BuildingHeights[IXCUT][IYCUT] < 0.1) // Increase block counter, if no building is already defined at this cell
+                                            {
+                                                block++;
+                                            }
+                                 
                                         }
                                         else
                                         {
@@ -86,7 +92,10 @@ namespace GRAL_2001
                                 }
                                 else
                                 {
-                                    block++;
+                                    if (BuildingHeights[IXCUT][IYCUT] < 0.1) // Increase block counter, if no building is already defined at this cell
+                                    {
+                                        block++;
+                                    }
                                 }
                                 BuildingHeights[IXCUT][IYCUT] = (float)Math.Max(czo, BuildingHeights[IXCUT][IYCUT]);
                             }
@@ -125,7 +134,7 @@ namespace GRAL_2001
         public void ReadBuildingsFlat(float[][] BuildingHeights)
         {
             string Info;
-            if (File.Exists("buildings.dat") == true)
+            if (!ReadBuildingsGrid(BuildingHeights) && File.Exists("buildings.dat") == true)
             {
                 Program.BuildingsExist = true;
                 int block = 0;
@@ -142,7 +151,6 @@ namespace GRAL_2001
                         Int32 IYCUT;
                         while ((text1 = read.ReadLine()) != null)
                         {
-                            block++;
                             text = text1.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
                             double cic = Convert.ToDouble(text[0].Replace(".", Program.Decsep));
                             double cjc = Convert.ToDouble(text[1].Replace(".", Program.Decsep));
@@ -166,6 +174,12 @@ namespace GRAL_2001
 
                                     Environment.Exit(0);
                                 }
+
+                                if (BuildingHeights[IXCUT][IYCUT] < 0.1) // Increase block counter, if no building is already defined at this cell
+                                {
+                                    block++;
+                                }
+
                                 BuildingHeights[IXCUT][IYCUT] = (float)Math.Max(czo, BuildingHeights[IXCUT][IYCUT]);
                             }
                         }
@@ -196,5 +210,87 @@ namespace GRAL_2001
                 CalculateSubDomainsForPrognosticWindSimulation();
             }
         } //read buildings in case of flat terrain
+
+        /// <summary>
+        ///Read a building grid ESRI-ASCII file
+        /// </summary>
+        /// <returns>false if file was not read, true if file was read</returns>
+        private bool ReadBuildingsGrid(float[][] BuildingHeights)
+        {
+            string buildingFile = "BuildingsRaster.dat";
+            int block = 0;
+            if (File.Exists(buildingFile))
+            {
+                try
+                {
+                    using (StreamReader myReader = new StreamReader(buildingFile))
+                    {
+                        string[] data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        int nx = Convert.ToInt32(data[1]);
+                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        int ny = Convert.ToInt32(data[1]);
+                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        double westernBorder = Convert.ToDouble(data[1], ic);
+                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        double southernBorder = Convert.ToDouble(data[1], ic);
+                        data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        double dx = Convert.ToDouble(data[1], ic);
+                        data = myReader.ReadLine().Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (nx != Program.NII)
+                        {
+                            throw new IOException("Error when reading BuildingsRaster.dat: nx != Program.NII");
+                        }
+                        else if (ny != Program.NJJ)
+                        {
+                            throw new IOException("Error when reading BuildingsRaster.dat: ny != Program.NJJ");
+                        }
+                        else if (dx != Program.DXK)
+                        {
+                            throw new IOException("Error when reading BuildingsRaster.dat: dx != Program.DXK");
+                        }
+                        else if (westernBorder != Program.GralWest)
+                        {
+                            throw new IOException("Error when reading BuildingsRaster.dat: western border does not match");
+                        }
+                        else if (southernBorder != Program.GralSouth)
+                        {
+                            throw new IOException("Error when reading BuildingsRaster.dat: southern border does not match");
+                        }
+
+                        for (int j = ny - 1; j > -1; j--)
+                        {
+                            data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                            for (int i = 0; i < nx; i++)
+                            {
+                                BuildingHeights[i][j] = Convert.ToSingle(data[i], ic);
+                                if (BuildingHeights[i][j] > 0)
+                                {
+                                    block++;
+                                }
+                                else if (BuildingHeights[i][j] < 0)
+                                {
+                                    BuildingHeights[i][j] = 0;
+                                }
+                            }
+                        }
+                    }
+
+                    string Info = "Reading buildings from BuildingsRaster.dat: total number of blocked cells in 2D: " + block.ToString();
+                    Console.WriteLine(Info);
+                    ProgramWriters.LogfileGralCoreWrite(Info);
+                    ProgramWriters.LogfileGralCoreWrite(" ");
+
+                    if (block > 0)
+                    {
+                        return true;
+                    }
+                }
+                catch(Exception ex )
+                {   
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            return false;
+        }
     }
 }
