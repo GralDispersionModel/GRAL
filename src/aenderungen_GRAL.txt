@@ -655,5 +655,5 @@ Zusätzliche Ausgaben für Zeitreihen Austrittsgeschw./Austrittstemp. bei transi
 Fange GRAMM Gebiete < GRAL Gebiet ab, aber ermögliche trotzdem Berechnung ohne Absturz
 Zeige die Fortdauer des *.gff File Schreibens an, wenn das Schreiben länger dauert, als die Ausbreitungsrechnung
 
-11.6.2020 (Kuntner)
-Zeige Fortschritt beim Speichern der Konzentrationsfiles
+15.6.2020 (Kuntner)
+Erlaube alternativ, Gebäudehöhen über ein ESRI-ASCII File einzulesen. Name: BuildingsRaster.dat
