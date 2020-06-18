@@ -36,7 +36,7 @@ namespace GRAL_2001
                         header = read.ReadLine();
                     }
                     // Get number of columns without Day.Month and Hour
-                    string[] columns = header.Split(new char[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] columns = header.Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
                     if (columns.Length > 1) // Index 0= Day.Month, 1 = Hour
                     {
                         TSColList = new List<TimeSeriesColumn>();
@@ -58,7 +58,7 @@ namespace GRAL_2001
                             while (!read.EndOfStream)
                             {
                                 string linestring = read.ReadLine();
-                                columns = linestring.Split(new char[] { '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                                columns = linestring.Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
                                 for (int col = 2; col < columns.Length; col++)
                                 {
                                     if (lineCount < TSColList[col - 2].Value.Length)
