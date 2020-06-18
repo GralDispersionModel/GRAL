@@ -657,3 +657,6 @@ Zeige die Fortdauer des *.gff File Schreibens an, wenn das Schreiben länger dau
 
 15.6.2020 (Kuntner)
 Erlaube alternativ, Gebäudehöhen über ein ESRI-ASCII File einzulesen. Name: BuildingsRaster.dat
+
+16.6.2020 (Kuntner)
+Erlaube neben "\t" auch "," als Trennzeichen für Austrittstemp. und Austrittsgeschw. Files
