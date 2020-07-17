@@ -22,7 +22,7 @@ namespace GRAL_2001
         /// Load or calculate the roughness lenght
         /// </summary>
         /// <param name="ReaderClass">Program Reader Class</param>
-        private static void InitAdaptiveRouhnessLenght(ProgramReaders ReaderClass)
+        private static void InitAdaptiveRoughnessLenght(ProgramReaders ReaderClass)
         {
             Program.Z0Gral = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             Program.OLGral = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
@@ -41,14 +41,14 @@ namespace GRAL_2001
             // or create adaptive roughness lenghts 
             if (readRoughnessFromFile == false)
             {
-                CreateAdaptiveRouhnessLenght(ReaderClass);
+                CreateAdaptiveRoughnessLenght(ReaderClass);
             }
         }
         /// <summary>
         /// Calculate the roughness lenght based on objects like buildings and vegetation areas
         /// </summary>
         /// <param name="ReaderClass">Program Reader Class</param>
-        private static void CreateAdaptiveRouhnessLenght(ProgramReaders ReaderClass)
+        private static void CreateAdaptiveRoughnessLenght(ProgramReaders ReaderClass)
         {
             //read buildings into a local array
             float[][] TempArray = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
