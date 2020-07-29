@@ -641,16 +641,32 @@ namespace GRAL_2001
         public static string ReadWindfeldTXT()
         {
             string path = string.Empty;
-            if (File.Exists("windfeld.txt") == true)
+            if (File.Exists("windfeld.txt"))
             {
-                using (StreamReader sr = new StreamReader("windfeld.txt"))
+                try
                 {
-                    if (Program.RunOnUnix)
+                    using (StreamReader sr = new StreamReader("windfeld.txt"))
                     {
-                        sr.ReadLine(); // read 1st line at unix
+                        path = sr.ReadLine();  // read path
+                        if (Program.RunOnUnix) // it is possible to use a 2nd line for compatibility to Windows
+                        {
+                            if (!Directory.Exists(path))
+                            {
+                                path = sr.ReadLine();  // read path
+                            }
+                        }       
                     }
-
-                    path = sr.ReadLine();
+                }
+                catch 
+                {
+                    path = string.Empty;
+                }
+                if (!Directory.Exists(path))
+                {
+                    string err = "Path from windfeld.txt not available: " + path;
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    path = string.Empty;
                 }
             }
             return path;
