@@ -51,6 +51,10 @@ namespace GRAL_2001
                     }
                 }
                 catch { }
+                if (string.IsNullOrEmpty(text[0])) // if ReadLine() was at the end of the stream when running on LINUX
+                {
+                    text[0] = string.Empty;
+                }
 
                 string path = "ggeom.asc";
                 try

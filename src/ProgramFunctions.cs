@@ -661,6 +661,11 @@ namespace GRAL_2001
                 {
                     path = string.Empty;
                 }
+                if (string.IsNullOrEmpty(path)) // if ReadLine() was at the end of the stream
+                {
+                    path = string.Empty;
+                }
+
                 if (!Directory.Exists(path))
                 {
                     string err = "Path from windfeld.txt not available: " + path;

@@ -70,6 +70,11 @@ namespace GRAL_2001
                 {
                     gff_filepath = string.Empty;
                 }
+
+                if (string.IsNullOrEmpty(gff_filepath)) // if ReadLine() was at the end of the stream
+                {
+                    gff_filepath = string.Empty;
+                }
                 
                 if (!Directory.Exists(gff_filepath))
                 {
