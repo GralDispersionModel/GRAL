@@ -331,6 +331,15 @@ namespace GRAL_2001
                     Directory.SetCurrentDirectory(args[0]);
                     _off = 1;
                 }
+                else if (!args[0].Contains("LOGLEVEL"))
+                {
+                    string err = "! The command line argument is not a valid directory: " + args[0];
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    err = "! GRAL starts in the application folder !";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                }
                 if (args.Length > _off) // additional arguments
                 {
                     if (args[0 + _off].ToUpper().Contains("LOGLEVEL01") == true) // Loglevel 1
