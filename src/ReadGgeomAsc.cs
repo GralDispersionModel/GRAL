@@ -38,31 +38,41 @@ namespace GRAL_2001
                 string[] text = new string[1];
                 try
                 {
-                    StreamReader reader = new StreamReader("ggeom.asc");
-                    if (Program.RunOnUnix)
+                    using (StreamReader reader = new StreamReader("ggeom.asc"))
                     {
-                        reader.ReadLine();
+                        text[0] = reader.ReadLine(); // read path
+                        if (Program.RunOnUnix)       // it is possible to use a 2nd line for compatibility to Windows
+                        {
+                            if (!File.Exists(text[0])) 
+                            {
+                                text[0] = reader.ReadLine();
+                            }
+                        }
                     }
-
-                    text[0] = reader.ReadLine();
-                    reader.Close();
-                    reader.Dispose();
                 }
                 catch { }
-
-                string path = "ggeom.asc";
-                if (File.Exists(text[0]) == true)
+                if (string.IsNullOrEmpty(text[0])) // if ReadLine() was at the end of the stream when running on LINUX
                 {
-                    path = text[0];
+                    text[0] = string.Empty;
                 }
 
+                string path = "ggeom.asc";
                 try
                 {
-                    StreamReader reader = new StreamReader(path);
+                    if (File.Exists(text[0]) == true)
+                    {
+                        path = text[0];
+                    }
+                    else if (!File.Exists(path))
+                    {
+                        throw new IOException();
+                    }
+
                     string[] isbin = new string[1];
-                    isbin = reader.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                    reader.Close();
-                    reader.Dispose();
+                    using (StreamReader reader = new StreamReader(path))
+                    {
+                        isbin = reader.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    }
 
                     if (Convert.ToDouble(isbin[0]) < 0) // binary mode
                     {
@@ -219,10 +229,7 @@ namespace GRAL_2001
 
                                 if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
                                 {
-                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                                    {
-                                        ;
-                                    }
+                                    Console.ReadKey(true); 	// wait for a key input
                                 }
 
                                 Environment.Exit(0);        // Exit console
@@ -348,10 +355,7 @@ namespace GRAL_2001
 
                                 if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
                                 {
-                                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                                    {
-                                        ;
-                                    }
+                                    Console.ReadKey(true); 	// wait for a key input
                                 }
 
                                 Environment.Exit(0);        // Exit console
@@ -363,16 +367,13 @@ namespace GRAL_2001
                 }
                 catch
                 {
-                    string err = "Error when reading file ggeom.asc. Execution stopped: press ESC to stop";
+                    string err = "Execution stopped: ggeom.asc not available ot path in ggeom.asc not valid: " + path;
                     Console.WriteLine(err);
                     ProgramWriters.LogfileProblemreportWrite(err);
-
+                    
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     {
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
+                        Console.ReadKey(true); 	// wait for a key input
                     }
 
                     Environment.Exit(0);

@@ -331,6 +331,15 @@ namespace GRAL_2001
                     Directory.SetCurrentDirectory(args[0]);
                     _off = 1;
                 }
+                else if (!args[0].Contains("LOGLEVEL"))
+                {
+                    string err = "! The command line argument is not a valid directory: " + args[0];
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    err = "! GRAL starts in the application folder !";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                }
                 if (args.Length > _off) // additional arguments
                 {
                     if (args[0 + _off].ToUpper().Contains("LOGLEVEL01") == true) // Loglevel 1
@@ -641,16 +650,37 @@ namespace GRAL_2001
         public static string ReadWindfeldTXT()
         {
             string path = string.Empty;
-            if (File.Exists("windfeld.txt") == true)
+            if (File.Exists("windfeld.txt"))
             {
-                using (StreamReader sr = new StreamReader("windfeld.txt"))
+                try
                 {
-                    if (Program.RunOnUnix)
+                    using (StreamReader sr = new StreamReader("windfeld.txt"))
                     {
-                        sr.ReadLine(); // read 1st line at unix
+                        path = sr.ReadLine();  // read path
+                        if (Program.RunOnUnix) // it is possible to use a 2nd line for compatibility to Windows
+                        {
+                            if (!Directory.Exists(path))
+                            {
+                                path = sr.ReadLine();  // read path
+                            }
+                        }       
                     }
+                }
+                catch 
+                {
+                    path = string.Empty;
+                }
+                if (string.IsNullOrEmpty(path)) // if ReadLine() was at the end of the stream
+                {
+                    path = string.Empty;
+                }
 
-                    path = sr.ReadLine();
+                if (!Directory.Exists(path))
+                {
+                    string err = "Path from windfeld.txt not available: " + path;
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    path = string.Empty;
                 }
             }
             return path;

@@ -49,27 +49,43 @@ namespace GRAL_2001
         public string ReadGFFFilePath()
         {
             string gff_filepath = string.Empty;
-            try
+
+            if (File.Exists("GFF_FilePath.txt"))
             {
-                if (File.Exists("GFF_FilePath.txt"))
+                try
                 {
                     using (StreamReader reader = new StreamReader("GFF_FilePath.txt"))
                     {
-                        if (Program.RunOnUnix)
+                        gff_filepath = reader.ReadLine(); // read path
+                        if (Program.RunOnUnix)            // it is possible to use a 2nd line for compatibility to Windows
                         {
-                            reader.ReadLine(); //19.05.25 Ku: read 1st line -> reserved for windows, 2nd line for LINUX
-                        }
-
-                        string filepath = reader.ReadLine();
-                        if (Directory.Exists(filepath))
-                        {
-                            gff_filepath = filepath;
+                            if (!Directory.Exists(gff_filepath))
+                            {
+                                gff_filepath = reader.ReadLine();  // read path
+                            }
                         }
                     }
                 }
+                catch
+                {
+                    gff_filepath = string.Empty;
+                }
+
+                if (string.IsNullOrEmpty(gff_filepath)) // if ReadLine() was at the end of the stream
+                {
+                    gff_filepath = string.Empty;
+                }
+                
+                if (!Directory.Exists(gff_filepath))
+                {
+                    string err = "Path from GFF_FilePath.txt not available: " + gff_filepath;
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileGralCoreWrite(err);
+                    gff_filepath = string.Empty;
+                }
             }
-            catch { }
             return gff_filepath;
         }
+
     }
 }
