@@ -8,13 +8,11 @@
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
-    <Thread_UseAllCpuGroups>true</Thread_UseAllCpuGroups>
-    <GCCpuGroup>true</GCCpuGroup> 
     <Optimize>true</Optimize>
     <GCLargePages>true</GCLargePages>
     <TieredCompilation>true</TieredCompilation>
-   </PropertyGroup>
+    <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
+  </PropertyGroup>
 
 </Project>
