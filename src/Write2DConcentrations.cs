@@ -475,7 +475,7 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        sw.Write(Program.Depo_conz[i][j][IQ]);
+                        sw.Write((float)Program.Depo_conz[i][j][IQ]);
                     }
                 }
 
