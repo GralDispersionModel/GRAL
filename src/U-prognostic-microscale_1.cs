@@ -13,6 +13,7 @@
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace GRAL_2001
 {
@@ -44,6 +45,7 @@ namespace GRAL_2001
         /// <param name="UG">Geostrophic wind</param>
         /// <param name="building_Z0">Roughness of buildings</param>
         /// <param name="relax">Relaxation factor</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, Single UG, float relax)
         {
             float DXK = Program.DXK; float DYK = Program.DYK;

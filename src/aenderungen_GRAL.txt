@@ -660,3 +660,6 @@ Erlaube alternativ, Gebäudehöhen über ein ESRI-ASCII File einzulesen. Name: B
 
 16.6.2020 (Kuntner)
 Erlaube neben "\t" auch "," als Trennzeichen für Austrittstemp. und Austrittsgeschw. Files
+
+14.11.2020 (Kuntner)
+Umstellung auf .NET5

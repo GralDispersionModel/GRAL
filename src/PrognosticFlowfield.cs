@@ -27,7 +27,7 @@ namespace GRAL_2001
         /// <summary>
         ///Start the calculation of microscale prognostic flow fields
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate()
         {
             CultureInfo ic = CultureInfo.InvariantCulture; //19.05.25 Ku: use ic for the file output
