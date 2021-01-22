@@ -1769,7 +1769,7 @@ namespace GRAL_2001
                 int iko = (int)(xsi * ConcGridXRez) + 1;
                 int jko = (int)(eta * ConcGridYRez) + 1;
 
-                if ((iko >= Program.NXL) || (iko < 0) || (jko >= Program.NYL) || (jko < 0))
+                if ((iko > Program.NXL) || (iko < 0) || (jko > Program.NYL) || (jko < 0))
                 {
                     goto REMOVE_PARTICLE;
                 }
