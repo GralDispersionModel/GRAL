@@ -420,8 +420,8 @@ namespace GRAL_2001
             UWIN = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
             VWIN = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
             WWIN = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
-            TKE = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
-            DISS = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
+            //TKE = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
+            //DISS = CreateArray<float[][]>(NX1, () => CreateArray<float[]>(NY1, () => new float[NZ1]));
             HorSlices = new float[NS];
             Z0Gramm = CreateArray<float[]>(NX1, () => new float[NY1]);
             Ustern = CreateArray<float[]>(NX1, () => new float[NY1]);
@@ -504,9 +504,19 @@ namespace GRAL_2001
             //Console.Write(".");
             AHK = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             Console.Write(".");
-            KKART = CreateArray<Int16[]>(NII + 2, () => new Int16[NJJ + 2]);
-            Console.Write(".");
-            ADVDOM = CreateArray<Byte[]>(NII + 2, () => new Byte[NJJ + 2]);
+            //KKART = CreateArray<Int16[]>(NII + 2, () => new Int16[NJJ + 2]);
+            //Console.Write(".");
+            //ADVDOM = CreateArray<Byte[]>(NII + 2, () => new Byte[NJJ + 2]);
+            ADVDOM = new byte[NII + 2][];
+            KKART = new short[NII + 2][];
+            for (int i = 0; i < NII + 2; ++i)
+            {
+                ADVDOM[i] = GC.AllocateArray<byte>(NJJ + 2);
+            }
+            for (int i = 0; i < NII + 2; ++i)
+            {
+                KKART[i] = GC.AllocateArray<short>(NJJ + 2);
+            }         
             Console.Write(".");
             BUI_HEIGHT = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             Console.Write(".");
@@ -557,9 +567,19 @@ namespace GRAL_2001
             //Console.Write(".");
             AHK = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             Console.Write(".");
-            KKART = CreateArray<Int16[]>(NII + 2, () => new Int16[NJJ + 2]);
-            Console.Write(".");
-            ADVDOM = CreateArray<Byte[]>(NII + 2, () => new Byte[NJJ + 2]);
+            //KKART = CreateArray<Int16[]>(NII + 2, () => new Int16[NJJ + 2]);
+            //Console.Write(".");
+            //ADVDOM = CreateArray<Byte[]>(NII + 2, () => new Byte[NJJ + 2]);
+            ADVDOM = new byte[NII + 2][];
+            KKART = new short[NII + 2][];
+            for (int i = 0; i < NII + 2; ++i)
+            {
+                ADVDOM[i] = GC.AllocateArray<byte>(NJJ + 2);
+            }
+            for (int i = 0; i < NII + 2; ++i)
+            {
+                KKART[i] = GC.AllocateArray<short>(NJJ + 2);
+            }
             Console.Write(".");
             BUI_HEIGHT = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             Console.Write(".");
