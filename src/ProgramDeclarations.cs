@@ -13,6 +13,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Globalization;
+
 namespace GRAL_2001
 {
     partial class Program
@@ -23,11 +25,11 @@ namespace GRAL_2001
         ///<summary>
         ///Sets the maximum number of cores to be used in the parallelisation
         /// </summary>
-        public static ParallelOptions pOptions = new ParallelOptions();
+        public static readonly ParallelOptions pOptions = new ParallelOptions();
         ///<summary>
         ///Global decimal separator of the system
         /// </summary>
-        public static string Decsep;
+        public static readonly string Decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
         ///<summary>
         ///Flag to take orography into account - 0: no terrain 1:complex terrain
         ///</summary>
@@ -295,11 +297,11 @@ namespace GRAL_2001
         ///<summary>
         ///Turbulent kinetic energy of GRAMM
         ///</summary>
-        public static float[][][] TKE = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        //public static float[][][] TKE = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
         ///Turbulent dissipation rate of GRAMM
         ///</summary>
-        public static float[][][] DISS = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        //public static float[][][] DISS = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
         ///Heights of the horizontal slices of the GRAL concentration grids
         ///</summary>
@@ -340,10 +342,6 @@ namespace GRAL_2001
         ///Stability class obtained from GRAMM simulations
         ///</summary>
         public static int[,] AKL_GRAMM = new int[1, 1];
-        ///<summary>
-        ///Saves source group for each source, the maximum number of sources is limited by the memory
-        ///</summary>
-        public static List<int> IMQ = new List<int>();
         ///<summary>
         ///Observed vertical profile of u-wind components
         ///</summary>
@@ -479,11 +477,11 @@ namespace GRAL_2001
         ///<summary>
         ///Array used for Vegetation
         ///</summary>
-        public static float[][][] VEG = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        public static float [][][] VEG = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
         ///Array used for Vegetation Coverage
         ///</summary>
-        public static float[][] COV = CreateArray<float[]>(1, () => new float[1]);
+        public static Half[][] COV = CreateArray<Half[]>(1, () => new Half[1]);
         ///<summary>
         ///Steady-state (1) or transient (0) simulation mode
         ///</summary>
@@ -866,11 +864,11 @@ namespace GRAL_2001
         ///<summary>
         ///Extension in x-direction of area sources
         ///</summary>
-        public static double[] AS_dX = new double[1];
+        public static float[] AS_dX = new float[1];
         ///<summary>
         ///Extension in y-direction of area sources
         ///</summary>
-        public static double[] AS_dY = new double[1];
+        public static float[] AS_dY = new float[1];
         ///<summary>
         ///Extension in z-direction of area sources
         ///</summary>
@@ -1194,7 +1192,7 @@ namespace GRAL_2001
         ///<summary>
         /// Wet deposition precipitation data for the timeseries
         ///</summary>
-        public static List<float> WetDepoPrecipLst = new List<float>();
+        public static readonly List<float> WetDepoPrecipLst = new List<float>();
         ///<summary>
         /// Log additional informations at the console
         ///</summary>
@@ -1202,11 +1200,11 @@ namespace GRAL_2001
         ///<summary>
         /// Reflexion counter for Loglevel == 1;
         ///</summary>
-        public static int[] LogReflexions = new int[6];
+        public static readonly int[] LogReflexions = new int[6];
         ///<summary>
         /// Timestep counter for Loglevel == 1;
         ///</summary>
-        public static int[] Log_Timesteps = new int[6];
+        public static readonly int[] Log_Timesteps = new int[6];
         ///<summary>
         /// Write vertical concentration files?		
         ///</summary>
@@ -1214,7 +1212,7 @@ namespace GRAL_2001
         ///<summary>
         /// decay rate for bioaerosols for each source group
         ///</summary>
-        public static double[] DecayRate = new double[102];
+        public static readonly double[] DecayRate = new double[102];
         ///<summary>
         /// Pollutant name
         ///</summary>
@@ -1243,5 +1241,16 @@ namespace GRAL_2001
         /// Write additional ASCii output
         ///</summary>
         public static bool WriteASCiiResults = false;
+        ///<summary>
+        /// Distance of buildings to a source to set a prognostic sub domain in meters: no reduction if value > 10000
+        ///</summary>
+        public static double SubDomainDistance = 1000000;
+        
+        ///<summary>
+        /// Distance of buildings to a source to set a prognostic sub domain in meters: no reduction if value > 10000
+        ///</summary>
+        public static bool GRALOnlineFunctions = true;
+
+
     }
 }
