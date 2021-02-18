@@ -121,5 +121,41 @@ namespace GRAL_2001
                 catch(Exception ex) {Console.WriteLine(ex.Message);}
             }
         }//optional: write building heights as utilized in GRAL
+
+        /// <summary>
+        ///optional: write Sub domain as utilized in GRAL
+        /// </summary>
+        public void WriteSubDomain(string Filename, byte[][] Data, string Format, int Digits, double west, double south)
+        {
+            if ((Math.Abs(Program.IOUTPUT) > 1) && (Program.FlowFieldLevel > 0))
+            {
+                try
+                {
+                    CultureInfo ic = CultureInfo.InvariantCulture;
+                    using (StreamWriter wt = new StreamWriter(Filename))
+                    {
+                        wt.WriteLine("ncols         " + Program.NII.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("nrows         " + Program.NJJ.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("xllcorner     " + west.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("yllcorner     " + south.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("cellsize      " + Program.DXK.ToString(CultureInfo.InvariantCulture));
+                        wt.WriteLine("NODATA_value  " + "-9999");
+
+                        StringBuilder SB = new StringBuilder();
+                        for (int jj = Program.NJJ; jj >= 1; jj--)
+                        {
+                            for (int o = 1; o <= Program.NII; o++)
+                            {
+                                SB.Append(Data[o][jj].ToString(Format, ic));
+                                SB.Append(" ");
+                            }
+                            wt.WriteLine(SB.ToString());
+                            SB.Clear();
+                        }
+                    }
+                }
+                catch(Exception ex) {Console.WriteLine(ex.Message);}
+            }
+        }//optional: write Sub Domain as utilized in GRAL
     }
 }
