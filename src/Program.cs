@@ -11,7 +11,6 @@
 #endregion
 
 using System;
-using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,9 +81,7 @@ namespace GRAL_2001
 
             // write zipped files?
             ResultFileZipped = false;
-            //User defined decimal seperator
-            Decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
-
+            
             int SIMD = CheckSIMD();
             LogLevel = CheckCommandLineArguments(args);
 
@@ -257,10 +254,19 @@ namespace GRAL_2001
             //emission modulation for transient mode
             ReaderClass.ReadEmissionTimeseries();
 
-            //vegetation array
-            VEG = CreateArray<float[][]>(NII + 2, () => CreateArray<float[]>(NJJ + 2, () => new float[NKK + 1]));
-            Program.VEG[0][0][0] = -0.00001f;
-            COV = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
+            //Create Vegetation array only in areas of interest and at point 0/0 -> reduce memory footprint
+            //VEG = CreateArray<float[][]>(NII + 2, () => CreateArray<float[]>(NJJ + 2, () => new float[NKK + 1]));
+            VEG = new float [NII + 2][][];
+            for (int i = 0; i < NII + 2; i++)
+            {
+                VEG[i] = new float [NJJ + 2][];
+                if (i == 0)
+                {
+                    VEG[i][0] = new float[NKK + 1];
+                }
+            }
+            Program.VEG[0][0][0] = -0.001f;
+            COV = CreateArray<Half[]>(NII + 2, () => new Half[NJJ + 2]);
 
             //reading optional files used to define areas where either the tunnel jet stream is destroyed due to traffic
             //on the opposite lanes of a highway or where pollutants are sucked into a tunnel portal
@@ -280,7 +286,7 @@ namespace GRAL_2001
                 AdaptiveRoughnessMax = 0;
             }
 
-            //setting the lateral borders of the domain -> Attention: changes the GRAL borders from absolute to reletive values!
+            //setting the lateral borders of the domain -> Attention: changes the GRAL borders from absolute to relative values!
             InitGralBorders();
 
             //reading point source data
@@ -315,6 +321,8 @@ namespace GRAL_2001
                 Console.WriteLine("Reading file cadastre.dat");
                 ReadAreaSources.Read();
             }
+
+            ReaderClass.RemovePrognosticSubDomainsFarDistanceToSources();
 
             //distribution of all particles over all sources according to their source strengths (the higher the emission rate the larger the number of particles)
             NTEILMAX = ParticleManagement.Calculate();
@@ -565,6 +573,8 @@ namespace GRAL_2001
                         WriteClass.WriteGRALGeometries();
                         //optional: write building heights as utilized in GRAL
                         WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
+                        //optional: write sub Domains as utilized in GRAL
+                        WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
 
                         Console.WriteLine(Info);
                         ProgramWriters.LogfileGralCoreWrite(Info);
