@@ -118,7 +118,7 @@ namespace GRAL_2001
             int JKOOAGRAL = Program.JKOOAGRAL;
 
             Span<int> kko = stackalloc int[Program.NS];
-            double[] ReceptorConcentration = new double[Program.ReceptorNumber + 1];
+            Span<double> ReceptorConcentration = stackalloc double[Program.ReceptorNumber + 1];
 
             int reflexion_flag = 0;
             int ISTATISTIK = Program.IStatistics;
@@ -2090,11 +2090,11 @@ namespace GRAL_2001
             varw = MathF.Sqrt(varw);
             if (Deposition_Type == 2) // Deposition only - PM30 or larger
             {
-                vdep *= (1F + 2F * Program.COV[IndexI][IndexJ]); // up to * 3 for large particles
+                vdep *= (1F + 2F * (float) Program.COV[IndexI][IndexJ]); // up to * 3 for large particles
             }
             else
             {
-                vdep *= (1F + 0.5F * Program.COV[IndexI][IndexJ]); // up to * 1.5 for small particles and gases
+                vdep *= (1F + 0.5F * (float) Program.COV[IndexI][IndexJ]); // up to * 1.5 for small particles and gases
             }
 
             // compute deposition probability according to VDI 3945 for this particle
