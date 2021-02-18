@@ -12,6 +12,7 @@
 
 using System;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace GRAL_2001
 {
@@ -20,6 +21,7 @@ namespace GRAL_2001
         /// <summary>
         ///Solving the pressure equation using the TDMA for diagnostic wind fields
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate()
         {
             float DXK = Program.DXK;
