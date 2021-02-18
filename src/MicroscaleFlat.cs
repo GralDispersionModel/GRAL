@@ -27,7 +27,10 @@ namespace GRAL_2001
             Console.WriteLine("FLOW FIELD COMPUTATION WITHOUT TOPOGRAPHY");
 
             Program.KADVMAX = 1;
-            Program.SubDomainRefPos = new IntPoint(1, 1);
+            
+            // Search the reference point within the prognostic sub domains
+            Program.SubDomainRefPos = MicroscaleTerrain.GetSubDomainPoint(Program.SubDomainRefPos);
+
             int inumm = Program.MetProfileNumb;
 
             //set wind-speed components equal to zero
