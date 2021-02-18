@@ -33,11 +33,6 @@ namespace GRAL_2001
 
             TQ.Add(new SourceData());
 
-            if (Program.IMQ.Count == 0)
-            {
-                Program.IMQ.Add(0);
-            }
-
             Deposition Dep = new Deposition();
 
             StreamReader read = new StreamReader("portals.dat");
@@ -139,24 +134,24 @@ namespace GRAL_2001
             Program.TS_Count = TQ.Count - 1;
 
             // Copy Lists to global arrays
-            Array.Resize(ref Program.TS_X1, counter);
-            Array.Resize(ref Program.TS_Y1, counter);
-            Array.Resize(ref Program.TS_X2, counter);
-            Array.Resize(ref Program.TS_Y2, counter);
-            Array.Resize(ref Program.TS_Z1, counter);
-            Array.Resize(ref Program.TS_Z2, counter);
-            Array.Resize(ref Program.TS_ER, counter);
-            Array.Resize(ref Program.TS_SG, counter);
-            Array.Resize(ref Program.TS_PartNumb, counter);
-            Array.Resize(ref Program.TS_Mode, counter);
-            Array.Resize(ref Program.TS_V_Dep, counter);
-            Array.Resize(ref Program.TS_V_sed, counter);
-            Array.Resize(ref Program.TS_ER_Dep, counter);
-            Array.Resize(ref Program.TS_Absolute_Height, counter);
-            Array.Resize(ref Program.TS_T, counter);
-            Array.Resize(ref Program.TS_V, counter);
-            Array.Resize(ref Program.TS_TimeSeriesTemperature, counter);
-            Array.Resize(ref Program.TS_TimeSeriesVelocity, counter);
+            Program.TS_ER = GC.AllocateUninitializedArray<double>(counter);
+            Program.TS_X1 = GC.AllocateUninitializedArray<double>(counter);
+            Program.TS_Y1 = GC.AllocateUninitializedArray<double>(counter);
+            Program.TS_Z1 = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_X2 = GC.AllocateUninitializedArray<double>(counter);
+            Program.TS_Y2 = GC.AllocateUninitializedArray<double>(counter);
+            Program.TS_Z2 = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.TS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
+            Program.TS_Mode = GC.AllocateUninitializedArray<byte>(counter);
+            Program.TS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_V_sed = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_ER_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_Absolute_Height = GC.AllocateUninitializedArray<bool>(counter);
+            Program.TS_T = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_V = GC.AllocateUninitializedArray<float>(counter);
+            Program.TS_TimeSeriesTemperature = GC.AllocateUninitializedArray<int>(counter);
+            Program.TS_TimeSeriesVelocity = GC.AllocateUninitializedArray<int>(counter);
 
             for (int i = 1; i < TQ.Count; i++)
             {
@@ -232,7 +227,8 @@ namespace GRAL_2001
             Program.TS_cosalpha = new float[Program.TS_Count + 1];
             Program.TS_sinalpha = new float[Program.TS_Count + 1];
 
-            TQ = null;
+            TQ.Clear();
+            TQ.TrimExcess();
             Dep = null;
         }
     }
