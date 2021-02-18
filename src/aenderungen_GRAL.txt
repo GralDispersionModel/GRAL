@@ -624,7 +624,7 @@ aktuell das Partikel entfernt. Neu wird die nächste GRAMM Zelle im Grid weiter 
 Teile die Leseroutine Input_pgt auf, verwende MathF, verringere Array-Zugriffe und verwende Tuples 
 
 29.4.2020 (Kuntner)
-Behebe Fehler bei der Berechnung des GRAMM Indes in der Flow Field Berechnung -> bisher wurde immer die Rauigkeit am Index [1][1] verwendet, auch wenn Gelände mit variabler Rauigkeit vorhanden war!
+Behebe Fehler bei der Berechnung des GRAMM Index in der Flow Field Berechnung -> bisher wurde immer die Rauigkeit am Index [1][1] verwendet, auch wenn Gelände mit variabler Rauigkeit vorhanden war!
 Estelle Routine InitAdaptiveRoughness.cs zur Initialisierung der GRAL Rauigkeitslängen
 Integriere meine Filterroutine (adaptiver 2 dimensionaler Low-Pass Filter)
 Baue GRAL Rauigkeitslänge in Flow Field Berechnung, Zeitschleifen und input_pgt.cs ein
@@ -663,3 +663,16 @@ Erlaube neben "\t" auch "," als Trennzeichen für Austrittstemp. und Austrittsge
 
 14.11.2020 (Kuntner)
 Umstellung auf .NET5
+
+01.02.2020 (Kuntner)
+Reduktion des Speicherbedarfs durch:
+   Anlegen der Arrays für das staggered grid nur wo benötigt
+   Anlegen der Arrays für Vegetation nur wo benötigt
+   Vegetations-Arrays mit max. 150 m prognostischem Umkreis
+   Reduktion der prognostischen Sub Domains abhängig von der Entfernung zur Quelle (optional)
+
+
+Ausgabe eines Files mit dem die Lage der prognostischen Sub-Domains angezeigt wird
+Verwendung der Top Row und Top Column für die Konzentrationsdateien
+Schnellere Array-Erzeugung für Quellen
+Verwende List<>.IndexOf für Quellgruppen statt linearer Suche
