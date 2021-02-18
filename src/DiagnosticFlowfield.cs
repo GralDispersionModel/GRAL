@@ -40,10 +40,7 @@ namespace GRAL_2001
             {
                 for (int j = 1; j <= Program.NJJ; j++)
                 {
-                    for (int k = 1; k <= Program.NKK + 1; k++)
-                    {
-                        Program.DPM[i][j][k] = 0;
-                    }
+                    Array.Clear(Program.DPM[i][j], 0, Program.DPM[i][j].Length);
                 }
             });
 
@@ -391,7 +388,10 @@ namespace GRAL_2001
             }
 
             //online output of simulated GRAL flow fields
-            GRALONLINE.Output(Program.NII, Program.NJJ, Program.NKK);
+            if (Program.GRALOnlineFunctions)
+            {
+                GRALONLINE.Output(Program.NII, Program.NJJ, Program.NKK);
+            }
 
             //free working memory
             //Program.DIV = Program.CreateArray<float[][]>(1, () => Program.CreateArray<float[]>(1, () => new float[1]));
