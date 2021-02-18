@@ -62,7 +62,7 @@ namespace GRAL_2001
                 Span<float> BIM_A = stackalloc float[SIMD];
                 Span<float> CIM_A = stackalloc float[SIMD];
                 Span<float> DIMW_A = stackalloc float[SIMD];
-
+                
                 Vector<float> DUDZE, DUDZW, DVDZN, DVDZS, DWDZT, DWDZB;
                 Vector<float> DE, DW, DS, DN, DT, DB;
                 Vector<float> FE, FW, FS, FN, FT, FB;
@@ -137,8 +137,9 @@ namespace GRAL_2001
                         bool ADVDOM_IM = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
                         bool ADVDOM_IP = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
 
-                        Single[] VEG_L = Program.VEG[i][j];
-                        Single COV_L = Program.COV[i][j];
+                        float [] VEG_L = Program.VEG[i][j];
+                        bool VegetationExists = VEG_L != null;
+                        float COV_L = (float) Program.COV[i][j];
 
                         HOKART_KKART = new Vector<float>(Program.HOKART[KKART_LL]);
 
@@ -153,7 +154,7 @@ namespace GRAL_2001
                         int KEND = Vert_Index_LL + 1;
                         bool end = false; // flag for the last loop 
                         int k_real = 0;
-
+                        
                         for (int k = KSTART; k < KEND; k += SIMD)
                         {
                             // to compute the top levels - reduce k, remember k_real and set end to true
@@ -347,21 +348,31 @@ namespace GRAL_2001
                             AIM = BIM + CIM + AW1 + AS1 + AE1 + AN1 + AP0_V;
 
                             //SOURCE TERMS
-                            intern2 = Vect_05 * (VKSjm_LV + VKS_V);
-                            intern = Vect_05 * (UKSim_LV + UKS_V);
-                            windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
-
                             DDPZ = new Vector<float>(DPMNEW_L, kM1) - new Vector<float>(DPMNEW_L, k);
-
                             WK_LV = new Vector<float>(WK_L, k);
 
-                            DIMW = AW1 * new Vector<float>(WKim_L, k) +
+                            if (VegetationExists)
+                            {
+                                intern2 = Vect_05 * (VKSjm_LV + VKS_V);
+                                intern = Vect_05 * (UKSim_LV + UKS_V);
+                                windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
+                                DIMW = AW1 * new Vector<float>(WKim_L, k) +
+                                       AS1 * new Vector<float>(WKjm_L, k) +
+                                       AE1 * new Vector<float>(WKip_L, k) +
+                                       AN1 * new Vector<float>(WKjp_L, k) +
+                                       AP0_V * Vect_05 * (new Vector<float>(WKS_L, kM1) + WKS_V) +
+                                       DDPZ * AREAxy_V -
+                                       new Vector<float>(VEG_L, kM1) * WK_LV * windhilf * AREAxy_V * DZK_V;
+                            }
+                            else
+                            {
+                                DIMW = AW1 * new Vector<float>(WKim_L, k) +
                                    AS1 * new Vector<float>(WKjm_L, k) +
                                    AE1 * new Vector<float>(WKip_L, k) +
                                    AN1 * new Vector<float>(WKjp_L, k) +
                                    AP0_V * Vect_05 * (new Vector<float>(WKS_L, kM1) + WKS_V) +
-                                   DDPZ * AREAxy_V -
-                                   new Vector<float>(VEG_L, kM1) * WK_LV * windhilf * AREAxy_V * DZK_V;
+                                   DDPZ * AREAxy_V;
+                            }
 
                             //additional terms of the eddy-viscosity model
                             if (k > KKART_LL_P1)

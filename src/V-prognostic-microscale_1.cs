@@ -64,7 +64,7 @@ namespace GRAL_2001
                 Span<float> BIM_A = stackalloc float[SIMD];
                 Span<float> CIM_A = stackalloc float[SIMD];
                 Span<float> DIMV_A = stackalloc float[SIMD];
-
+                
                 Vector<float> DVDYN, DVDYS, DUDYE, DUDYW, DWDYT, DWDYB;
                 Vector<float> DE, DW, DS, DN, DT, DB;
                 Vector<float> FE, FW, FS, FN, FT, FB;
@@ -142,8 +142,9 @@ namespace GRAL_2001
                         bool ADVDOM_IP = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
 
                         float CUTK_L = Program.CUTK[i][j];
-                        Single[] VEG_L = Program.VEG[i][j];
-                        Single COV_L = Program.COV[i][j];
+                        float [] VEG_L = Program.VEG[i][j];
+                        bool VegetationExists = VEG_L != null;
+                        float COV_L = (float) Program.COV[i][j];
 
                         float Z0 = Program.Z0;
                         if (Program.AdaptiveRoughnessMax < 0.01)
@@ -180,7 +181,7 @@ namespace GRAL_2001
                         int KEND = Vert_Index_LL + 1;
                         bool end = false; // flag for the last loop 
                         int k_real = 0;
-
+                        
                         for (int k = KSTART; k < KEND; k += SIMD)
                         {
                             // to compute the top levels - reduce k, remember k_real and set end to true
@@ -378,24 +379,32 @@ namespace GRAL_2001
                             AIM = BIM + CIM + AW1 + AS1 + AE1 + AN1 + AP0_V;
 
                             //SOURCE TERMS
-                            intern2 = Vect_05 * (VKSim_LV + VKS_V);
-                            intern = Vect_05 * (UKSim_LV + UKS_V);
-
-                            windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
-
                             DDPY = new Vector<float>(DPMNEWjm_L, k) - new Vector<float>(DPMNEW_L, k);
-
                             VKjp_LV = new Vector<float>(VKjp_L, k);
                             VKjm_LV = new Vector<float>(VKjm_L, k);
 
-                            DIMV = AW1 * new Vector<float>(VKim_L, k) +
-                                   AS1 * VKjm_LV +
-                                   AE1 * new Vector<float>(VKip_L, k) +
-                                   AN1 * VKjp_LV +
-                                   AP0_V * Vect_05 * (VKSjm_LV + VKS_V) + DDPY * DXKDZK +
-                                   (Program.CorolisParam * (VG_V - VK_LV) -
-                                   new Vector<float>(VEG_L, kM1) * VK_LV * windhilf) * AREAxy_V * DZK_V;
-
+                            if (VegetationExists)
+                            {
+                                intern2 = Vect_05 * (VKSim_LV + VKS_V);
+                                intern = Vect_05 * (UKSim_LV + UKS_V);
+                                windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
+                                DIMV = AW1 * new Vector<float>(VKim_L, k) +
+                                       AS1 * VKjm_LV +
+                                       AE1 * new Vector<float>(VKip_L, k) +
+                                       AN1 * VKjp_LV +
+                                       AP0_V * Vect_05 * (VKSjm_LV + VKS_V) + DDPY * DXKDZK +
+                                       (Program.CorolisParam * (VG_V - VK_LV) -
+                                       new Vector<float>(VEG_L, kM1) * VK_LV * windhilf) * AREAxy_V * DZK_V;
+                            }
+                            else
+                            {
+                                DIMV = AW1 * new Vector<float>(VKim_L, k) +
+                                       AS1 * VKjm_LV +
+                                       AE1 * new Vector<float>(VKip_L, k) +
+                                       AN1 * VKjp_LV +
+                                       AP0_V * Vect_05 * (VKSjm_LV + VKS_V) + DDPY * DXKDZK +
+                                       Program.CorolisParam * (VG_V - VK_LV) * AREAxy_V * DZK_V;
+                            }
                             //BOUNDARY CONDITION AT SURFACES (OBSTACLES AND TERRAIN)
                             if ((k <= KKART_LL_P1) && ((k + SIMD) > KKART_LL_P1))
                             {
