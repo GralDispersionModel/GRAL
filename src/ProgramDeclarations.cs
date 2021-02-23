@@ -481,7 +481,7 @@ namespace GRAL_2001
         ///<summary>
         ///Array used for Vegetation Coverage
         ///</summary>
-        public static Half[][] COV = CreateArray<Half[]>(1, () => new Half[1]);
+        public static float[][] COV = CreateArray<float[]>(1, () => new float[1]);
         ///<summary>
         ///Steady-state (1) or transient (0) simulation mode
         ///</summary>

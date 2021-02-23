@@ -266,7 +266,7 @@ namespace GRAL_2001
                 }
             }
             Program.VEG[0][0][0] = -0.001f;
-            COV = CreateArray<Half[]>(NII + 2, () => new Half[NJJ + 2]);
+            COV = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
 
             //reading optional files used to define areas where either the tunnel jet stream is destroyed due to traffic
             //on the opposite lanes of a highway or where pollutants are sucked into a tunnel portal

@@ -115,7 +115,7 @@ namespace GRAL_2001
                                         }
                                     }
                                     //coverage
-                                    Program.COV[IXCUT][IYCUT] = (Half) (COV);
+                                    Program.COV[IXCUT][IYCUT] = (float) COV;
                                 }
                             }
                         }
