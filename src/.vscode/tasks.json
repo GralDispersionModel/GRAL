@@ -4,9 +4,19 @@
     "args": [],
     "tasks": [
         {
-            "label": "build",
+            "label": "build release",
             "type": "shell",
             "command": "dotnet build --configuration Release",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build debug",
+            "type": "shell",
+            "command": "dotnet build --configuration Debug",
             "group": {
                 "kind": "build",
                 "isDefault": true

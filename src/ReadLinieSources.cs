@@ -30,11 +30,6 @@ namespace GRAL_2001
             int countrealsources = 0;
             double[] emission_sourcegroup = new double[101];
 
-            if (Program.IMQ.Count == 0)
-            {
-                Program.IMQ.Add(0);
-            }
-
             Deposition Dep = new Deposition();
 
             StreamReader read = new StreamReader("line.dat");
@@ -138,22 +133,22 @@ namespace GRAL_2001
             int counter = LQ.Count + 1;
             Program.LS_Count = LQ.Count - 1;
             // Copy Lists to global arrays
-            Array.Resize(ref Program.LS_ER, counter);
-            Array.Resize(ref Program.LS_X1, counter);
-            Array.Resize(ref Program.LS_Y1, counter);
-            Array.Resize(ref Program.LS_Z1, counter);
-            Array.Resize(ref Program.LS_X2, counter);
-            Array.Resize(ref Program.LS_Y2, counter);
-            Array.Resize(ref Program.LS_Z2, counter);
-            Array.Resize(ref Program.LS_Width, counter);
-            Array.Resize(ref Program.LS_Laerm, counter);
-            Array.Resize(ref Program.LS_SG, counter);
-            Array.Resize(ref Program.LS_PartNumb, counter);
-            Array.Resize(ref Program.LS_Mode, counter);
-            Array.Resize(ref Program.LS_V_Dep, counter);
-            Array.Resize(ref Program.LS_V_sed, counter);
-            Array.Resize(ref Program.LS_ER_Dep, counter);
-            Array.Resize(ref Program.LS_Absolute_Height, counter);
+            Program.LS_ER = GC.AllocateUninitializedArray<double>(counter);
+            Program.LS_X1 = GC.AllocateUninitializedArray<double>(counter);
+            Program.LS_Y1 = GC.AllocateUninitializedArray<double>(counter);
+            Program.LS_Z1 = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_X2 = GC.AllocateUninitializedArray<double>(counter);
+            Program.LS_Y2 = GC.AllocateUninitializedArray<double>(counter);
+            Program.LS_Z2 = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_Width = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_Laerm = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.LS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
+            Program.LS_Mode = GC.AllocateUninitializedArray<byte>(counter);
+            Program.LS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_V_sed = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_ER_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.LS_Absolute_Height = GC.AllocateUninitializedArray<bool>(counter);
 
             for (int i = 1; i < LQ.Count; i++)
             {
@@ -221,8 +216,8 @@ namespace GRAL_2001
                 ProgramWriters.LogfileGralCoreWrite(info);
             }
             Console.WriteLine(" )");
-
-            LQ = null;
+            LQ.Clear();
+            LQ.TrimExcess();
             Dep = null;
         }
     }

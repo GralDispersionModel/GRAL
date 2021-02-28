@@ -582,18 +582,8 @@ namespace GRAL_2001
                 {
                     if (Program.ParticleMode[nteil] < 2) // no deposition weighting if depo only
                     {
-                        int SG = Program.ParticleSG[nteil]; // SG of particle
-                        int SG_index = 0;
-                        //find the corresponding index to the source group
-                        for (int i = 0; i < Program.SourceGroups.Count; i++)
-                        {
-                            if (Program.SourceGroups[i] == SG)
-                            {
-                                SG_index = i;
-                                break;
-                            }
-                        }
-
+                        int SG = Program.ParticleSG[nteil]; // real SG number of particle
+                        int SG_index = Program.SourceGroups.IndexOf(Program.ParticleSG[nteil]); // internal source group number 
                         mode[SG_index] = Math.Max(mode[SG_index], Program.ParticleMode[nteil]); // set average mode to 1 if 1 particle has a deposition
                         vdep[SG_index] += Program.ParticleVdep[nteil];
                         vsed[SG_index] += Program.ParticleVsed[nteil];

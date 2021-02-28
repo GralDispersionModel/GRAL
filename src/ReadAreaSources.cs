@@ -32,11 +32,6 @@ namespace GRAL_2001
 
             AQ.Add(new SourceData());
 
-            if (Program.IMQ.Count == 0)
-            {
-                Program.IMQ.Add(0);
-            }
-
             Deposition Dep = new Deposition();
 
             StreamReader read = new StreamReader("cadastre.dat");
@@ -124,20 +119,20 @@ namespace GRAL_2001
             int counter = AQ.Count + 1;
             Program.AS_Count = AQ.Count - 1;
             // Copy Lists to global arrays
-            Array.Resize(ref Program.AS_X, counter);
-            Array.Resize(ref Program.AS_Y, counter);
-            Array.Resize(ref Program.AS_Z, counter);
-            Array.Resize(ref Program.AS_dX, counter);
-            Array.Resize(ref Program.AS_dY, counter);
-            Array.Resize(ref Program.AS_dZ, counter);
-            Array.Resize(ref Program.AS_ER, counter);
-            Array.Resize(ref Program.AS_SG, counter);
-            Array.Resize(ref Program.AS_PartNumb, counter);
-            Array.Resize(ref Program.AS_Mode, counter);
-            Array.Resize(ref Program.AS_V_Dep, counter);
-            Array.Resize(ref Program.AS_V_sed, counter);
-            Array.Resize(ref Program.AS_ER_Dep, counter);
-            Array.Resize(ref Program.AS_Absolute_Height, counter);
+            Program.AS_ER = GC.AllocateUninitializedArray<double>(counter);
+            Program.AS_X = GC.AllocateUninitializedArray<double>(counter);
+            Program.AS_Y = GC.AllocateUninitializedArray<double>(counter);
+            Program.AS_Z = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_dX = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_dY = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_dZ = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.AS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
+            Program.AS_Mode = GC.AllocateUninitializedArray<byte>(counter);
+            Program.AS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_V_sed = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_ER_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.AS_Absolute_Height = GC.AllocateUninitializedArray<bool>(counter);
 
             for (int i = 1; i < AQ.Count; i++)
             {
@@ -170,8 +165,8 @@ namespace GRAL_2001
                 }
 
                 Program.AS_Z[i] = (float)Math.Abs(AQ[i].Z1);
-                Program.AS_dX[i] = AQ[i].X2;
-                Program.AS_dY[i] = AQ[i].Y2;
+                Program.AS_dX[i] = (float) AQ[i].X2;
+                Program.AS_dY[i] = (float) AQ[i].Y2;
                 Program.AS_dZ[i] = AQ[i].Z2;
                 Program.AS_ER[i] = AQ[i].ER;
                 Program.AS_SG[i] = (byte)AQ[i].SG;
@@ -204,6 +199,8 @@ namespace GRAL_2001
             }
             Console.WriteLine(" )");
 
+            AQ.Clear();
+            AQ.TrimExcess();
         }
     }
 }

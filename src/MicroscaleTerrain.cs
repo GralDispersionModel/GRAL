@@ -51,24 +51,7 @@ namespace GRAL_2001
             }
 
             // Search the reference point within the prognostic sub domains
-            if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0)
-            {
-                MicroscaleTerrainSearchRefPoint mtsp = new MicroscaleTerrainSearchRefPoint();
-                Program.SubDomainRefPos = mtsp.SearchReferencePoint(Program.ADVDOM);
-                //No prognostic sub array - warning message to the user
-                if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0)
-                {
-                    Program.SubDomainRefPos = new IntPoint(1, 1);
-                    string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-                    Console.WriteLine("Press a key to continue");
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Console.ReadKey(true);
-                    }
-                }
-            }
+            Program.SubDomainRefPos = GetSubDomainPoint(Program.SubDomainRefPos);
 
             //optional: orographical data as used in the GRAMM model is used
             if (File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 999999) // No GRAL topography or GRAL topography = corrupt
@@ -123,25 +106,25 @@ namespace GRAL_2001
                             {
                                 int ik_p = Math.Min(ik + 1, Program.NK);
 
-                                double xdist = DDX1 - xwert;
-                                double ydist = DDY1 - ywert;
+                                float xdist = DDX1 - xwert;
+                                float ydist = DDY1 - ywert;
 
-                                float r1 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F)));
-                                float r2 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F)));
-                                float r3 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F)));
-                                float r4 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F)));
-                                float r5 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r6 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r7 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r8 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r9 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F)));
-                                float r10 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F)));
-                                float r11 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r12 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r13 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r14 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r15 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F)));
-                                float r16 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F)));
+                                float r1 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F));
+                                float r2 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F));
+                                float r3 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F));
+                                float r4 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F));
+                                float r5 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r6 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r7 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r8 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r9 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F));
+                                float r10 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F));
+                                float r11 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r12 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r13 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r14 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r15 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F));
+                                float r16 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F));
 
                                 float gew = r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10 + r11 + r12 + r13 + r14 + r15 + r16;
 
@@ -386,25 +369,25 @@ namespace GRAL_2001
                             {
                                 int ik_p = Math.Min(ik + 1, Program.NK);
 
-                                double xdist = DDX1 - xwert;
-                                double ydist = DDY1 - ywert;
+                                float xdist = DDX1 - xwert;
+                                float ydist = DDY1 - ywert;
 
-                                float r1 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F)));
-                                float r2 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F)));
-                                float r3 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F)));
-                                float r4 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F)));
-                                float r5 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r6 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r7 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r8 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r9 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F)));
-                                float r10 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F)));
-                                float r11 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r12 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r13 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r14 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r15 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F)));
-                                float r16 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F)));
+                                float r1 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F));
+                                float r2 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F));
+                                float r3 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F));
+                                float r4 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F));
+                                float r5 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r6 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r7 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r8 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r9 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F));
+                                float r10 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F));
+                                float r11 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r12 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r13 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r14 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r15 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F));
+                                float r16 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F));
 
                                 float gew = r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10 + r11 + r12 + r13 + r14 + r15 + r16;
 
@@ -931,5 +914,31 @@ namespace GRAL_2001
                 }
             });
         }
+
+        public static IntPoint GetSubDomainPoint(IntPoint Pt)
+        {
+            // Search the reference point within the prognostic sub domains
+            if (Pt.X == 0 && Pt.Y == 0)
+            {
+                MicroscaleTerrainSearchRefPoint mtsp = new MicroscaleTerrainSearchRefPoint();
+                Pt = mtsp.SearchReferencePoint(Program.ADVDOM);
+                //No prognostic sub array - warning message to the user
+                if (Pt.X == 0 && Pt.Y == 0)
+                {
+                    Pt = new IntPoint(1, 1);
+                    string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileProblemreportWrite(err);
+                    Console.WriteLine("Press a key to exit");
+                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                    {
+                        Console.ReadKey(true);
+                    }
+                    Environment.Exit(0);
+                }
+            }
+            return Pt;
+        }
+
     }
 }

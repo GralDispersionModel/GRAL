@@ -118,7 +118,7 @@ namespace GRAL_2001
             int JKOOAGRAL = Program.JKOOAGRAL;
 
             Span<int> kko = stackalloc int[Program.NS];
-            double[] ReceptorConcentration = new double[Program.ReceptorNumber + 1];
+            Span<double> ReceptorConcentration = stackalloc double[Program.ReceptorNumber + 1];
 
             int reflexion_flag = 0;
             int ISTATISTIK = Program.IStatistics;

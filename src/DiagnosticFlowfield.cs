@@ -12,6 +12,7 @@
 
 using System;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace GRAL_2001
 {
@@ -84,61 +85,67 @@ namespace GRAL_2001
                 EQUATION TDMA (PATANKAR 1980, S125)*/
 
                 //switch the loop to improve convergence
+                int maxTasks = 1;
                 if (IterationLoops % 4 == 0)
-                {
-                    Parallel.For(2, Program.NJJ, Program.pOptions, j =>
+                { 
+                    maxTasks = Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4);
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    //Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
                         Span<float> QIMP = stackalloc float[Program.NKK + 2];
                         Span<float> APP = stackalloc float[Program.NKK + 1];
                         Span<float> ABP = stackalloc float[Program.NKK + 1];
                         Span<float> ATP = stackalloc float[Program.NKK + 1];
-
-                        for (int i = 2; i < Program.NII; i++)
+                        
+                        for (int j = range.Item1; j < range.Item2; j++)
                         {
-                            float[] DIV_L = Program.DIV[i][j];
-                            float[] DPM_L = Program.DPM[i][j];
-                            float[] DPMim_L = Program.DPM[i - 1][j];
-                            float[] DPMip_L = Program.DPM[i + 1][j];
-                            float[] DPMjm_L = Program.DPM[i][j - 1];
-                            float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART = Program.KKART[i][j];
-
-                            for (int k = Program.NKK - 1; k >= 1; k--)
+                            for (int i = 2; i < Program.NII; i++)
                             {
-                                if (KKART < k)
-                                {
-                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
-                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+                                float[] DIV_L = Program.DIV[i][j];
+                                float[] DPM_L = Program.DPM[i][j];
+                                float[] DPMim_L = Program.DPM[i - 1][j];
+                                float[] DPMip_L = Program.DPM[i + 1][j];
+                                float[] DPMjm_L = Program.DPM[i][j - 1];
+                                float[] DPMjp_L = Program.DPM[i][j + 1];
+                                int KKART = Program.KKART[i][j];
 
-                                    if (k > KKART + 1)
+                                for (int k = Program.NKK - 1; k >= 1; k--)
+                                {
+                                    if (KKART < k)
                                     {
-                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                        APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+
+                                        if (k > KKART + 1)
+                                        {
+                                            ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        }
+                                        else
+                                        {
+                                            ABP[k] = DXK * DYK / Program.DZK[k];
+                                        }
+
+                                        ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
+                                        float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
+                                        PIMP[k] = ABP[k] * TERMP;
+                                        QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
+                                    }
+                                }
+
+                                //Obtain new P-components
+                                DPM_L[0] = 0;
+                                for (int k = 1; k <= Program.NKK - 1; k++)
+                                {
+                                    if (KKART < k)
+                                    {
+                                        DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
                                     }
                                     else
                                     {
-                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                        DPM_L[k] = 0;
                                     }
-
-                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
-                                    float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
-                                    PIMP[k] = ABP[k] * TERMP;
-                                    QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
-                                }
-                            }
-
-                            //Obtain new P-components
-                            DPM_L[0] = 0;
-                            for (int k = 1; k <= Program.NKK - 1; k++)
-                            {
-                                if (KKART < k)
-                                {
-                                    DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                }
-                                else
-                                {
-                                    DPM_L[k] = 0;
                                 }
                             }
                         }
@@ -146,60 +153,66 @@ namespace GRAL_2001
                 }
                 else if (IterationLoops % 4 == 1)
                 {
-                    Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
+                    maxTasks = Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4);
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    //Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
-                        int j = Program.NJJ - j1 + 1;
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
                         Span<float> QIMP = stackalloc float[Program.NKK + 2];
                         Span<float> APP = stackalloc float[Program.NKK + 1];
                         Span<float> ABP = stackalloc float[Program.NKK + 1];
                         Span<float> ATP = stackalloc float[Program.NKK + 1];
-
-                        for (int i = 2; i < Program.NII; i++)
+                        
+                        for (int j1 = range.Item1; j1 < range.Item2; j1++)
                         {
-                            float[] DIV_L = Program.DIV[i][j];
-                            float[] DPM_L = Program.DPM[i][j];
-                            float[] DPMim_L = Program.DPM[i - 1][j];
-                            float[] DPMip_L = Program.DPM[i + 1][j];
-                            float[] DPMjm_L = Program.DPM[i][j - 1];
-                            float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART = Program.KKART[i][j];
+                            int j = Program.NJJ - j1 + 1;
 
-                            for (int k = Program.NKK - 1; k >= 1; k--)
+                            for (int i = 2; i < Program.NII; i++)
                             {
-                                if (KKART < k)
-                                {
-                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
-                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+                                float[] DIV_L = Program.DIV[i][j];
+                                float[] DPM_L = Program.DPM[i][j];
+                                float[] DPMim_L = Program.DPM[i - 1][j];
+                                float[] DPMip_L = Program.DPM[i + 1][j];
+                                float[] DPMjm_L = Program.DPM[i][j - 1];
+                                float[] DPMjp_L = Program.DPM[i][j + 1];
+                                int KKART = Program.KKART[i][j];
 
-                                    if (k > KKART + 1)
+                                for (int k = Program.NKK - 1; k >= 1; k--)
+                                {
+                                    if (KKART < k)
                                     {
-                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                        APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+
+                                        if (k > KKART + 1)
+                                        {
+                                            ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        }
+                                        else
+                                        {
+                                            ABP[k] = DXK * DYK / Program.DZK[k];
+                                        }
+
+                                        ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
+                                        float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
+                                        PIMP[k] = ABP[k] * TERMP;
+                                        QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
+                                    }
+                                }
+
+                                //Obtain new P-components
+                                DPM_L[0] = 0;
+                                for (int k = 1; k <= Program.NKK - 1; k++)
+                                {
+                                    if (KKART < k)
+                                    {
+                                        DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
                                     }
                                     else
                                     {
-                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                        DPM_L[k] = 0;
                                     }
-
-                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
-                                    float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
-                                    PIMP[k] = ABP[k] * TERMP;
-                                    QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
-                                }
-                            }
-
-                            //Obtain new P-components
-                            DPM_L[0] = 0;
-                            for (int k = 1; k <= Program.NKK - 1; k++)
-                            {
-                                if (KKART < k)
-                                {
-                                    DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                }
-                                else
-                                {
-                                    DPM_L[k] = 0;
                                 }
                             }
                         }
@@ -207,60 +220,65 @@ namespace GRAL_2001
                 }
                 else if (IterationLoops % 4 == 2)
                 {
-                    Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
+                    maxTasks = Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4);
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    //Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
-                        int j = Program.NJJ - j1 + 1;
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
                         Span<float> QIMP = stackalloc float[Program.NKK + 2];
                         Span<float> APP = stackalloc float[Program.NKK + 1];
                         Span<float> ABP = stackalloc float[Program.NKK + 1];
                         Span<float> ATP = stackalloc float[Program.NKK + 1];
 
-                        for (int i = Program.NII - 1; i >= 2; i--)
+                        for (int j1 = range.Item1; j1 < range.Item2; j1++)
                         {
-                            float[] DIV_L = Program.DIV[i][j];
-                            float[] DPM_L = Program.DPM[i][j];
-                            float[] DPMim_L = Program.DPM[i - 1][j];
-                            float[] DPMip_L = Program.DPM[i + 1][j];
-                            float[] DPMjm_L = Program.DPM[i][j - 1];
-                            float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART = Program.KKART[i][j];
-
-                            for (int k = Program.NKK - 1; k >= 1; k--)
+                            int j = Program.NJJ - j1 + 1;
+                            for (int i = Program.NII - 1; i >= 2; i--)
                             {
-                                if (KKART < k)
-                                {
-                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
-                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+                                float[] DIV_L = Program.DIV[i][j];
+                                float[] DPM_L = Program.DPM[i][j];
+                                float[] DPMim_L = Program.DPM[i - 1][j];
+                                float[] DPMip_L = Program.DPM[i + 1][j];
+                                float[] DPMjm_L = Program.DPM[i][j - 1];
+                                float[] DPMjp_L = Program.DPM[i][j + 1];
+                                int KKART = Program.KKART[i][j];
 
-                                    if (k > KKART + 1)
+                                for (int k = Program.NKK - 1; k >= 1; k--)
+                                {
+                                    if (KKART < k)
                                     {
-                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                        APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+
+                                        if (k > KKART + 1)
+                                        {
+                                            ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        }
+                                        else
+                                        {
+                                            ABP[k] = DXK * DYK / Program.DZK[k];
+                                        }
+
+                                        ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
+                                        float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
+                                        PIMP[k] = ABP[k] * TERMP;
+                                        QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
+                                    }
+                                }
+
+                                //Obtain new P-components
+                                DPM_L[0] = 0;
+                                for (int k = 1; k <= Program.NKK - 1; k++)
+                                {
+                                    if (KKART < k)
+                                    {
+                                        DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
                                     }
                                     else
                                     {
-                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                        DPM_L[k] = 0;
                                     }
-
-                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
-                                    float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
-                                    PIMP[k] = ABP[k] * TERMP;
-                                    QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
-                                }
-                            }
-
-                            //Obtain new P-components
-                            DPM_L[0] = 0;
-                            for (int k = 1; k <= Program.NKK - 1; k++)
-                            {
-                                if (KKART < k)
-                                {
-                                    DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                }
-                                else
-                                {
-                                    DPM_L[k] = 0;
                                 }
                             }
                         }
@@ -268,59 +286,64 @@ namespace GRAL_2001
                 }
                 else 
                 {
-                    Parallel.For(2, Program.NJJ, Program.pOptions, j =>
+                    maxTasks = Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4);
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    //Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
                         Span<float> QIMP = stackalloc float[Program.NKK + 2];
                         Span<float> APP = stackalloc float[Program.NKK + 1];
                         Span<float> ABP = stackalloc float[Program.NKK + 1];
                         Span<float> ATP = stackalloc float[Program.NKK + 1];
-
-                        for (int i = Program.NII - 1; i >= 2; i--)
+                        
+                        for (int j = range.Item1; j < range.Item2; j++)
                         {
-                            float[] DIV_L = Program.DIV[i][j];
-                            float[] DPM_L = Program.DPM[i][j];
-                            float[] DPMim_L = Program.DPM[i - 1][j];
-                            float[] DPMip_L = Program.DPM[i + 1][j];
-                            float[] DPMjm_L = Program.DPM[i][j - 1];
-                            float[] DPMjp_L = Program.DPM[i][j + 1];
-                            int KKART = Program.KKART[i][j];
-
-                            for (int k = Program.NKK - 1; k >= 1; k--)
+                            for (int i = Program.NII - 1; i >= 2; i--)
                             {
-                                if (KKART < k)
-                                {
-                                    float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                        (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
-                                    APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+                                float[] DIV_L = Program.DIV[i][j];
+                                float[] DPM_L = Program.DPM[i][j];
+                                float[] DPMim_L = Program.DPM[i - 1][j];
+                                float[] DPMip_L = Program.DPM[i + 1][j];
+                                float[] DPMjm_L = Program.DPM[i][j - 1];
+                                float[] DPMjp_L = Program.DPM[i][j + 1];
+                                int KKART = Program.KKART[i][j];
 
-                                    if (k > KKART + 1)
+                                for (int k = Program.NKK - 1; k >= 1; k--)
+                                {
+                                    if (KKART < k)
                                     {
-                                        ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                        APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
+
+                                        if (k > KKART + 1)
+                                        {
+                                            ABP[k] = DXK * DYK / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                        }
+                                        else
+                                        {
+                                            ABP[k] = DXK * DYK / Program.DZK[k];
+                                        }
+
+                                        ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
+                                        float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
+                                        PIMP[k] = ABP[k] * TERMP;
+                                        QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
+                                    }
+                                }
+
+                                //Obtain new P-components
+                                DPM_L[0] = 0;
+                                for (int k = 1; k <= Program.NKK - 1; k++)
+                                {
+                                    if (KKART < k)
+                                    {
+                                        DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
                                     }
                                     else
                                     {
-                                        ABP[k] = DXK * DYK / Program.DZK[k];
+                                        DPM_L[k] = 0;
                                     }
-
-                                    ATP[k] = (DXK * DYK) / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
-                                    float TERMP = 1 / (APP[k] - ATP[k] * PIMP[k + 1]);
-                                    PIMP[k] = ABP[k] * TERMP;
-                                    QIMP[k] = (ATP[k] * QIMP[k + 1] + DIM) * TERMP;
-                                }
-                            }
-
-                            //Obtain new P-components
-                            DPM_L[0] = 0;
-                            for (int k = 1; k <= Program.NKK - 1; k++)
-                            {
-                                if (KKART < k)
-                                {
-                                    DPM_L[k] = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                }
-                                else
-                                {
-                                    DPM_L[k] = 0;
                                 }
                             }
                         }
@@ -328,12 +351,15 @@ namespace GRAL_2001
                 }
 
                 //correcting velocities
-                Parallel.For(2, Program.NII, Program.pOptions, i =>
+                maxTasks = Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4);
+                Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Max(4, (int)(Program.NII / maxTasks))), range =>
+                //Parallel.For(2, Program.NII, Program.pOptions, i =>
+                {
+                    float DDPX = 0;
+                    float DDPY = 0;
+                    float DDPZ = 0;
+                    for (int i = range.Item1; i < range.Item2; i++)
                     {
-                        float DDPX = 0;
-                        float DDPY = 0;
-                        float DDPZ = 0;
-
                         for (int j = 2; j < Program.NJJ; j++)
                         {
                             float[] DPM_L = Program.DPM[i][j];
@@ -385,13 +411,17 @@ namespace GRAL_2001
                                 }
                             }
                         }
-                    });
+                    }
+                });
 
                 IterationLoops++;
             }
 
             //online output of simulated GRAL flow fields
-            GRALONLINE.Output(Program.NII, Program.NJJ, Program.NKK);
+            if (Program.GRALOnlineFunctions)
+            {
+                GRALONLINE.Output(Program.NII, Program.NJJ, Program.NKK);
+            }
 
             //free working memory
             //Program.DIV = Program.CreateArray<float[][]>(1, () => Program.CreateArray<float[]>(1, () => new float[1]));
