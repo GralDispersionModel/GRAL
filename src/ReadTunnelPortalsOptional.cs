@@ -27,7 +27,7 @@ namespace GRAL_2001
             {
                 Program.TUN_ENTR = new byte [Program.NII + 2][];
                 Program.OPP_LANE = new byte [Program.NII + 2][];
-                for (int i = 0; i < Program.NII + 2 + 2; ++i)
+                for (int i = 0; i < Program.NII + 2; ++i)
                 {
                     Program.TUN_ENTR[i] = GC.AllocateArray<byte>(Program.NJJ + 2);
                     Program.OPP_LANE[i] = GC.AllocateArray<byte>(Program.NJJ + 2);
