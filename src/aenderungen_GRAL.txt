@@ -1,4 +1,4 @@
-﻿Aenderungen-Code:
+Aenderungen-Code:
 
 15.5.07
 Sigma-w bei stabiler und neutraler Schichtung konstant = surface layer gesetzt.
@@ -676,3 +676,9 @@ Ausgabe eines Files mit dem die Lage der prognostischen Sub-Domains angezeigt wi
 Verwendung der Top Row und Top Column für die Konzentrationsdateien
 Schnellere Array-Erzeugung für Quellen
 Verwende List<>.IndexOf für Quellgruppen statt linearer Suche
+
+10.3.2020 (Kuntner)
+Einführung von Konstanten zur Verminderung von MagicNumbers und besserer Lesbarkeit
+Diagnostisches Windfeld - Gebäude Boundary Layer außerhalb prognostischer Windfelder setzen
+TunnelFileOptional neuer Bug, weil I-Index zu hoch war
+Ohne Gebäude keine Fehlermeldung anzeigen, dass Gebäude fehlen (neuer Bug)
