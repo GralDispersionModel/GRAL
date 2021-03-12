@@ -29,7 +29,7 @@ namespace GRAL_2001
         /// </summary>
         public void ReadGgeomAsc()
         {
-            Program.Topo = 0;
+            Program.Topo = Consts.TerrainFlat;
             Console.WriteLine();
             Console.WriteLine("Searching for optional file ggeom.asc...");
             if (File.Exists("ggeom.asc") == true)
@@ -234,7 +234,7 @@ namespace GRAL_2001
 
                                 Environment.Exit(0);        // Exit console
                             }
-                            Program.Topo = 1;
+                            Program.Topo = Consts.TerrainAvailable;
                         }
 
                     }
@@ -361,7 +361,7 @@ namespace GRAL_2001
                                 Environment.Exit(0);        // Exit console
                             }
 
-                            Program.Topo = 1;
+                            Program.Topo = Consts.TerrainAvailable;
                         } // Read ggeom.asc ascii format
                     }
                 }

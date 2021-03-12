@@ -32,7 +32,7 @@ namespace GRAL_2001
             int columnIndex = -1;
 
             // transient mode acitvated?
-            if (Program.ISTATIONAER == 0 && TSColList != null)
+            if (Program.ISTATIONAER == Consts.TransientMode && TSColList != null)
             {
                 //search the CompareString within the SourceData
                 string columnName = String.Empty;

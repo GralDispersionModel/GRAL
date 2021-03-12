@@ -176,7 +176,7 @@ namespace GRAL_2001
                                 //horizontal cell indices
                                 double xsi1 = (float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL - Program.GrammWest;
                                 double eta1 = (float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL - Program.GrammSouth;
-                                if (Program.Topo == 1)
+                                if (Program.Topo == Consts.TerrainAvailable)
                                 {
                                     double xsi = xco - Program.IKOOAGRAL;
                                     double eta = yco - Program.JKOOAGRAL;
@@ -197,7 +197,7 @@ namespace GRAL_2001
                                 }
                                 //surface height
                                 float AHint = 0;
-                                if (Program.Topo == 1)
+                                if (Program.Topo == Consts.TerrainAvailable)
                                 {
                                     AHint = Program.AHK[IndexI][IndexJ];
                                 }
@@ -223,7 +223,7 @@ namespace GRAL_2001
                                 (U0int, V0int) = Zeitschleife.IntStandCalculate(1, Z0, Program.HorSlices[II], windge, 0);
 
                                 //vertical wind standard deviation
-                                if (Program.IStatistics == 3)
+                                if (Program.IStatistics == Consts.MeteoSonic)
                                 {
                                     W0int = Program.W0int;
                                 }

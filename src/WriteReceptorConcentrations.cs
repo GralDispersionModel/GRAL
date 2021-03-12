@@ -26,7 +26,7 @@ namespace GRAL_2001
         /// </summary>
         public void WriteReceptorConcentrations()
         {
-            if (Program.ReceptorsAvailable > 0)
+            if (Program.ReceptorsAvailable)
             {
                 try
                 {
@@ -124,7 +124,7 @@ namespace GRAL_2001
         ///<param name="mode">0: new line of concentration, 1: new line with statistical error</param> 
         public void WriteReceptorTimeseries(int mode)
         {
-            if (Program.ReceptorsAvailable > 0)
+            if (Program.ReceptorsAvailable)
             {
                 StringBuilder StB = new StringBuilder();
                 List<string> inhalt = new List<string>();
@@ -200,7 +200,7 @@ namespace GRAL_2001
                                 }
                             }
 
-                            if (Program.FlowFieldLevel > 0)
+                            if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
                             {
                                 try
                                 {
@@ -285,7 +285,7 @@ namespace GRAL_2001
                                 }
                             }
 
-                            if (Program.FlowFieldLevel > 0)
+                            if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
                             {
                                 try
                                 {
@@ -299,7 +299,7 @@ namespace GRAL_2001
                                         StB.Append(Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00"));
                                         StB.Append("\t");
                                         int Ak = 0;
-                                        if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1 && Program.Topo == 1 && Program.AKL_GRAMM[0, 0] != 0)
+                                        if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1 && Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
                                         {
                                             Ak = Program.SC_Gral[I_SC][J_SC];
                                         }
@@ -374,7 +374,7 @@ namespace GRAL_2001
         /// </summary>
         public void WriteMicroscaleFlowfieldReceptors()
         {
-            if ((Program.ReceptorsAvailable > 0) && (Program.FlowFieldLevel > 0))
+            if ((Program.ReceptorsAvailable) && (Program.FlowFieldLevel > Consts.FlowFieldDiag))
             {
                 try
                 {
@@ -446,7 +446,7 @@ namespace GRAL_2001
 
                         for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                         {
-                            if (Program.Topo == 1 && Program.AKL_GRAMM[0, 0] != 0) // 11.9.2017 Kuntner Write Local SCL
+                            if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0) // 11.9.2017 Kuntner Write Local SCL
                             {
                                 int I_SC = (int)((Program.ReceptorX[ianz] - Program.GrammWest) / Program.DDX[1]) + 1;
                                 int J_SC = (int)((Program.ReceptorY[ianz] - Program.GrammSouth) / Program.DDY[1]) + 1;

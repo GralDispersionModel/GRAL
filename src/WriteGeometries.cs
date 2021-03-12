@@ -30,7 +30,7 @@ namespace GRAL_2001
         /// </summary>
         public void WriteGRALGeometries()
         {
-            if ((Program.Topo == 1) || (Program.BuildingsExist == true))
+            if ((Program.Topo == Consts.TerrainAvailable) || (Program.BuildingsExist == true))
             {
                 //write geometry data
                 string GRALgeom = "GRAL_geometries.txt";
@@ -91,7 +91,7 @@ namespace GRAL_2001
         /// </summary>
         public void WriteBuildingHeights(string Filename, float[][] Data, string Format, int Digits, double west, double south)
         {
-            if ((Math.Abs(Program.IOUTPUT) > 1) && (Program.FlowFieldLevel > 0))
+            if ((Math.Abs(Program.IOUTPUT) > 1) && (Program.FlowFieldLevel > Consts.FlowFieldNoBuildings))
             {
                 try
                 {
@@ -127,7 +127,7 @@ namespace GRAL_2001
         /// </summary>
         public void WriteSubDomain(string Filename, byte[][] Data, string Format, int Digits, double west, double south)
         {
-            if ((Math.Abs(Program.IOUTPUT) > 1) && (Program.FlowFieldLevel > 0))
+            if ((Math.Abs(Program.IOUTPUT) > 1) && (Program.FlowFieldLevel > Consts.FlowFieldNoBuildings))
             {
                 try
                 {

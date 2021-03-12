@@ -32,7 +32,7 @@ namespace GRAL_2001
         {
             float U0int = 0;
             float V0int = 0;
-            if ((Program.IStatistics == 0) || (Program.IStatistics == 3)) 
+            if ((Program.IStatistics == Consts.MeteoZR) || (Program.IStatistics == Consts.MeteoSonic)) 
             {
                 if (DiffBuilding <= Program.MeasurementHeight[1])
                 {
@@ -67,7 +67,7 @@ namespace GRAL_2001
             }
 
             //enhancing horizontal diffusion for point sources (Hurley, 2005)
-            if (Program.SourceType[nteil] == 0)
+            if (Program.SourceType[nteil] == Consts.SourceTypePoint)
             {
                 //U0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));
                 //V0int += (float)Math.Sqrt(Program.Pow2(sigmauhurly));

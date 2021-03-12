@@ -35,6 +35,7 @@ namespace GRAL_2001
 
                     //height of these observations above ground in m
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                    Console.WriteLine();
                     Console.Write("Observational heights: ");
                     for (int n = 1; n <= Program.MetProfileNumb; n++)
                     {
@@ -48,7 +49,7 @@ namespace GRAL_2001
                         string text1 = sr.ReadLine();
                         if (text1 == null)
                         {
-                            Program.IEND = 1;
+                            Program.IEND = Consts.CalculationFinished;
                             return;
                         }
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);

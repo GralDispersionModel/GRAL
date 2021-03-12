@@ -29,7 +29,7 @@ namespace GRAL_2001
             int flexstretchindex = 0;
             float stretching = 1;
 
-            if (LogLevel > 0)
+            if (LogLevel > Consts.LogLevelOff)
             {
                 Console.WriteLine("Fact  \t Height");
             }
@@ -37,7 +37,7 @@ namespace GRAL_2001
             {
                 if (StretchFF > 0.99)
                 {
-                    if (LogLevel > 0)
+                    if (LogLevel > Consts.LogLevelOff)
                     {
                         Console.Write(StretchFF.ToString() + "\t");
                     }
@@ -53,7 +53,7 @@ namespace GRAL_2001
                             flexstretchindex++;
                         }
                     }
-                    if (LogLevel > 0)
+                    if (LogLevel > Consts.LogLevelOff)
                     {
                         Console.Write(stretching.ToString() + "\t");
                     }
@@ -61,7 +61,7 @@ namespace GRAL_2001
                 }
 
                 HOKART[i] = HOKART[i - 1] + DZK[i];
-                if (LogLevel > 0)
+                if (LogLevel > Consts.LogLevelOff)
                 {
                     Console.WriteLine(HOKART[i].ToString());
                 }
@@ -84,7 +84,7 @@ namespace GRAL_2001
             int flexstretchindex = 0;
             float stretching = 1;
 
-            if (LogLevel > 0)
+            if (LogLevel > Consts.LogLevelOff)
             {
                 Console.WriteLine("Fact  \t Height");
             }
@@ -92,7 +92,7 @@ namespace GRAL_2001
             {
                 if (StretchFF > 0.99)
                 {
-                    if (LogLevel > 0)
+                    if (LogLevel > Consts.LogLevelOff)
                     {
                         Console.Write(StretchFF.ToString() + "\t");
                     }
@@ -108,7 +108,7 @@ namespace GRAL_2001
                             flexstretchindex++;
                         }
                     }
-                    if (LogLevel > 0)
+                    if (LogLevel > Consts.LogLevelOff)
                     {
                         Console.Write(stretching.ToString() + "\t");
                     }
@@ -116,7 +116,7 @@ namespace GRAL_2001
                 }
 
                 HOKART[i] = HOKART[i - 1] + DZK[i];
-                if (LogLevel > 0)
+                if (LogLevel > Consts.LogLevelOff)
                 {
                     Console.WriteLine(HOKART[i].ToString());
                 }
@@ -279,7 +279,7 @@ namespace GRAL_2001
         /// </summary>
         private static void CalculateBoudaryLayerHeight()
         {
-            if (IStatistics == 0)
+            if (IStatistics == Consts.MeteoZR)
             { }
             else
             {
@@ -592,7 +592,7 @@ namespace GRAL_2001
         /// </summary>
         private static void InitGralBorders()
         {
-            if (Topo == 0)
+            if (Topo == Consts.TerrainFlat)
             {
                 //Set GRAMM bounds to GRAL bounds in flat terrain
                 IKOOAGRAL = (int)XsiMinGral;
@@ -643,22 +643,22 @@ namespace GRAL_2001
         private static void ReadMeteoData()
         {
             //read meteorological input data (wind speed, wind direction, stability class)
-            if (IStatistics == 4) // meteopgt.all 
+            if (IStatistics == Consts.MeteoPgtAll) // meteopgt.all 
             {
                 Input_MeteopgtAll.Read();
             }
             //read meteorological input data (friction velocity, Obukhov length, boundary-layer height, standard deviation of horizontal wind fluctuations, u- and v-wind components)
-            if (IStatistics == 0)
+            if (IStatistics == Consts.MeteoZR)
             {
                 Input_zr.Read();
             }
             //read meteorological input data (friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components)
-            if (IStatistics == 2)
+            if (IStatistics == Consts.MeteoEKI)
             {
                 Input_Eki.Read();
             }
             //read meteorological input data (velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters)
-            if (IStatistics == 3)
+            if (IStatistics == Consts.MeteoSonic)
             {
                 Input_Sonic.Read();
             }
@@ -950,7 +950,7 @@ namespace GRAL_2001
                     }
 
                     // Correction for all receptors
-                    if (Program.ReceptorsAvailable > 0)
+                    if (Program.ReceptorsAvailable)
                     {
                         for (int irec = 1; irec < ReceptorNearbyBuilding.Length; irec++)
                         {
@@ -1004,7 +1004,7 @@ namespace GRAL_2001
                     }
 
                     // Correction for all receptors
-                    if (Program.ReceptorsAvailable > 0)
+                    if (Program.ReceptorsAvailable)
                     {
                         for (int irec = 1; irec < ReceptorNearbyBuilding.Length; irec++)
                         {

@@ -45,7 +45,7 @@ namespace GRAL_2001
                             string text1 = sr.ReadLine();
                             if (text1 == null)
                             {
-                                Program.IEND = 1;
+                                Program.IEND = Consts.CalculationFinished;
                                 return;
                             }
                             text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);

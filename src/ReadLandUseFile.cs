@@ -34,7 +34,7 @@ namespace GRAL_2001
                 Program.LandUseAvailable = true;
             }
 
-            if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
+            if ((Program.Topo == Consts.TerrainAvailable) && (Program.LandUseAvailable == true))
             {
                 //Read surface roughness length from the GRAMM landuse file
                 string[] text = new string[(Program.NI + 2) * (Program.NJ + 2)];

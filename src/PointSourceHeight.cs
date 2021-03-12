@@ -34,7 +34,7 @@ namespace GRAL_2001
                 int IndexId = 1;
                 int IndexJd = 1;
                 float AHint = 0;
-                if (Program.Topo == 1)
+                if (Program.Topo == Consts.TerrainAvailable)
                 {
                     int IndexI = (int)(xsi / Program.DXK) + 1;
                     int IndexJ = (int)(eta / Program.DYK) + 1;

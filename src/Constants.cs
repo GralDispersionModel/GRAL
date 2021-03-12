@@ -105,5 +105,29 @@ namespace GRAL_2001
         /// No more available weather situations
         ///</summary>
         public const int CalculationFinished = 1;
+        ///<summary>
+        /// No deposition
+        ///</summary>
+        public const int DepoOff = 0;
+        ///<summary>
+        /// Deposition and Concentration
+        ///</summary>
+        public const int DepoAndConc = 1;
+        ///<summary>
+        /// Deposition only
+        ///</summary>
+        public const int DepoOnly = 2;
+        ///<summary>
+        /// Logging Off
+        ///</summary>
+        public const int LogLevelOff = 0;
+        ///<summary>
+        /// Logging Reflections and Particles
+        ///</summary>
+        public const int LogLevelRef = 1;
+        ///<summary>
+        /// Logging Reflections, Particles and Particle Numbers
+        ///</summary>
+        public const int LogLevelRefPart = 2;
     }
 }

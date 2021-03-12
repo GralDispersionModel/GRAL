@@ -31,7 +31,7 @@ namespace GRAL_2001
             DTIME = Math.Min(DTIME, 5);
             int MAXHOEH = Program.VertCellsFF;
             int Iterations = 5;
-            if (Program.FlowFieldLevel == 2)
+            if (Program.FlowFieldLevel == Consts.FlowFieldProg)
             {
                 Iterations = 10;
             }

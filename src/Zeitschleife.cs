@@ -120,7 +120,7 @@ namespace GRAL_2001
             Span<int> kko = stackalloc int[Program.NS];
             Span<double> ReceptorConcentration = stackalloc double[Program.ReceptorNumber + 1];
 
-            int reflexion_flag = 0;
+            int reflexion_flag = Consts.ParticleNotReflected;
             int ISTATISTIK = Program.IStatistics;
             int ISTATIONAER = Program.ISTATIONAER;
             int topo = Program.Topo;
@@ -141,7 +141,7 @@ namespace GRAL_2001
 
             //for transient simulations dispersion time needs to be equally distributed from zero to TAUS
             float tgesamt = Program.DispTimeSum;
-            if (ISTATIONAER == 0)
+            if (ISTATIONAER == Consts.TransientMode)
             {
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -188,7 +188,7 @@ namespace GRAL_2001
             float auszeit = 0;
 
             //flag indicating if particle belongs to a tunnel portal 1 = not a portal
-            int tunfak = 1;
+            int tunfak = Consts.ParticleIsNotAPortal;
 
             float DSIGUDX = 0, DSIGUDY = 0, DSIGVDX = 0, DSIGVDY = 0;
             float DUDX = 0, DVDX = 0, DUDY = 0, DVDY = 0;
@@ -219,7 +219,7 @@ namespace GRAL_2001
                 goto REMOVE_PARTICLE;
             }
 
-            if (topo == 1)
+            if (topo == Consts.TerrainAvailable)
             {
                 //with terrain
                 GrammCellX = Math.Clamp((int)(xsi1 * GrammGridXRez) + 1, 1, Program.NX);
@@ -259,7 +259,7 @@ namespace GRAL_2001
             (float U0int, float V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmauHurley);
 
             //remove particles above boundary-layer
-            if ((PartHeightAboveBuilding > blh) && (Program.ISTATIONAER != 0) && (ObL < 0)) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh
+            if ((PartHeightAboveBuilding > blh) && (Program.ISTATIONAER != Consts.TransientMode) && (ObL < 0)) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh
             {
                 goto REMOVE_PARTICLE;
             }
@@ -295,7 +295,7 @@ namespace GRAL_2001
             auszeit = 0;
 
             //initial properties for particles stemming from point sources
-            if (SourceType == 0)
+            if (SourceType == Consts.SourceTypePoint)
             {
                 float ExitVelocity = Program.PS_V[Kenn_NTeil];
                 int velTimeSeriesIndex = Program.PS_TimeSeriesVelocity[Kenn_NTeil];
@@ -355,7 +355,7 @@ namespace GRAL_2001
 
             float TS_ExitTemperature = 0;
             float TS_ExitVelocity = 0;
-            if (SourceType == 1) // Tunnel portals
+            if (SourceType == Consts.SourceTypePortal) // Tunnel portals
             {
                 TS_ExitVelocity = Program.TS_V[Kenn_NTeil];
                 int velTimeSeriesIndex = Program.TS_TimeSeriesVelocity[Kenn_NTeil];
@@ -384,7 +384,7 @@ namespace GRAL_2001
                 tunsin = vtuny / (tunbe + 0.01F);
                 tunqu = 0;
                 tunpa = tunbe;
-                tunfak = 0;
+                tunfak = Consts.ParticleIsAPortal;
                 tunx = tunpa * tuncos - tunqu * tunsin;
                 tuny = tunpa * tunsin + tunqu * tuncos;
 
@@ -530,7 +530,7 @@ namespace GRAL_2001
 
                 if (ObLength >= 0)
                 {
-                    if (ISTATISTIK != 3)
+                    if (ISTATISTIK != Consts.MeteoSonic)
                     {
                         W0int = Ustern * Program.StdDeviationW * 1.25F;
                     }
@@ -545,7 +545,7 @@ namespace GRAL_2001
                 }
                 else
                 {
-                    if (ISTATISTIK == 3)
+                    if (ISTATISTIK == Consts.MeteoSonic)
                     {
                         varw = Program.Pow2(Program.W0int);
                     }
@@ -577,11 +577,11 @@ namespace GRAL_2001
                 }
 
                 //time-step calculation
-                if (tunfak == 1)
+                if (tunfak == Consts.ParticleIsNotAPortal)
                 {
                     idt = 0.1F * varw / eps;
                     //in case plume rise the time step shall not exceed 0.2s in the first 20 seconds
-                    if (SourceType == 0 && auszeit < 20)
+                    if (SourceType == Consts.SourceTypePoint && auszeit < 20)
                     {
                         idt = MathF.Min(0.2F, idt);
                     }
@@ -685,7 +685,7 @@ namespace GRAL_2001
                 }
 
                 //bouyancy effects for plume rise
-                if (SourceType == 0)
+                if (SourceType == Consts.SourceTypePoint)
                 {
                     //plume rise following Hurley, 2005 (TAPM)
                     float epshurly = 1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.1F);
@@ -753,7 +753,7 @@ namespace GRAL_2001
                         DeltaZHurley = (wpmittel + zahl1 * sigmawpHurley) * idt;
                     }
 
-                    if (tunfak == 1)
+                    if (tunfak == Consts.ParticleIsNotAPortal)
                     {
                         zcoord_nteil += (velz + UZint) * idt + DeltaZHurley;
                     }
@@ -762,7 +762,7 @@ namespace GRAL_2001
                 }
                 else
                 {
-                    if (tunfak == 1)
+                    if (tunfak == Consts.ParticleIsNotAPortal)
                     {
                         zcoord_nteil += (velz + UZint) * idt;
                     }
@@ -770,19 +770,19 @@ namespace GRAL_2001
                     velzold = velz;
                 }
 
-                if (Deposition_type > 0 && vsed > 0) // compute sedimentation for this particle
+                if (Deposition_type > Consts.DepoOff && vsed > 0) // compute sedimentation for this particle
                 {
                     zcoord_nteil -= vsed * idt;
                 }
 
                 //control dispersion time of particles
                 auszeit += idt;
-                if (ISTATIONAER == 0)
+                if (ISTATIONAER == Consts.TransientMode)
                 {
                     if (auszeit >= tgesamt)
                     {
                         //particles from point sources with exit velocities are tracked until this velocity becomes almost zero
-                        if (SourceType == 0)
+                        if (SourceType == Consts.SourceTypePoint)
                         {
                             if (wpHurley < 0.01)
                             {
@@ -791,9 +791,9 @@ namespace GRAL_2001
                             }
                         }
                         //particles from portal sources with exit velocities are tracked until this velocity became zero
-                        else if (SourceType == 1)
+                        else if (SourceType == Consts.SourceTypePortal)
                         {
-                            if (tunfak == 1)
+                            if (tunfak == Consts.ParticleIsNotAPortal)
                             {
                                 trans_conz.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
                                 goto REMOVE_PARTICLE;
@@ -826,7 +826,7 @@ namespace GRAL_2001
 
                 //determination of the meandering parameters according to Oettl et al. (2006)
                 float param = 0;
-                if (ISTATISTIK != 3)
+                if (ISTATISTIK != Consts.MeteoSonic)
                 {
                     param = Program.FloatMax(8.5F / Program.Pow2(windge + 1), 0F);
                 }
@@ -847,12 +847,12 @@ namespace GRAL_2001
                 else
                 {
                     termp = 1 / (2 * Program.Pow2(V0int) / Program.C0x / eps);
-                    if (ISTATISTIK != 3)
+                    if (ISTATISTIK != Consts.MeteoSonic)
                     {
                         float Tstern = 200 * param + 350;
                         T3 = Tstern / 6.28F / (Program.Pow2(param) + 1) * param;
                     }
-                    else if (ISTATISTIK == 3)
+                    else if (ISTATISTIK == Consts.MeteoSonic)
                     {
                         T3 = Program.TWindMeander;
                     }
@@ -900,7 +900,7 @@ namespace GRAL_2001
                 }
 
                 //update coordinates
-                if (tunfak == 1)
+                if (tunfak == Consts.ParticleIsNotAPortal)
                 {
                     xcoord_nteil += idt * UXint + corx;
                     ycoord_nteil += idt * UYint + cory;
@@ -909,16 +909,16 @@ namespace GRAL_2001
                 /*
                  *    TUNNEL MODULE
                  */
-                if (tunfak == 0)
+                if (tunfak == Consts.ParticleIsAPortal)
                 {
                     //switch to standard dispersion
                     if ((Math.Abs(UXint - tunx) < 0.01) && (Math.Abs(UYint - tuny) < 0.01))
                     {
-                        tunfak = 1;
+                        tunfak = Consts.ParticleIsNotAPortal;
                     }
                     if (tunpa <= 0)
                     {
-                        tunfak = 1;
+                        tunfak = Consts.ParticleIsNotAPortal;
                     }
 
                     //particles within user-defined opposite lane are treated with standard dispersion (tunnel jet is destroyed there)
@@ -926,7 +926,7 @@ namespace GRAL_2001
                     {
                         if ((Program.OPP_LANE[FFCellX][FFCellY] == 1) && (PartHeightAboveTerrain <= 4))
                         {
-                            tunfak = 1;
+                            tunfak = Consts.ParticleIsNotAPortal;
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -1000,7 +1000,7 @@ namespace GRAL_2001
                     if (tunpa < 0)
                     {
                         tunpa = 0;
-                        tunfak = 1;
+                        tunfak = Consts.ParticleIsNotAPortal;
                     }
 
                     //calculation of jet stream velocities components
@@ -1098,7 +1098,7 @@ namespace GRAL_2001
 
                     int IndexIalt = 1;
                     int IndexJalt = 1;
-                    if (topo == 1)
+                    if (topo == Consts.TerrainAvailable)
                     {
                         //with topography
                         IndexIalt = FFCellX;
@@ -1159,7 +1159,7 @@ namespace GRAL_2001
                      */
 
                     //in case that orography is taken into account and if there is no particle, then, the particle trajectories are following the terrain
-                    if (topo == 1)
+                    if (topo == Consts.TerrainAvailable)
                     {
                         if (Program.CUTK[FFCellX][FFCellY] == 0)
                         {
@@ -1184,7 +1184,7 @@ namespace GRAL_2001
                     geschwalt = geschwneu;
 
                     //remove particles above GRAMM orography
-                    if (topo == 1)
+                    if (topo == Consts.TerrainAvailable)
                     {
                         if (zcoord_nteil >= Program.ModelTopHeight)
                         {
@@ -1195,9 +1195,9 @@ namespace GRAL_2001
                     }
 
                     //reflexion of particles from tunnel portals
-                    reflexion_flag = 0;
+                    reflexion_flag = Consts.ParticleNotReflected;
                     int IndexKOld = 0;
-                    if (topo == 1)
+                    if (topo == Consts.TerrainAvailable)
                     {
                         if (Program.BuildingsExist == true)
                         {
@@ -1207,7 +1207,7 @@ namespace GRAL_2001
                             if ((IndexK <= Program.KKART[FFCellX][FFCellY]) && (Program.CUTK[FFCellX][FFCellY] > 0))
                             {
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -1227,8 +1227,8 @@ namespace GRAL_2001
                                     }
                                 }
 
-                                tunfak = 1;
-                                reflexion_flag = 1;
+                                tunfak = Consts.ParticleIsNotAPortal;
+                                reflexion_flag = Consts.ParticleReflected;
 
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -1266,7 +1266,7 @@ namespace GRAL_2001
                             }
                         }
                     }
-                    else if ((topo == 0) && (Program.BuildingsExist == true))
+                    else if ((topo == Consts.TerrainFlat) && (Program.BuildingsExist == true))
                     {
                         //flat terrain with buildings
                         IndexKOld = IndexK;
@@ -1275,7 +1275,7 @@ namespace GRAL_2001
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
                         {
                             // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                            if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                            if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                             {
                                 float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                 int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -1295,8 +1295,8 @@ namespace GRAL_2001
                                 }
                             }
 
-                            tunfak = 1;
-                            reflexion_flag = 1;
+                            tunfak = Consts.ParticleIsNotAPortal;
+                            reflexion_flag = Consts.ParticleReflected;
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -1344,7 +1344,7 @@ namespace GRAL_2001
                         PartHeightAboveBuilding = PartHeightAboveTerrain;
 
                         // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                        if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                        if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                         {
                             float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                             int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -1365,7 +1365,7 @@ namespace GRAL_2001
                         }
                     }
 
-                    if (PartHeightAboveBuilding >= blh && Program.ISTATIONAER != 0) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh 
+                    if (PartHeightAboveBuilding >= blh && Program.ISTATIONAER != Consts.TransientMode) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh 
                     {
                         goto REMOVE_PARTICLE;
                     }
@@ -1375,7 +1375,7 @@ namespace GRAL_2001
                 } //END OF TUNNEL MODUL
 
                 //in case that particle was reflected, flag is set to 1 and subsequently concentrations are not computed
-                reflexion_flag = 0;
+                reflexion_flag = Consts.ParticleNotReflected;
                 int back = 1;
                 while (back == 1)
                 {
@@ -1392,7 +1392,7 @@ namespace GRAL_2001
                     int FFCellXPrev;
                     int FFCellYPrev;
 
-                    if (topo == 1)
+                    if (topo == Consts.TerrainAvailable)
                     {
                         //with topography
                         FFCellXPrev = FFCellX;
@@ -1473,7 +1473,7 @@ namespace GRAL_2001
 
                     //reflexion of particles within buildings and at the surface
                     back = 0;
-                    if (Program.BuildingsExist == true || topo == 1)
+                    if (Program.BuildingsExist == true || topo == Consts.TerrainAvailable)
                     {
                         int IndexKOld = IndexK;
                         IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
@@ -1526,14 +1526,14 @@ namespace GRAL_2001
                             {
                                 zcoord_nteil = 2 * Program.AHK[FFCellX][FFCellY] - zcoord_nteil + 0.01F;
                                 PartHeightAboveTerrain = zcoord_nteil - AHint;
-                                if (topo == 1)
+                                if (topo == Consts.TerrainAvailable)
                                 {
                                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                                 }
                                 velzold = -velzold;
 
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -1556,7 +1556,7 @@ namespace GRAL_2001
                             else
                             {
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -1582,7 +1582,7 @@ namespace GRAL_2001
                                     ycoord_nteil -= (idt * UYint + cory);
                                     zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
                                     PartHeightAboveTerrain = zcoord_nteil - AHint;
-                                    if (topo == 1)
+                                    if (topo == Consts.TerrainAvailable)
                                     {
                                         PartHeightAboveBuilding = PartHeightAboveTerrain;
                                     }
@@ -1675,7 +1675,7 @@ namespace GRAL_2001
 
                     if (back > 0)
                     {
-                        reflexion_flag = 1;
+                        reflexion_flag = Consts.ParticleReflected;
                         reflexion_number++;
                         //in rare cases, particles get trapped near solid boundaries. Such particles are abandoned after a certain number of reflexions
                         if (reflexion_number > Max_Reflections)
@@ -1688,7 +1688,7 @@ namespace GRAL_2001
 
                 //interpolation of orography
                 AHintold = AHint;
-                if (topo == 1)
+                if (topo == Consts.TerrainAvailable)
                 {
                     if ((FFCellX < 1) || (FFCellX > Program.NII) || (FFCellY < 1) || (FFCellY > Program.NJJ))
                     {
@@ -1723,7 +1723,7 @@ namespace GRAL_2001
 
                 if ((PartHeightAboveBuilding >= blh) && (ObL < 0))
                 {
-                    if ((topo == 1) && (UZint >= 0) && Program.ISTATIONAER != 0) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh
+                    if ((topo == Consts.TerrainAvailable) && (UZint >= 0) && Program.ISTATIONAER != Consts.TransientMode) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh
                     {
                         goto REMOVE_PARTICLE;
                     }
@@ -1742,7 +1742,7 @@ namespace GRAL_2001
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
 
                     // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                    if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                    if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                     {
                         float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                         int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -1826,10 +1826,10 @@ namespace GRAL_2001
                     }
                 }
 
-                if (Deposition_type < 2) // compute concentrations for this particle
+                if (Deposition_type < Consts.DepoOnly) // compute concentrations for this particle
                 {
                     //receptor concentrations
-                    if ((Program.ReceptorsAvailable > 0) && (reflexion_flag == 0))
+                    if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
                     {
                         for (int irec = 1; irec < ReceptorConcentration.Length; irec++)
                         {
@@ -1864,7 +1864,7 @@ namespace GRAL_2001
                     //compute 2D - concentrations
                     for (int II = 0; II < kko.Length; II++)
                     {
-                        if ((kko[II] == 0) && (reflexion_flag == 0))
+                        if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
                             float[] conz3d_L = Program.Conz3d[iko][jko][II];
                             double conc = masse * idt;
@@ -1876,9 +1876,9 @@ namespace GRAL_2001
                     }
 
                     //count particles in case of non-steady-state dispersion for the 3D concentration file
-                    if (ISTATIONAER == 0 && Program.WriteVerticalConcentration)
+                    if (ISTATIONAER == Consts.TransientMode && Program.WriteVerticalConcentration)
                     {
-                        if (reflexion_flag == 0)
+                        if (reflexion_flag == Consts.ParticleNotReflected)
                         {
                             TransientGridZ = TransientConcentration.BinarySearchTransient(zcoord_nteil - AHint);
                             TransientGridX = (int)(xsi * FFGridXRez) + 1;
@@ -1903,7 +1903,7 @@ namespace GRAL_2001
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
-                            if ((kko[II] == 0) && (reflexion_flag == 0))
+                            if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
                                 float[] conz3dp_L = Program.Conz3dp[iko][jko][II];
                                 double conc = masse * idt;
@@ -1920,7 +1920,7 @@ namespace GRAL_2001
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
-                            if ((kko[II] == 0) && (reflexion_flag == 0))
+                            if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
                                 float[] conz3dm_L = Program.Conz3dm[iko][jko][II];
                                 double conc = masse * idt;
@@ -1937,7 +1937,7 @@ namespace GRAL_2001
 
         REMOVE_PARTICLE:
 
-            if (Program.LogLevel > 0) // additional log output
+            if (Program.LogLevel > Consts.LogLevelOff) // additional log output
             {
                 #region log_output
                 if (reflexion_number > 400000)
@@ -2030,7 +2030,7 @@ namespace GRAL_2001
             }
 
             // Add local receptor concentrations to receptor array and store maximum concentration part for each receptor
-            if (Program.ReceptorsAvailable > 0)
+            if (Program.ReceptorsAvailable)
             {
                 for (int ii = 1; ii < ReceptorConcentration.Length; ii++)
                 {

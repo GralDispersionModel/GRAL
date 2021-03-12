@@ -74,7 +74,7 @@ namespace GRAL_2001
                 sum += Program.PS_PartNumb[i];
                 Sum_of_Particles += Program.PS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("PS " + i.ToString() + " : " + Math.Abs(Program.PS_PartNumb[i]).ToString());
                 }
@@ -93,7 +93,7 @@ namespace GRAL_2001
                 sum += Program.LS_PartNumb[i];
                 Sum_of_Particles += Program.LS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("LS " + i.ToString() + " : " + Math.Abs(Program.LS_PartNumb[i]).ToString());
                 }
@@ -112,7 +112,7 @@ namespace GRAL_2001
                 sum += Program.TS_PartNumb[i];
                 Sum_of_Particles += Program.TS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("TS " + i.ToString() + " : " + Math.Abs(Program.TS_PartNumb[i]).ToString());
                 }
@@ -131,7 +131,7 @@ namespace GRAL_2001
                 sum += Program.AS_PartNumb[i];
                 Sum_of_Particles += Program.AS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("AS " + i.ToString() + " : " + Math.Abs(Program.AS_PartNumb[i]).ToString());
                 }
