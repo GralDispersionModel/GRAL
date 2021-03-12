@@ -198,156 +198,176 @@ namespace GRAL_2001
 
             Program.AHMIN = 0;
 
-            //in case of the diagnostic approach, a boundary layer is established near the obstacle's walls
-            if (Program.FlowFieldLevel <= 1)
+            //in case of the diagnostic approach or the prognostic approach with reduced SubDomains, a boundary layer is established near the obstacle's walls
+            if ((Program.FlowFieldLevel <= Consts.FlowFieldDiag) || 
+                (Program.FlowFieldLevel == Consts.FlowFieldProg && Program.SubDomainDistance < 10000))
             {
                 Parallel.For((1 + Program.IGEB), (Program.NII - Program.IGEB + 1), Program.pOptions, i =>
                 {
+                    int IGEB = Program.IGEB;
+                    float DXK = Program.DXK;
+                    float DYK = Program.DYK;
                     for (int j = 1 + Program.IGEB; j <= Program.NJJ - Program.IGEB; j++)
                     {
-                        double entf = 0;
-                        double vertk;
-                        double abmind;
-                        for (int k = 1; k < Program.NKK; k++)
+                        //in case of diagnostic approach or outside prognostic sub domain area
+                        if ((Program.FlowFieldLevel <= Consts.FlowFieldDiag) || (Program.ADVDOM[i][j] == 0))
                         {
-                            abmind = 1;
-                            vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5;
-
-                            //search towards west for obstacles
-                            for (int ig = i - Program.IGEB; ig < i; ig++)
+                            float entf = 0;
+                            float vertk;
+                            float abmind;
+                            for (int k = 1; k < Program.NKK; k++)
                             {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > Program.KKART[i][j]))
+                                abmind = 1;
+                                if (k > Program.KKART[i][j])
                                 {
-                                    entf = Math.Abs((i - ig) * Program.DXK);
+                                    vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5F;
+
+                                    //search towards west for obstacles
+                                    entf = 21;
+                                    for (int ig = i - 1; ig >= i - IGEB; ig--)
+                                    {
+                                        if ((Program.CUTK[ig][j] > 1) && (vertk <= Program.AHK[ig][j]))
+                                        {
+                                            entf = Math.Abs((i - ig) * DXK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards east for obstacles
+                                    entf = 21;
+                                    for (int ig = i + 1; ig <= i + IGEB; ig++)
+                                    {
+                                        if ((Program.CUTK[ig][j] > 1) && (vertk <= Program.AHK[ig][j]))
+                                        {
+                                            entf = MathF.Abs((i - ig) * DXK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards north for obstacles
+                                    entf = 21;
+                                    for (int jg = j + 1; jg <= j + IGEB; jg++)
+                                    {
+                                        if ((Program.CUTK[i][jg] > 1) && (vertk <= Program.AHK[i][jg]))
+                                        {
+                                            entf = MathF.Abs((j - jg) * DYK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards south for obstacles
+                                    entf = 21;
+                                    for (int jg = j - 1; jg >= j - IGEB; jg--)
+                                    {
+                                        if ((Program.CUTK[i][jg] > 1) && (vertk <= Program.AHK[i][jg]))
+                                        {
+                                            entf = MathF.Abs((j - jg) * DYK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards south/east for obstacles
+                                    entf = 21;
+                                    for (int ig = i + 1; ig <= i + IGEB; ig++)
+                                    {
+                                        int jg = j + ig - i;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards north/west for obstacles
+                                    entf = 21;
+                                    for (int ig = i - 1; ig >= i - IGEB; ig--)
+                                    {
+                                        int jg = j + ig - i;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards north/east for obstacles
+                                    entf = 21;
+                                    for (int ig = i + 1; ig <= i + IGEB; ig++)
+                                    {
+                                        int jg = j + i - ig;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards south/west for obstacles
+                                    entf = 21;
+                                    for (int ig = i - 1; ig >= i - IGEB; ig--)
+                                    {
+                                        int jg = j + i - ig;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+
+                                    Program.UK[i][j][k] *= abmind;
+                                    Program.VK[i][j][k] *= abmind;
                                 }
                             }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards east for obstacles
-                            for (int ig = i + Program.IGEB; ig >= i + 1; ig--)
-                            {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Abs((i - ig) * Program.DXK);
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards south for obstacles
-                            for (int jg = j - Program.IGEB; jg < j; jg++)
-                            {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Abs((j - jg) * Program.DYK);
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards north for obstacles
-                            for (int jg = j + Program.IGEB; jg >= j + 1; jg--)
-                            {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Abs((j - jg) * Program.DYK);
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards north/east for obstacles
-                            for (int ig = i + Program.IGEB; ig >= i + 1; ig--)
-                            {
-                                int jg = j + ig - i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards south/west for obstacles
-                            for (int ig = i - Program.IGEB; ig < i; ig++)
-                            {
-                                int jg = j + ig - i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards south/east for obstacles
-                            for (int ig = i + Program.IGEB; ig >= i + 1; ig--)
-                            {
-                                int jg = j - ig + i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards north/west for obstacles
-                            for (int ig = i - Program.IGEB; ig < i; ig++)
-                            {
-                                int jg = j - ig + i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > Program.KKART[i][j]))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * Program.DXK) + Program.Pow2((j - jg) * Program.DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            Program.UK[i][j][k] *= (float)abmind;
-                            Program.VK[i][j][k] *= (float)abmind;
                         }
                     }
                 });
             }
-
+            
             //computing flow field either with diagnostic or prognostic approach
-            if (Program.FlowFieldLevel > 0)
+            if (Program.FlowFieldLevel > Consts.FlowFieldNoBuildings)
             {
                 //diagnostic approach
-                if (Program.FlowFieldLevel == 1)
+                if (Program.FlowFieldLevel == Consts.FlowFieldDiag)
                 {
                     Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
                     DiagnosticFlowfield.Calculate();
                 }
 
                 //prognostic approach
-                if (Program.FlowFieldLevel == 2)
+                if (Program.FlowFieldLevel == Consts.FlowFieldProg)
                 {
                     //read vegetation only one times
                     if (Program.VEG[0][0][0] < 0)
@@ -359,21 +379,18 @@ namespace GRAL_2001
 
                     Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES");
                     PrognosticFlowfield.Calculate();
-                }
-
-                //Final mass conservation using poisson equation for pressure after advection has been computed with level 2
-                if (Program.FlowFieldLevel == 2)
-                {
+                
+                    //Final mass conservation using poisson equation for pressure after advection has been computed with level 2
                     DiagnosticFlowfield.Calculate();
                 }
             }
 
             //in diagnostic mode mass-conservation is finally achieved by adjusting the vertical velocity in each cell
-            if (Program.FlowFieldLevel < 2)
+            Parallel.For(2, Program.NII, Program.pOptions, i =>
             {
-                Parallel.For(2, Program.NII, Program.pOptions, i =>
+                for (int j = 2; j < Program.NJJ; j++)
                 {
-                    for (int j = 2; j < Program.NJJ; j++)
+                    if ((Program.FlowFieldLevel <= Consts.FlowFieldDiag) || (Program.ADVDOM[i][j] == 0))
                     {
                         //Pointers (to speed up the computations)
                         float[] UK_L = Program.UK[i][j];
@@ -381,11 +398,11 @@ namespace GRAL_2001
                         float[] VK_L = Program.VK[i][j];
                         float[] VKj_L = Program.VK[i][j + 1];
                         float[] WK_L = Program.WK[i][j];
-                        double fwo1 = 0;
-                        double fwo2 = 0;
-                        double fsn1 = 0;
-                        double fsn2 = 0;
-                        double fbt1 = 0;
+                        float fwo1 = 0;
+                        float fwo2 = 0;
+                        float fsn1 = 0;
+                        float fsn2 = 0;
+                        float fbt1 = 0;
                         int KKART = Program.KKART[i][j];
 
                         for (int k = 1; k < Program.NKK; k++)
@@ -437,12 +454,13 @@ namespace GRAL_2001
                                     fbt1 = Program.DXK * Program.DYK * WK_L[k];
                                 }
 
-                                WK_L[k + 1] = (float)((fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (Program.DXK * Program.DYK));
+                                WK_L[k + 1] = (fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (Program.DXK * Program.DYK);
                             }
                         }
                     }
-                });
-            }
+                }
+            });
+            
         }
     }
 }
