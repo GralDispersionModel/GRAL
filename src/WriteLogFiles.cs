@@ -84,7 +84,7 @@ namespace GRAL_2001
 
             LogfileGralCoreWrite("");
 
-            if ((Program.Topo == 1) || (Program.BuildingsExist == true)) // compute prognostic flow field in these cases
+            if ((Program.Topo == Consts.TerrainAvailable) || (Program.BuildingsExist == true)) // compute prognostic flow field in these cases
             {
                 err = "  Flow field grid cell nr. in x-direction: " + Program.NII.ToString();
                 LogfileGralCoreWrite(err);
@@ -181,7 +181,7 @@ namespace GRAL_2001
                 LogfileGralCoreWrite("");
             }
 
-            if (Program.ISTATIONAER == 0)
+            if (Program.ISTATIONAER == Consts.TransientMode)
             {
                 err = "";
                 LogfileGralCoreWrite(err);
@@ -197,12 +197,12 @@ namespace GRAL_2001
                 LogfileGralCoreWrite(err);
             }
 
-            if (Program.Topo == 0)
+            if (Program.Topo == Consts.TerrainFlat)
             {
                 err = "Flat terrain ";
                 LogfileGralCoreWrite(err);
             }
-            else if (Program.Topo == 1)
+            else if (Program.Topo == Consts.TerrainAvailable)
             {
                 if (File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 100000) // Gral topofile not available or corrupt (AHK_Ori_Min)
                 {
@@ -254,11 +254,11 @@ namespace GRAL_2001
             LogfileGralCoreWrite(err);
 
 
-            if (Program.FlowFieldLevel == 0)
+            if (Program.FlowFieldLevel == Consts.FlowFieldNoBuildings)
             {
                 err = "No buildings";
             }
-            else if (Program.FlowFieldLevel == 1)
+            else if (Program.FlowFieldLevel == Consts.FlowFieldDiag)
             {
                 err = "Diagnostic approach for buildings";
             }

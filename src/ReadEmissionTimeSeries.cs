@@ -30,7 +30,7 @@ namespace GRAL_2001
         /// </summary>
         public void ReadEmissionTimeseries()
         {
-            if (Program.ISTATIONAER == 0)
+            if (Program.ISTATIONAER == Consts.TransientMode)
             {
                 if (File.Exists("emissions_timeseries.txt") == true)
                 {

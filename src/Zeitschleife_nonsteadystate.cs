@@ -136,7 +136,7 @@ namespace GRAL_2001
             Span<double> ReceptorConcentration = stackalloc double[Program.ReceptorNumber + 1];
             float a3 = 1.1F;
 
-            int reflexion_flag = 0;
+            int reflexion_flag = Consts.ParticleNotReflected ;
             int ISTATISTIK = Program.IStatistics;
             int ISTATIONAER = Program.ISTATIONAER;
             int topo = Program.Topo;
@@ -184,7 +184,7 @@ namespace GRAL_2001
             float PartHeightAboveTerrrain = 0;
             float PartHeightAboveBuilding = 0;
 
-            if (topo == 1)
+            if (topo == Consts.TerrainAvailable)
             {
                 //with terrain
                 FFCellX = (int)(xsi * FFGridXRez) + 1;
@@ -354,7 +354,7 @@ namespace GRAL_2001
 
                 if (ObLength >= 0)
                 {
-                    if (ISTATISTIK != 3)
+                    if (ISTATISTIK != Consts.MeteoSonic)
                     {
                         W0int = Ustern * Program.StdDeviationW * 1.25F;
                     }
@@ -369,7 +369,7 @@ namespace GRAL_2001
                 }
                 else
                 {
-                    if (ISTATISTIK == 3)
+                    if (ISTATISTIK == Consts.MeteoSonic)
                     {
                         varw = Program.Pow2(Program.W0int);
                     }
@@ -523,7 +523,7 @@ namespace GRAL_2001
 
                 //determination of the meandering parameters according to Oettl et al. (2006)
                 float param = 0;
-                if (ISTATISTIK != 3)
+                if (ISTATISTIK != Consts.MeteoSonic)
                 {
                     param = Program.FloatMax(8.5F / Program.Pow2(windge + 1), 0F);
                 }
@@ -545,12 +545,12 @@ namespace GRAL_2001
                 else
                 {
                     termp = 1 / (2 * Program.Pow2(V0int) / Program.C0x / eps);
-                    if (ISTATISTIK != 3)
+                    if (ISTATISTIK != Consts.MeteoSonic)
                     {
                         float Tstern = 200 * param + 350;
                         T3 = Tstern / 6.28F / (Program.Pow2(param) + 1) * param;
                     }
-                    else if (ISTATISTIK == 3)
+                    else if (ISTATISTIK == Consts.MeteoSonic)
                     {
                         T3 = Program.TWindMeander;
                     }
@@ -601,7 +601,7 @@ namespace GRAL_2001
                 ycoord_nteil += idt * UYint + cory;
 
                 //in case that particle was reflected, flag is set to 1 and subsequently concentrations are not computed
-                reflexion_flag = 0;
+                reflexion_flag = Consts.ParticleNotReflected;
                 int back = 1;
                 while (back == 1)
                 {
@@ -618,7 +618,7 @@ namespace GRAL_2001
                     int FFCellXPrev = 1;
                     int FFCellYPrev = 1;
 
-                    if (topo == 1)
+                    if (topo == Consts.TerrainAvailable)
                     {
                         //with topography
                         FFCellXPrev = FFCellX;
@@ -648,7 +648,7 @@ namespace GRAL_2001
 
                     //reflexion of particles within buildings and at the surface
                     back = 0;
-                    if (Program.BuildingsExist == true || topo == 1)
+                    if (Program.BuildingsExist == true || topo == Consts.TerrainAvailable)
                     {
                         int IndexKOld = IndexK;
                         IndexK = Zeitschleife.BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
@@ -701,7 +701,7 @@ namespace GRAL_2001
                             {
                                 zcoord_nteil = 2 * Program.AHK[FFCellX][FFCellY] - zcoord_nteil + 0.01F;
                                 PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                                if (topo == 1)
+                                if (topo == Consts.TerrainAvailable)
                                 {
                                     PartHeightAboveBuilding = PartHeightAboveTerrrain;
                                 }
@@ -757,7 +757,7 @@ namespace GRAL_2001
                                     ycoord_nteil -= (idt * UYint + cory);
                                     zcoord_nteil -= (idt * (UZint + velz) + aufhurly);
                                     PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                                    if (topo == 1)
+                                    if (topo == Consts.TerrainAvailable)
                                     {
                                         PartHeightAboveBuilding = PartHeightAboveTerrrain;
                                     }
@@ -848,7 +848,7 @@ namespace GRAL_2001
 
                     if (back > 0)
                     {
-                        reflexion_flag = 1;
+                        reflexion_flag = Consts.ParticleReflected;
                         reflexion_number++;
                         //in rare cases, particles get trapped near solid boundaries. Such particles are abandoned after a certain number of reflexions
                         if (reflexion_number > Max_Reflections) // reduced number in transient cases
@@ -861,7 +861,7 @@ namespace GRAL_2001
 
                 //interpolation of orography
                 AHintold = AHint;
-                if (topo == 1)
+                if (topo == Consts.TerrainAvailable)
                 {
                     if ((FFCellX < 1) || (FFCellX > Program.NII) || (FFCellY < 1) || (FFCellY > Program.NJJ))
                     {
@@ -995,7 +995,7 @@ namespace GRAL_2001
                 if (Deposition_type < 2) // compute concentrations for this particle
                 {
                     //receptor concentrations
-                    if ((Program.ReceptorsAvailable > 0) && (reflexion_flag == 0))
+                    if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
                     {
                         for (int irec = 1; irec < ReceptorConcentration.Length; irec++)
                         {
@@ -1030,7 +1030,7 @@ namespace GRAL_2001
                     //compute 2D - concentrations
                     for (int II = 0; II < kko.Length; II++)
                     {
-                        if ((kko[II] == 0) && (reflexion_flag == 0))
+                        if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
                             float[] conz3d_L = Program.Conz3d[iko][jko][II];
                             double conc = masse * idt;
@@ -1042,7 +1042,7 @@ namespace GRAL_2001
                     }
 
                     //count particles in case of transient dispersion for the 3D concentration file
-                    if (reflexion_flag == 0 && Program.WriteVerticalConcentration)
+                    if (reflexion_flag == Consts.ParticleNotReflected && Program.WriteVerticalConcentration)
                     {
                         TransientGridZ = TransientConcentration.BinarySearchTransient(zcoord_nteil - AHint);
                         TransientGridX = (int)(xsi * FFGridXRez) + 1;
@@ -1066,7 +1066,7 @@ namespace GRAL_2001
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
-                            if ((kko[II] == 0) && (reflexion_flag == 0))
+                            if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
                                 float[] conz3dp_L = Program.Conz3dp[iko][jko][II];
                                 double conc = masse * idt;
@@ -1083,7 +1083,7 @@ namespace GRAL_2001
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
-                            if ((kko[II] == 0) && (reflexion_flag == 0))
+                            if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
                                 float[] conz3dm_L = Program.Conz3dm[iko][jko][II];
                                 double conc = masse * idt;
@@ -1101,7 +1101,7 @@ namespace GRAL_2001
         REMOVE_PARTICLE:
 
             // Add local receptor concentrations to receptor array and store maximum concentration part for each receptor
-            if (Program.ReceptorsAvailable > 0)
+            if (Program.ReceptorsAvailable)
             {
                 for (int ii = 1; ii < ReceptorConcentration.Length; ii++)
                 {

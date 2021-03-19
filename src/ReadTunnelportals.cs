@@ -163,7 +163,7 @@ namespace GRAL_2001
                 if (TQ[i].Z1 < 0 && TQ[i].Z2 < 0) // negative values = absolute heights
                 {
                     Program.TS_Absolute_Height[i] = true;
-                    if (Program.Topo != 1)
+                    if (Program.Topo != Consts.TerrainAvailable)
                     {
                         string err = "You are using absolute coordinates but flat terrain  - ESC = Exit";
                         Console.WriteLine(err);

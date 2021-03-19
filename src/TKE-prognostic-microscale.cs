@@ -85,7 +85,7 @@ namespace GRAL_2001
                             //Use GRAMM Roughness with terrain or Roughness from point 1,1 without terrain
                             int IUstern = 1;
                             int JUstern = 1;
-                            if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
+                            if ((Program.Topo == Consts.TerrainAvailable) && (Program.LandUseAvailable == true))
                             {
                                 double x = i * Program.DXK + Program.GralWest;
                                 double y = j * Program.DYK + Program.GralSouth;

@@ -38,7 +38,7 @@ namespace GRAL_2001
             float DYK = Program.DYK;
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
-            bool topoZ0Available = (Program.Topo == 1) && (Program.LandUseAvailable == true);
+            bool topoZ0Available = (Program.Topo == Consts.TerrainAvailable) && (Program.LandUseAvailable == true);
 
             //some array declarations
             if (Program.UKS.Length < 5) // Arrays already created?
@@ -452,7 +452,7 @@ namespace GRAL_2001
 
                         float U0int = 0;
                         float varw = 0;
-                        if ((Program.IStatistics == 0) || (Program.IStatistics == 3))
+                        if ((Program.IStatistics == Consts.MeteoZR) || (Program.IStatistics == Consts.MeteoSonic))
                         {
                             //interpolation of observed standard deviations of horizontal wind fluctuations
                             if (zhilf <= Program.MeasurementHeight[1])
@@ -579,7 +579,7 @@ namespace GRAL_2001
 
         //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
         CONTINUE_SIMULATION:
-            while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel > 1))
+            while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
             {
                 if (IterationLoops == 1)
                 {
@@ -1053,7 +1053,7 @@ namespace GRAL_2001
                     DeltaFinish = (float)(DeltaMean / Program.Pow2(topwind));
                 }
 
-                if ((IterationLoops % 100 == 0) && (IterationLoops > 1) && (Program.FlowFieldLevel > 1))
+                if ((IterationLoops % 100 == 0) && (IterationLoops > 1) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
                 {
                     double _delta = DeltaMean / Program.Pow2(topwind);
 
@@ -1077,7 +1077,7 @@ namespace GRAL_2001
                 }
 
                 //ONLINE OUTPUT OF GRAL FLOW FIELDS
-                if (Program.GRALOnlineFunctions && (IterationLoops % 100 == 0) && (Program.FlowFieldLevel > 1))
+                if (Program.GRALOnlineFunctions && (IterationLoops % 100 == 0) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
                 {
                     GRALONLINE.Output(NII, NJJ, NKK);
                 }

@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 21.09Beta1       < <   +";
+            string Info =     "+  > >         G R A L VERSION: 21.09Beta2       < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -158,7 +158,7 @@ namespace GRAL_2001
 
             //Reading building data
             //case 1: complex terrain
-            if (Topo == 1)
+            if (Topo == Consts.TerrainAvailable)
             {
                 InitGralTopography(SIMD);
                 ReaderClass.ReadBuildingsTerrain(Program.CUTK); //define buildings in GRAL
@@ -171,7 +171,7 @@ namespace GRAL_2001
             }
 
             // array declarations for prognostic and diagnostic flow field
-            if ((FlowFieldLevel > 0) || (Topo == 1))
+            if ((FlowFieldLevel > Consts.FlowFieldNoBuildings) || (Topo == Consts.TerrainAvailable))
             {
                 // create jagged arrays manually to keep memory areas of similar indices togehter -> reduce false sharing & 
                 // save memory because of the unused index 0  
@@ -194,7 +194,7 @@ namespace GRAL_2001
             }
 
             //In case of transient simulations: load presets and define arrays
-            if (ISTATIONAER == 0)
+            if (ISTATIONAER == Consts.TransientMode)
             {
                 TransientPresets.LoadAndDefine();
             }
@@ -204,13 +204,13 @@ namespace GRAL_2001
             ReaderClass.ReadReceptors();
 
             //the horizontal standard deviations of wind component fluctuations are dependent on the averaging time (dispersion time)
-            if ((IStatistics == 4))
+            if ((IStatistics == Consts.MeteoPgtAll))
             {
                 StdDeviationV = (float)Math.Pow(TAUS / 3600, 0.2);
             }
 
             //for applications in flat terrain, the roughness length is homogenous as defined in the file in.dat
-            if (Topo != 1)
+            if (Topo != Consts.TerrainAvailable)
             {
                 Z0Gramm[1][1] = Z0;
             }
@@ -335,7 +335,7 @@ namespace GRAL_2001
             //read mettimeseries.dat, meteopgt.all and Precipitation.txt in case of transient simulations
             InputMettimeSeries InputMetTimeSeries = new InputMettimeSeries();
 
-            if ((ISTATIONAER == 0) && (IStatistics == 4))
+            if ((ISTATIONAER == Consts.TransientMode) && (IStatistics == Consts.MeteoPgtAll))
             {
                 InputMetTimeSeries.WindData = MeteoTimeSer;
                 InputMetTimeSeries.ReadMetTimeSeries();
@@ -363,7 +363,7 @@ namespace GRAL_2001
                 WetDeposition = false;
             }
 
-            if (ISTATIONAER == 0)
+            if (ISTATIONAER == Consts.TransientMode)
             {
                 Info = "Transient GRAL mode. Number of weather situations: " + MeteoTimeSer.Count.ToString();
                 Console.WriteLine(Info);
@@ -377,7 +377,7 @@ namespace GRAL_2001
             Thread ThreadWriteConz4dFile = null;
 
             bool FirstLoop = true;
-            while (IEND == 0)
+            while (IEND == Consts.CalculationRunning)
             {
                 // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
                 if (ThreadWriteGffFiles != null)
@@ -404,7 +404,7 @@ namespace GRAL_2001
                 //show actual computed weather situation
                 Console.WriteLine("_".PadLeft(79, '_'));
                 Console.Write("Weather number: " + IWET.ToString());
-                if (ISTATIONAER == 0)
+                if (ISTATIONAER == Consts.TransientMode)
                 {
                     int _iwet = IWET - 1;
                     if (_iwet < MeteoTimeSer.Count)
@@ -424,16 +424,16 @@ namespace GRAL_2001
                 ReaderClass.ReadMaxNumbProc();
 
                 //read meteorological input data 
-                if (IStatistics == 4)
+                if (IStatistics == Consts.MeteoPgtAll)
                 {
-                    if (ISTATIONAER == 0)
+                    if (ISTATIONAER == Consts.TransientMode)
                     {
                         //search for the corresponding weather situation in meteopgt.all
                         IDISP = InputMetTimeSeries.SearchWeatherSituation() + 1;
                         IWETstart = IDISP;
                         if (IWET > MeteoTimeSer.Count)
                         {
-                            IEND = 1;
+                            IEND = Consts.CalculationFinished;
                         }
                     }
                     else
@@ -444,31 +444,31 @@ namespace GRAL_2001
                     }
                 }
 
-                if (ISTATIONAER == 0 && IDISP == 0)
+                if (ISTATIONAER == Consts.TransientMode && IDISP == 0)
                 {
                     break; // reached last line in mettimeseries -> exit loop				
                 }
 
-                if (IEND == 1)
+                if (IEND == Consts.CalculationFinished)
                 {
                     break; // reached last line in meteopgt.all ->  exit loop
                 }
 
                 String WindfieldPath = ReadWindfeldTXT();
 
-                if (Topo == 1)
+                if (Topo == Consts.TerrainAvailable)
                 {
                     Console.Write("Reading GRAMM wind field: ");
                 }
 
-                if (ISTATIONAER == 0 && IDISP < 0) // found no corresponding weather situation in meteopgt.all
+                if (ISTATIONAER == Consts.TransientMode && IDISP < 0) // found no corresponding weather situation in meteopgt.all
                 {
                     Info = "Cannot find a corresponding entry in meteopgt.all to the following line in mettimeseries.dat - situation skipped: " + IWET.ToString();
                     Console.WriteLine();
                     Console.WriteLine(Info);
                     ProgramWriters.LogfileGralCoreWrite(Info);
                 }
-                else if (Topo == 0 || (Topo == 1 && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
+                else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
                 {
                     //GUI output
                     try
@@ -481,7 +481,7 @@ namespace GRAL_2001
                     catch { }
 
                     //Topography mode -> read GRAMM stability classes
-                    if (Topo == 1)
+                    if (Topo == Consts.TerrainAvailable)
                     {
                         string SclFileName = String.Empty;
                         if (WindfieldPath == String.Empty)
@@ -514,7 +514,7 @@ namespace GRAL_2001
                     ReadMeteoData();
 
                     //Check if all weather situations have been computed
-                    if (IEND == 1)
+                    if (IEND == Consts.CalculationFinished)
                     {
                         break;
                     }
@@ -527,16 +527,16 @@ namespace GRAL_2001
                     if (GffFiles == false) // Reading of GRAL Flowfields not successful
                     {
                         //microscale flow field: complex terrain
-                        if (Topo == 1)
+                        if (Topo == Consts.TerrainAvailable)
                         {
                             MicroscaleTerrain.Calculate(FirstLoop);
                         }
                         //microscale flow field: flat terrain
-                        else if ((Topo == 0) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
+                        else if ((Topo == Consts.TerrainFlat) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
                         {
                             MicroscaleFlat.Calculate();
                         }
-                        if (Topo == 0)
+                        if (Topo == Consts.TerrainFlat)
                         {
                             Program.AHMIN = 0;
                         }
@@ -556,7 +556,7 @@ namespace GRAL_2001
                     double CalcTimeWindfield = (Environment.TickCount - StartTime) * 0.001;
 
                     //reset receptor concentrations
-                    if (ReceptorsAvailable == 1) // if receptors are acitvated
+                    if (ReceptorsAvailable) // if receptors are acitvated
                     {
                         ReadReceptors.ReceptorResetConcentration();
                     }
@@ -565,7 +565,7 @@ namespace GRAL_2001
                     {
                         //read receptors
                         ReceptorNumber = 0;
-                        if (ReceptorsAvailable == 1) // if receptors are acitvated
+                        if (ReceptorsAvailable) // if receptors are acitvated
                         {
                             ReadReceptors.ReadReceptor(); // read coordinates of receptors - flow field data needed
                         }
@@ -593,7 +593,7 @@ namespace GRAL_2001
                     OutputOfMeteoData();
 
                     //Transient mode: non-steady-state particles
-                    if (ISTATIONAER == 0)
+                    if (ISTATIONAER == Consts.TransientMode)
                     {
                         Console.WriteLine();
                         Console.Write("Dispersion computation.....");
@@ -681,7 +681,7 @@ namespace GRAL_2001
                                 {
                                     using (StreamWriter sr = new StreamWriter("Percent.txt", false))
                                     {
-                                        if (ISTATIONAER == 0)
+                                        if (ISTATIONAER == Consts.TransientMode)
                                         {
                                             sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
                                         }
@@ -708,7 +708,7 @@ namespace GRAL_2001
                     }
 
                     //tranferring non-steady-state concentration fields
-                    if (ISTATIONAER == 0)
+                    if (ISTATIONAER == Consts.TransientMode)
                     {
                         TransferNonSteadyStateConcentrations(WriteClass, ref ThreadWriteConz4dFile);
                     }
@@ -729,7 +729,7 @@ namespace GRAL_2001
                     Console.WriteLine("Dispersion [s]: " + CalcTimeDispersion.ToString("0.0"));
                     Console.WriteLine("Flow field [s]: " + CalcTimeWindfield.ToString("0.0"));
 
-                    if (LogLevel > 0) // additional LOG-Output
+                    if (LogLevel > Consts.LogLevelOff) // additional LOG-Output
                     {
                         LOG01_Output();
                     }
@@ -748,7 +748,7 @@ namespace GRAL_2001
                     WriteClass.Write2DConcentrations();
 
                     //receptor concentrations
-                    if (ISTATIONAER == 0)
+                    if (ISTATIONAER == Consts.TransientMode)
                     {
                         WriteClass.WriteReceptorTimeseries(0);
                     }
@@ -761,7 +761,7 @@ namespace GRAL_2001
             }
 
             // Write summarized emission per source group and 3D Concentration file
-            if (ISTATIONAER == 0)
+            if (ISTATIONAER == Consts.TransientMode)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
                 if (WriteVerticalConcentration)
@@ -783,7 +783,7 @@ namespace GRAL_2001
             Delete_Temp_Files();
 
             //Write receptor statistical error
-            if (Program.ReceptorsAvailable > 0)
+            if (Program.ReceptorsAvailable)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
                 WriteClass.WriteReceptorTimeseries(1);

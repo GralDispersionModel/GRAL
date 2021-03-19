@@ -504,7 +504,7 @@ namespace GRAL_2001
         ///<summary>
         ///Flag determining if receptor points are included or not
         ///</summary>
-        public static int ReceptorsAvailable = 0;
+        public static bool ReceptorsAvailable = false;
         ///<summary>
         ///Default roughness length in [m]
         ///</summary>
@@ -524,7 +524,7 @@ namespace GRAL_2001
         ///<summary>
         ///Defines the method to take buildings into account: diagnostic (=1), prognostic (=2), no buildings (=0)
         ///</summary>
-        public static int FlowFieldLevel = 0;
+        public static int FlowFieldLevel = Consts.FlowFieldNoBuildings;
         ///<summary>
         ///Defines the factor for the calculation of prognostic sub-domains, default = 15
         ///</summary>
@@ -964,7 +964,7 @@ namespace GRAL_2001
         ///<summary>
         ///Flag when reaching the final weather situation
         ///</summary>
-        public static int IEND = 0;
+        public static int IEND = Consts.CalculationRunning;
         ///<summary>
         ///Volume of the GRAL concentration grid
         ///</summary>
@@ -1250,7 +1250,5 @@ namespace GRAL_2001
         /// Distance of buildings to a source to set a prognostic sub domain in meters: no reduction if value > 10000
         ///</summary>
         public static bool GRALOnlineFunctions = true;
-
-
     }
 }

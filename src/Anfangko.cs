@@ -60,19 +60,19 @@ namespace GRAL_2001
                 double sumanz = 0;
                 Program.ParticleSource[nteil] = 0; // marker if particle is not used
 
-                int caseswitch = 0; // Point Sources
+                int caseswitch = Consts.SourceTypePoint; // Point Sources
 
                 if (nteil > (Program.PS_PartSum + Program.TS_PartSum + Program.LS_PartSum)) // >Line -> area sources
                 {
-                    caseswitch = 3;
+                    caseswitch = Consts.SourceTypeArea;
                 }
                 else if (nteil > (Program.PS_PartSum + Program.TS_PartSum)) // > Portal -> Line sources
                 {
-                    caseswitch = 2;
+                    caseswitch = Consts.SourceTypeLine;
                 }
                 else if (nteil > Program.PS_PartSum) // > Point Sources -> Portal
                 {
-                    caseswitch = 1;
+                    caseswitch = Consts.SourceTypePortal;
                 }
 
                 int i = 0; // number of actual source
@@ -80,7 +80,7 @@ namespace GRAL_2001
                 switch (caseswitch)
                 {
                     //particle coordinates of point sources
-                    case 0:
+                    case Consts.SourceTypePoint:
                         {
                             AHint = 0;
                             for (int j = 1; j <= Program.PS_Count; j++)
@@ -114,12 +114,12 @@ namespace GRAL_2001
                                 else
                                 {
                                     Program.ParticleSource[nteil] = i; // number of source
-                                    Program.SourceType[nteil] = 0; // Point Source
+                                    Program.SourceType[nteil] = Consts.SourceTypePoint; // Point Source
                                     Program.ParticleSG[nteil] = Program.PS_SG[i];
                                     Program.ParticleMode[nteil] = Program.PS_Mode[i]; // deposition mode
 
                                     //Concentration only _______________________________________________
-                                    if (Program.PS_Mode[i] == 0)  // concentration, no deposition
+                                    if (Program.PS_Mode[i] == Consts.DepoOff)  // concentration, no deposition
                                     {
                                         Program.ParticleMass[nteil] = Program.PS_ER[i] / Program.PS_PartNumb[i] * Volume_Time_Unit;
 
@@ -127,7 +127,7 @@ namespace GRAL_2001
                                         Program.ParticleVsed[nteil] = 0;
                                     }
                                     //Concentration + Deposition _______________________________________
-                                    else if (Program.PS_Mode[i] == 1) // concentration and deposition
+                                    else if (Program.PS_Mode[i] == Consts.DepoAndConc) // concentration and deposition
                                     {
                                         Program.ParticleMass[nteil] = Program.PS_ER[i] / Program.PS_PartNumb[i] * Volume_Time_Unit;
 
@@ -135,7 +135,7 @@ namespace GRAL_2001
                                         Program.ParticleVsed[nteil] = Program.PS_V_sed[i];
                                     }
                                     //Deposition only ___________________________________________________
-                                    else if (Program.PS_Mode[i] == 2) // deposition only
+                                    else if (Program.PS_Mode[i] == Consts.DepoOnly) // deposition only
                                     {
                                         Program.ParticleMass[nteil] = Program.PS_ER_Dep[i] / Program.PS_PartNumb[i] * 1000000000 / Program.GridVolume / Program.TAUS; // Paricle mass for deposition depending to the particle number of this source
                                                                                                                                                                       //										Console.WriteLine(Program.Part_Mass[nteil] + " / " + Program.PS_PartNumb[i] + " / " + Program.PS_ER_Dep[i] + " / TAUS " + Program.TAUS + "/ dV " + Program.dV);
@@ -144,14 +144,14 @@ namespace GRAL_2001
                                     }
                                 }
 
-                                if ((Program.Topo == 1) && (Program.BuildingsExist == true))
+                                if ((Program.Topo == Consts.TerrainAvailable) && (Program.BuildingsExist == true))
                                 {
                                     int IndexI = (int)(xsi / Program.DXK) + 1;
                                     int IndexJ = (int)(eta / Program.DYK) + 1;
                                     Program.ZCoord[nteil] = Program.PS_effqu[i] - Program.CUTK[IndexI][IndexJ];
                                     AHint = Program.AHK[IndexI][IndexJ];
                                 }
-                                else if ((Program.Topo == 0) && (Program.BuildingsExist == true))
+                                else if ((Program.Topo == Consts.TerrainFlat) && (Program.BuildingsExist == true))
                                 {
                                     int IndexI = (int)(xsi / Program.DXK) + 1;
                                     int IndexJ = (int)(eta / Program.DYK) + 1;
@@ -173,7 +173,7 @@ namespace GRAL_2001
                         }
 
                     //particle coordinates of portal sources
-                    case 1:
+                    case Consts.SourceTypePortal:
                         {
                             sumanz = Program.PS_PartSum;
                             AHint = 0;
@@ -198,13 +198,13 @@ namespace GRAL_2001
 
                                 Program.ZCoord[nteil] = (float)(Math.Min(Program.TS_Z1[i], Program.TS_Z2[i]) + zahl1);
                                 Program.ParticleSource[nteil] = i;
-                                Program.SourceType[nteil] = 1; // Portals
+                                Program.SourceType[nteil] = Consts.SourceTypePortal; // Portals
                                 Program.ParticleSG[nteil] = Program.TS_SG[i];
 
                                 Program.ParticleMode[nteil] = Program.TS_Mode[i]; // deposition mode
 
                                 //Concentration only _______________________________________________
-                                if (Program.TS_Mode[i] == 0)  // concentration, no deposition
+                                if (Program.TS_Mode[i] ==  Consts.DepoOff)  // concentration, no deposition
                                 {
                                     Program.ParticleMass[nteil] = Program.TS_ER[i] / Program.TS_PartNumb[i] * Volume_Time_Unit;
 
@@ -212,7 +212,7 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = 0;
                                 }
                                 //Concentration + Deposition _______________________________________
-                                else if (Program.TS_Mode[i] == 1) // concentration and deposition
+                                else if (Program.TS_Mode[i] == Consts.DepoAndConc) // concentration and deposition
                                 {
                                     Program.ParticleMass[nteil] = Program.TS_ER[i] / Program.TS_PartNumb[i] * Volume_Time_Unit;
 
@@ -220,7 +220,7 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = Program.TS_V_sed[i];
                                 }
                                 //Deposition only ___________________________________________________
-                                else if (Program.TS_Mode[i] == 2) // deposition only
+                                else if (Program.TS_Mode[i] == Consts.DepoOnly) // deposition only
                                 {
                                     Program.ParticleMass[nteil] = Program.TS_ER_Dep[i] / Program.TS_PartNumb[i] * 1000000000 / Program.GridVolume / Program.TAUS; // Paricle mass for deposition depending to the particle number of this source
                                     Program.ParticleVdep[nteil] = Program.TS_V_Dep[i];
@@ -245,7 +245,7 @@ namespace GRAL_2001
                                 { }
                                 else
                                 {
-                                    if (Program.Topo == 1)
+                                    if (Program.Topo == Consts.TerrainAvailable)
                                     {
                                         int IndexI = (int)(xsi / Program.DXK) + 1;
                                         int IndexJ = (int)(eta / Program.DYK) + 1;
@@ -265,7 +265,7 @@ namespace GRAL_2001
                                         Program.ZCoord[nteil] += AHint + 0.1F; // compute abs. height
                                     }
 
-                                    if ((Program.Topo == 0) && (Program.BuildingsExist == true))
+                                    if ((Program.Topo == Consts.TerrainFlat) && (Program.BuildingsExist == true))
                                     {
                                         int IndexI = (int)(xsi / Program.DXK) + 1;
                                         int IndexJ = (int)(eta / Program.DYK) + 1;
@@ -285,7 +285,7 @@ namespace GRAL_2001
                         }
 
                     //particle coordinates of line sources
-                    case 2:
+                    case Consts.SourceTypeLine:
                         {
                             sumanz = Program.PS_PartSum + Program.TS_PartSum;
                             AHint = 0;
@@ -302,11 +302,11 @@ namespace GRAL_2001
                             {
                                 Program.ParticleSource[nteil] = i;
                                 Program.ParticleSG[nteil] = Program.LS_SG[i];
-                                Program.SourceType[nteil] = 2; // Line Source
+                                Program.SourceType[nteil] = Consts.SourceTypeLine; // Line Source
                                 Program.ParticleMode[nteil] = Program.LS_Mode[i]; // deposition mode
 
                                 //Concentration only _______________________________________________
-                                if (Program.LS_Mode[i] == 0)  // concentration, no deposition
+                                if (Program.LS_Mode[i] == Consts.DepoOff)  // concentration, no deposition
                                 {
                                     Program.ParticleMass[nteil] = Program.LS_ER[i] / Program.LS_PartNumb[i] * Volume_Time_Unit;
 
@@ -314,7 +314,7 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = 0;
                                 }
                                 //Concentration + Deposition _______________________________________
-                                else if (Program.LS_Mode[i] == 1) // concentration and deposition
+                                else if (Program.LS_Mode[i] == Consts.DepoAndConc) // concentration and deposition
                                 {
                                     Program.ParticleMass[nteil] = Program.LS_ER[i] / Program.LS_PartNumb[i] * Volume_Time_Unit;
 
@@ -322,7 +322,7 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = Program.LS_V_sed[i];
                                 }
                                 //Deposition only ___________________________________________________
-                                else if (Program.LS_Mode[i] == 2) // deposition only
+                                else if (Program.LS_Mode[i] == Consts.DepoOnly) // deposition only
                                 {
                                     Program.ParticleMass[nteil] = Program.LS_ER_Dep[i] / Program.LS_PartNumb[i] * 1000000000 / Program.GridVolume / Program.TAUS; // Particle mass for deposition depending to the particle number of this source
                                     Program.ParticleVdep[nteil] = Program.LS_V_Dep[i];
@@ -407,7 +407,7 @@ namespace GRAL_2001
                                 { }
                                 else
                                 {
-                                    if (Program.Topo == 1)
+                                    if (Program.Topo == Consts.TerrainAvailable)
                                     {
                                         int IndexI = (int)(xsi / Program.DXK) + 1;
                                         int IndexJ = (int)(eta / Program.DYK) + 1;
@@ -425,7 +425,7 @@ namespace GRAL_2001
                                         zzz = AHint + 0.01F;
                                     }
 
-                                    if ((Program.Topo == 0) && (Program.BuildingsExist == true))
+                                    if ((Program.Topo == Consts.TerrainFlat) && (Program.BuildingsExist == true))
                                     {
                                         int IndexI = (int)(xsi / Program.DXK) + 1;
                                         int IndexJ = (int)(eta / Program.DYK) + 1;
@@ -447,7 +447,7 @@ namespace GRAL_2001
                         }
 
                     //particle coordinates of area sources
-                    case 3:
+                    case Consts.SourceTypeArea:
                         {
                             sumanz = Program.PS_PartSum + Program.TS_PartSum + Program.LS_PartSum;
                             AHint = 0;
@@ -464,11 +464,11 @@ namespace GRAL_2001
                             {
                                 Program.ParticleSource[nteil] = i;
                                 Program.ParticleSG[nteil] = Program.AS_SG[i];
-                                Program.SourceType[nteil] = 3; // Area Source
+                                Program.SourceType[nteil] = Consts.SourceTypeArea; // Area Source
                                 Program.ParticleMode[nteil] = Program.AS_Mode[i]; // deposition mode
 
                                 //Concentration only _______________________________________________
-                                if (Program.AS_Mode[i] == 0)  // concentration, no deposition
+                                if (Program.AS_Mode[i] == Consts.DepoOff)  // concentration, no deposition
                                 {
                                     Program.ParticleMass[nteil] = Program.AS_ER[i] / Program.AS_PartNumb[i] * Volume_Time_Unit;
 
@@ -476,7 +476,7 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = 0;
                                 }
                                 //Concentration + Deposition _______________________________________
-                                else if (Program.AS_Mode[i] == 1) // concentration and deposition
+                                else if (Program.AS_Mode[i] == Consts.DepoAndConc) // concentration and deposition
                                 {
                                     Program.ParticleMass[nteil] = Program.AS_ER[i] / Program.AS_PartNumb[i] * Volume_Time_Unit;
 
@@ -484,7 +484,7 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = Program.AS_V_sed[i];
                                 }
                                 //Deposition only ___________________________________________________
-                                else if (Program.AS_Mode[i] == 2) // deposition only
+                                else if (Program.AS_Mode[i] == Consts.DepoOnly) // deposition only
                                 {
                                     Program.ParticleMass[nteil] = Program.AS_ER_Dep[i] / Program.AS_PartNumb[i] * 1000000000 / Program.GridVolume / Program.TAUS; // Paricle mass for deposition depending to the particle number of this source
                                     Program.ParticleVdep[nteil] = Program.AS_V_Dep[i];
@@ -517,7 +517,7 @@ namespace GRAL_2001
                                 {
                                     int IndexI = 1;
                                     int IndexJ = 1;
-                                    if (Program.Topo == 1)
+                                    if (Program.Topo == Consts.TerrainAvailable)
                                     {
                                         IndexI = (int)(xsi / Program.DXK) + 1;
                                         IndexJ = (int)(eta / Program.DYK) + 1;
@@ -530,7 +530,7 @@ namespace GRAL_2001
                                         zzz += AHint;
                                     }
 
-                                    if ((Program.Topo == 1) && (Program.BuildingsExist == true))
+                                    if ((Program.Topo == Consts.TerrainAvailable) && (Program.BuildingsExist == true))
                                     {
                                         zzz -= Program.CUTK[IndexI][IndexJ];
                                     }
@@ -540,7 +540,7 @@ namespace GRAL_2001
                                         zzz = AHint + 0.01F;
                                     }
 
-                                    if ((Program.Topo == 0) && (Program.BuildingsExist == true))
+                                    if ((Program.Topo == Consts.TerrainFlat) && (Program.BuildingsExist == true))
                                     {
                                         IndexI = (int)(xsi / Program.DXK) + 1;
                                         IndexJ = (int)(eta / Program.DYK) + 1;
@@ -564,7 +564,7 @@ namespace GRAL_2001
             });
 
             // Transient Mode: calculate average deposition settings for each source group one times (if Transient_Depo == null)
-            if (Program.ISTATIONAER == 0 && Program.TransientDepo == null)
+            if (Program.ISTATIONAER == Consts.TransientMode && Program.TransientDepo == null)
             {
                 Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count];
                 for (int i = 0; i < Program.SourceGroups.Count; i++)
@@ -580,7 +580,7 @@ namespace GRAL_2001
                 // loop over all particles
                 for (int nteil = 1; nteil < Program.NTEILMAX + 1; nteil++)
                 {
-                    if (Program.ParticleMode[nteil] < 2) // no deposition weighting if depo only
+                    if (Program.ParticleMode[nteil] < Consts.DepoOnly) // no deposition weighting if only deposition should be calculated for a particle
                     {
                         int SG = Program.ParticleSG[nteil]; // real SG number of particle
                         int SG_index = Program.SourceGroups.IndexOf(Program.ParticleSG[nteil]); // internal source group number 
