@@ -47,6 +47,7 @@ namespace GRAL_2001
         /// <param name="building_Z0">Roughness of buildings</param>
         /// <param name="relax">Relaxation factor</param>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        [SkipLocalsInit]
         public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, float relax)
         {
             Vector<float> DXK_V = new Vector<float>(Program.DXK);
@@ -74,8 +75,8 @@ namespace GRAL_2001
                 Vector<float> DIMW, windhilf;
                 Vector<float> DDPZ;
 
-                Vector<float> UKSim_LV, UKSimM_LV;
-                Vector<float> VKSjm_LV, VKSjmM_LV;
+                Vector<float> UKS_W_LV, UKS_WB_LV;
+                Vector<float> VKS_S_LV, VKS_SB_LV;
 
                 Vector<float> WKS_V, VKS_V, UKS_V, DZK_V;
                 Vector<float> DXKDZK, DYKDZK, AP0_V, intern, intern2;
@@ -113,22 +114,22 @@ namespace GRAL_2001
                             int iP1 = i + 1;
 
                             Single[] WK_L = Program.WK[i][j];
-                            Single[] WKim_L = Program.WK[iM1][j];
-                            Single[] WKip_L = Program.WK[iP1][j];
-                            Single[] WKjm_L = Program.WK[i][jM1];
-                            Single[] WKjp_L = Program.WK[i][jP1];
+                            Single[] WK_W_L = Program.WK[iM1][j];
+                            Single[] WK_E_L = Program.WK[iP1][j];
+                            Single[] WK_S_L = Program.WK[i][jM1];
+                            Single[] WK_N_L = Program.WK[i][jP1];
                             Single[] UKS_L = Program.UKS[i][j];
                             Single[] VKS_L = Program.VKS[i][j];
                             Single[] WKS_L = Program.WKS[i][j];
                             Single[] DPMNEW_L = Program.DPMNEW[i][j];
-                            Single[] VKim_L = Program.VK[iM1][j];
-                            Single[] VKip_L = Program.VK[iP1][j];
-                            Single[] VKjm_L = Program.VK[i][jM1];
-                            Single[] VKjp_L = Program.VK[i][jP1];
-                            Single[] UKSim_L = Program.UKS[iM1][j];
-                            Single[] UKSip_L = Program.UKS[iP1][j];
-                            Single[] VKSjm_L = Program.VKS[i][jM1];
-                            Single[] VKSjp_L = Program.VKS[i][jP1];
+                            Single[] VK_W_L = Program.VK[iM1][j];
+                            Single[] VK_E_L = Program.VK[iP1][j];
+                            Single[] VK_S_L = Program.VK[i][jM1];
+                            Single[] VK_N_L = Program.VK[i][jP1];
+                            Single[] UKS_W_L = Program.UKS[iM1][j];
+                            Single[] UKS_E_L = Program.UKS[iP1][j];
+                            Single[] VKS_S_L = Program.VKS[i][jM1];
+                            Single[] VKS_N_L = Program.VKS[i][jP1];
 
                             Single[] UK_L = Program.UK[i][j];
                             Single[] VK_L = Program.VK[i][j];
@@ -137,10 +138,11 @@ namespace GRAL_2001
                             int Vert_Index_LL = Program.VerticalIndex[i][j];
                             float Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
                             float Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
-                            bool ADVDOM_JM = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
-                            bool ADVDOM_JP = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
-                            bool ADVDOM_IM = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
-                            bool ADVDOM_IP = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
+                            //At a boundary of the prognostic domain?
+                            bool ADVDOM_S = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
+                            bool ADVDOM_N = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
+                            bool ADVDOM_W = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
+                            bool ADVDOM_E = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
 
                             Single[] VEG_L = Program.VEG[i][j];
                             Single COV_L = Program.COV[i][j];
@@ -239,6 +241,7 @@ namespace GRAL_2001
                                     }
                                 }
 
+                                //Diffusion terms
                                 DE = Vector.Max(VIS, VISHMIN_V) * DYKDZK / DXK_V;
                                 DW = DE;
                                 DS = Vector.Max(VIS, VISHMIN_V) * DXKDZK / DYK_V;
@@ -256,36 +259,33 @@ namespace GRAL_2001
                                 }
 
                                 //BOUNDARY CONDITIONS FOR DIFFUSION TERMS
-                                if (ADVDOM_JM)
+                                if (ADVDOM_S)
                                 {
                                     DS = Vector<float>.Zero;
                                 }
-
-                                if (ADVDOM_JP)
+                                if (ADVDOM_N)
                                 {
                                     DN = Vector<float>.Zero;
                                 }
-
-                                if (ADVDOM_IM)
+                                if (ADVDOM_W)
                                 {
                                     DW = Vector<float>.Zero;
                                 }
-
-                                if (ADVDOM_IP)
+                                if (ADVDOM_E)
                                 {
                                     DE = Vector<float>.Zero;
                                 }
 
                                 //ADVECTION TERMS
-                                UKSim_LV = new Vector<float>(UKSim_L, k);
-                                UKSimM_LV = new Vector<float>(UKSim_L, kM1);
-                                VKSjm_LV = new Vector<float>(VKSjm_L, k);
-                                VKSjmM_LV = new Vector<float>(VKSjm_L, kM1);
+                                UKS_W_LV = new Vector<float>(UKS_W_L, k);
+                                UKS_WB_LV = new Vector<float>(UKS_W_L, kM1);
+                                VKS_S_LV = new Vector<float>(VKS_S_L, k);
+                                VKS_SB_LV = new Vector<float>(VKS_S_L, kM1);
 
-                                FE = Vect_025 * (UKS_V + new Vector<float>(UKSip_L, k) + UKS_M_V + new Vector<float>(UKSip_L, kM1)) * DYKDZK;
-                                FW = Vect_025 * (UKS_V + UKSim_LV + UKS_M_V + UKSimM_LV) * DYKDZK;
-                                FS = Vect_025 * (VKS_V + VKSjm_LV + VKS_M_V + VKSjmM_LV) * DXKDZK;
-                                FN = Vect_025 * (VKS_V + new Vector<float>(VKSjp_L, k) + VKS_M_V + new Vector<float>(VKSjp_L, kM1)) * DXKDZK;
+                                FE = Vect_025 * (UKS_V + new Vector<float>(UKS_E_L, k) + UKS_M_V + new Vector<float>(UKS_E_L, kM1)) * DYKDZK;
+                                FW = Vect_025 * (UKS_V + UKS_W_LV + UKS_M_V + UKS_WB_LV) * DYKDZK;
+                                FS = Vect_025 * (VKS_V + VKS_S_LV + VKS_M_V + VKS_SB_LV) * DXKDZK;
+                                FN = Vect_025 * (VKS_V + new Vector<float>(VKS_N_L, k) + VKS_M_V + new Vector<float>(VKS_N_L, kM1)) * DXKDZK;
                                 FT = WKS_V * AREAxy_V;
                                 FB = Vector<float>.Zero;
 
@@ -358,23 +358,23 @@ namespace GRAL_2001
 
                                 if (VegetationExists)
                                 {
-                                    intern2 = Vect_05 * (VKSjm_LV + VKS_V);
-                                    intern = Vect_05 * (UKSim_LV + UKS_V);
+                                    intern2 = Vect_05 * (VKS_S_LV + VKS_V);
+                                    intern = Vect_05 * (UKS_W_LV + UKS_V);
                                     windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
-                                    DIMW = AW1 * new Vector<float>(WKim_L, k) +
-                                           AS1 * new Vector<float>(WKjm_L, k) +
-                                           AE1 * new Vector<float>(WKip_L, k) +
-                                           AN1 * new Vector<float>(WKjp_L, k) +
+                                    DIMW = AW1 * new Vector<float>(WK_W_L, k) +
+                                           AS1 * new Vector<float>(WK_S_L, k) +
+                                           AE1 * new Vector<float>(WK_E_L, k) +
+                                           AN1 * new Vector<float>(WK_N_L, k) +
                                            AP0_V * Vect_05 * (new Vector<float>(WKS_L, kM1) + WKS_V) +
                                            DDPZ * AREAxy_V -
                                            new Vector<float>(VEG_L, kM1) * WK_LV * windhilf * AREAxy_V * DZK_V;
                                 }
                                 else
                                 {
-                                    DIMW = AW1 * new Vector<float>(WKim_L, k) +
-                                       AS1 * new Vector<float>(WKjm_L, k) +
-                                       AE1 * new Vector<float>(WKip_L, k) +
-                                       AN1 * new Vector<float>(WKjp_L, k) +
+                                    DIMW = AW1 * new Vector<float>(WK_W_L, k) +
+                                       AS1 * new Vector<float>(WK_S_L, k) +
+                                       AE1 * new Vector<float>(WK_E_L, k) +
+                                       AN1 * new Vector<float>(WK_N_L, k) +
                                        AP0_V * Vect_05 * (new Vector<float>(WKS_L, kM1) + WKS_V) +
                                        DDPZ * AREAxy_V;
                                 }
@@ -383,9 +383,9 @@ namespace GRAL_2001
                                 if (k > KKART_LL_P1)
                                 {
                                     DUDZE = (Vect_05 * (new Vector<float>(UKS_L, kP1) + UKS_V) - Vect_05 * (UKS_V + UKS_M_V)) * DYKDZK;
-                                    DUDZW = (Vect_05 * (new Vector<float>(UKSim_L, kP1) + UKSim_LV) - Vect_05 * (UKSim_LV + UKSimM_LV)) * DYKDZK;
+                                    DUDZW = (Vect_05 * (new Vector<float>(UKS_W_L, kP1) + UKS_W_LV) - Vect_05 * (UKS_W_LV + UKS_WB_LV)) * DYKDZK;
                                     DVDZN = (Vect_05 * (new Vector<float>(VKS_L, kP1) + VKS_V) - Vect_05 * (VKS_V + VKS_M_V)) * DXKDZK;
-                                    DVDZS = (Vect_05 * (new Vector<float>(VKSjm_L, kP1) + VKSjm_LV) - Vect_05 * (VKSjm_LV + VKSjmM_LV)) * DXKDZK;
+                                    DVDZS = (Vect_05 * (new Vector<float>(VKS_S_L, kP1) + VKS_S_LV) - Vect_05 * (VKS_S_LV + VKS_SB_LV)) * DXKDZK;
                                     DWDZT = (new Vector<float>(WK_L, kP1) - WK_LV) * AREAxy_V;
                                     DWDZB = (WK_LV - new Vector<float>(WK_L, kM1)) * AREAxy_V;
 
