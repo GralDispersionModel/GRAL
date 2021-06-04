@@ -983,7 +983,7 @@ namespace GRAL_2001
                                     Program.UKS[i][1][k] = Program.UKS[i][2][k];
                                 }
 
-                                if (j == NJJ - 1)
+                                if (j == NJJ - 1 && Program.ADVDOM[i][NJJ] == 1)
                                 {
                                     Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];
                                 }
