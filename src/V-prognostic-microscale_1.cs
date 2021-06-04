@@ -46,6 +46,7 @@ namespace GRAL_2001
         /// <param name="building_Z0">Roughness of buildings</param>
         /// <param name="relax">Relaxation factor</param>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        [SkipLocalsInit]
         public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, Single VG, float relax)
         {
             float DXK = Program.DXK; float DYK = Program.DYK;
@@ -76,8 +77,8 @@ namespace GRAL_2001
                 Vector<float> DIMV, windhilf;
                 Vector<float> DDPY;
 
-                Vector<float> UKSip_LV, UKSjm_LV, UKSipjm_LV, UKSim_LV, UKSimjm_LV, VKjp_LV, VKjm_LV, VKSim_LV;
-                Vector<float> VKSjm_LV, WKSjm_LV, WKSkM_LV;
+                Vector<float> UKS_E_LV, UKS_N_LV, UKS_ES_LV, UKS_W_LV, UKS_WS_LV, VK_N_LV, VK_S_LV, VKS_W_LV;
+                Vector<float> VKS_S_LV, WKS_S_LV, WKS_B_LV;
 
                 Vector<float> WKS_V, VKS_V, UKS_V, DZK_V;
                 Vector<float> DXKDZK, DYKDZK, AP0_V, intern, intern2;
@@ -118,33 +119,34 @@ namespace GRAL_2001
                             Single[] VKS_L = Program.VKS[i][j];
                             Single[] WKS_L = Program.WKS[i][j];
                             Single[] DPMNEW_L = Program.DPMNEW[i][j];
-                            Single[] VKim_L = Program.VK[iM1][j];
-                            Single[] VKip_L = Program.VK[iP1][j];
-                            Single[] VKjm_L = Program.VK[i][jM1];
-                            Single[] VKjp_L = Program.VK[i][jP1];
-                            Single[] UKSim_L = Program.UKS[iM1][j];
-                            Single[] UKSip_L = Program.UKS[iP1][j];
-                            Single[] UKSjm_L = Program.UKS[i][jM1];
-                            Single[] UKSipjm_L = Program.UKS[iP1][jM1];
-                            Single[] UKSimjm_L = Program.UKS[iM1][jM1];
-                            Single[] VKSjm_L = Program.VKS[i][jM1];
-                            Single[] VKSim_L = Program.VKS[iM1][j];
-                            Single[] WKSjm_L = Program.WKS[i][jM1];
-                            Single[] DPMNEWjm_L = Program.DPMNEW[i][jM1];
+                            Single[] VK_W_L = Program.VK[iM1][j];
+                            Single[] VK_E_L = Program.VK[iP1][j];
+                            Single[] VK_S_L = Program.VK[i][jM1];
+                            Single[] VK_N_L = Program.VK[i][jP1];
+                            Single[] UKS_W_L = Program.UKS[iM1][j];
+                            Single[] UKS_E_L = Program.UKS[iP1][j];
+                            Single[] UKS_S_L = Program.UKS[i][jM1];
+                            Single[] UKS_ES_L = Program.UKS[iP1][jM1];
+                            Single[] UKS_WS_L = Program.UKS[iM1][jM1];
+                            Single[] VKS_S_L = Program.VKS[i][jM1];
+                            Single[] VKS_W_L = Program.VKS[iM1][j];
+                            Single[] WKS_S_L = Program.WKS[i][jM1];
+                            Single[] DPMNEW_S_L = Program.DPMNEW[i][jM1];
 
-                            Single[] UKSipjp_L = Program.UKS[iP1][jP1];
-                            Single[] UKSimjp_L = Program.UKS[iM1][jP1];
-                            Single[] WKSjp_L = Program.WK[i][jP1];
+                            Single[] UKS_EN_L = Program.UKS[iP1][jP1];
+                            Single[] UKS_WN_L = Program.UKS[iM1][jP1];
+                            Single[] WKS_N_L = Program.WK[i][jP1];
                             Single[] UK_L = Program.UK[i][j];
 
                             int KKART_LL = Program.KKART[i][j];
                             int Vert_Index_LL = Program.VerticalIndex[i][j];
                             float Ustern_terrain_helpterm = Program.UsternTerrainHelpterm[i][j];
                             float Ustern_obstacles_helpterm = Program.UsternObstaclesHelpterm[i][j];
-                            bool ADVDOM_JM = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
-                            bool ADVDOM_JP = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
-                            bool ADVDOM_IM = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
-                            bool ADVDOM_IP = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
+                            //At a boundary of the prognostic domain?
+                            bool ADVDOM_S = (Program.ADVDOM[i][jM1] < 1) || (j == 2);
+                            bool ADVDOM_N = (Program.ADVDOM[i][jP1] < 1) || (j == Program.NJJ - 1);
+                            bool ADVDOM_W = (Program.ADVDOM[iM1][j] < 1) || (i == 2);
+                            bool ADVDOM_E = (Program.ADVDOM[iP1][j] < 1) || (i == Program.NII - 1);
 
                             float CUTK_L = Program.CUTK[i][j];
                             Single[] VEG_L = Program.VEG[i][j];
@@ -265,6 +267,7 @@ namespace GRAL_2001
                                     }
                                 }
 
+                                //Diffusion terms
                                 DE = Vector.Max(VIS, VISHMIN_V) * DYKDZK / DXK_V;
                                 DW = DE;
                                 DS = Vector.Max(VIS, VISHMIN_V) * DXKDZK / DYK_V;
@@ -282,51 +285,48 @@ namespace GRAL_2001
                                 }
 
                                 //BOUNDARY CONDITIONS FOR DIFFUSION TERMS
-                                if (ADVDOM_JM)
+                                if (ADVDOM_S)
                                 {
                                     DS = Vector<float>.Zero;
                                 }
-
-                                if (ADVDOM_JP)
+                                if (ADVDOM_N)
                                 {
                                     DN = Vector<float>.Zero;
                                 }
-
-                                if (ADVDOM_IM)
+                                if (ADVDOM_W)
                                 {
                                     DW = Vector<float>.Zero;
                                 }
-
-                                if (ADVDOM_IP)
+                                if (ADVDOM_E)
                                 {
                                     DE = Vector<float>.Zero;
                                 }
 
                                 //ADVECTION TERMS
-                                UKSip_LV = new Vector<float>(UKSip_L, k);
-                                UKSjm_LV = new Vector<float>(UKSjm_L, k);
-                                UKSipjm_LV = new Vector<float>(UKSipjm_L, k);
-                                UKSim_LV = new Vector<float>(UKSim_L, k);
-                                VKSim_LV = new Vector<float>(VKSim_L, k);
-                                UKSimjm_LV = new Vector<float>(UKSimjm_L, k);
-                                VKSjm_LV = new Vector<float>(VKSjm_L, k);
-                                WKSjm_LV = new Vector<float>(WKSjm_L, k);
-                                WKSkM_LV = new Vector<float>(WKS_L, kM1);
+                                UKS_E_LV = new Vector<float>(UKS_E_L, k);
+                                UKS_N_LV = new Vector<float>(UKS_S_L, k);
+                                UKS_ES_LV = new Vector<float>(UKS_ES_L, k);
+                                UKS_W_LV = new Vector<float>(UKS_W_L, k);
+                                VKS_W_LV = new Vector<float>(VKS_W_L, k);
+                                UKS_WS_LV = new Vector<float>(UKS_WS_L, k);
+                                VKS_S_LV = new Vector<float>(VKS_S_L, k);
+                                WKS_S_LV = new Vector<float>(WKS_S_L, k);
+                                WKS_B_LV = new Vector<float>(WKS_L, kM1);
 
-                                FE = Vect_025 * (UKS_V + UKSip_LV + UKSjm_LV + UKSipjm_LV) * DYKDZK;
-                                FW = Vect_025 * (UKS_V + UKSim_LV + UKSjm_LV + UKSimjm_LV) * DYKDZK;
-                                FS = VKSjm_LV * DXKDZK;
+                                FE = Vect_025 * (UKS_V + UKS_E_LV + UKS_N_LV + UKS_ES_LV) * DYKDZK;
+                                FW = Vect_025 * (UKS_V + UKS_W_LV + UKS_N_LV + UKS_WS_LV) * DYKDZK;
+                                FS = VKS_S_LV * DXKDZK;
                                 FN = VKS_V * DXKDZK;
-                                FT = Vect_025 * (WKSjm_LV + WKS_V + new Vector<float>(WKSjm_L, kP1) + new Vector<float>(WKS_L, kP1)) * AREAxy_V;
+                                FT = Vect_025 * (WKS_S_LV + WKS_V + new Vector<float>(WKS_S_L, kP1) + new Vector<float>(WKS_L, kP1)) * AREAxy_V;
                                 FB = Vector<float>.Zero;
 
                                 if (mask_v_enable)
                                 {
-                                    FB = Vect_025 * (WKSjm_LV + WKS_V + new Vector<float>(WKSjm_L, kM1) + WKSkM_LV) * AREAxy_V * Mask_V;
+                                    FB = Vect_025 * (WKS_S_LV + WKS_V + new Vector<float>(WKS_S_L, kM1) + WKS_B_LV) * AREAxy_V * Mask_V;
                                 }
                                 else if (k > KKART_LL_P1) // otherwise k < KKART_LL_P1 and FB=0!
                                 {
-                                    FB = Vect_025 * (WKSjm_LV + WKS_V + new Vector<float>(WKSjm_L, kM1) + WKSkM_LV) * AREAxy_V;
+                                    FB = Vect_025 * (WKS_S_LV + WKS_V + new Vector<float>(WKS_S_L, kM1) + WKS_B_LV) * AREAxy_V;
                                 }
 
                                 //PECLET NUMBERS
@@ -384,30 +384,30 @@ namespace GRAL_2001
                                 AIM = BIM + CIM + AW1 + AS1 + AE1 + AN1 + AP0_V;
 
                                 //SOURCE TERMS
-                                DDPY = new Vector<float>(DPMNEWjm_L, k) - new Vector<float>(DPMNEW_L, k);
-                                VKjp_LV = new Vector<float>(VKjp_L, k);
-                                VKjm_LV = new Vector<float>(VKjm_L, k);
+                                DDPY = new Vector<float>(DPMNEW_S_L, k) - new Vector<float>(DPMNEW_L, k);
+                                VK_N_LV = new Vector<float>(VK_N_L, k);
+                                VK_S_LV = new Vector<float>(VK_S_L, k);
 
                                 if (VegetationExists)
                                 {
-                                    intern2 = Vect_05 * (VKSim_LV + VKS_V);
-                                    intern = Vect_05 * (UKSim_LV + UKS_V);
+                                    intern2 = Vect_05 * (VKS_W_LV + VKS_V);
+                                    intern = Vect_05 * (UKS_W_LV + UKS_V);
                                     windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_001);
-                                    DIMV = AW1 * new Vector<float>(VKim_L, k) +
-                                           AS1 * VKjm_LV +
-                                           AE1 * new Vector<float>(VKip_L, k) +
-                                           AN1 * VKjp_LV +
-                                           AP0_V * Vect_05 * (VKSjm_LV + VKS_V) + DDPY * DXKDZK +
+                                    DIMV = AW1 * new Vector<float>(VK_W_L, k) +
+                                           AS1 * VK_S_LV +
+                                           AE1 * new Vector<float>(VK_E_L, k) +
+                                           AN1 * VK_N_LV +
+                                           AP0_V * Vect_05 * (VKS_S_LV + VKS_V) + DDPY * DXKDZK +
                                            (Program.CorolisParam * (VG_V - VK_LV) -
                                            new Vector<float>(VEG_L, kM1) * VK_LV * windhilf) * AREAxy_V * DZK_V;
                                 }
                                 else
                                 {
-                                    DIMV = AW1 * new Vector<float>(VKim_L, k) +
-                                           AS1 * VKjm_LV +
-                                           AE1 * new Vector<float>(VKip_L, k) +
-                                           AN1 * VKjp_LV +
-                                           AP0_V * Vect_05 * (VKSjm_LV + VKS_V) + DDPY * DXKDZK +
+                                    DIMV = AW1 * new Vector<float>(VK_W_L, k) +
+                                           AS1 * VK_S_LV +
+                                           AE1 * new Vector<float>(VK_E_L, k) +
+                                           AN1 * VK_N_LV +
+                                           AP0_V * Vect_05 * (VKS_S_LV + VKS_V) + DDPY * DXKDZK +
                                            Program.CorolisParam * (VG_V - VK_LV) * AREAxy_V * DZK_V;
                                 }
                                 //BOUNDARY CONDITION AT SURFACES (OBSTACLES AND TERRAIN)
@@ -417,8 +417,8 @@ namespace GRAL_2001
                                     //Array.Clear(Mask2, 0, Mask2.Length);
                                     int ii = KKART_LL_P1 - k;   // 0 to SIMD - 1
                                     Mask2[ii] = 1;              // Set the mask2 at SIMD position k == KKART_LL_P1 to 1
-                                    intern = Vect_05 * (UKSim_LV + UKS_V);
-                                    intern2 = Vect_05 * (VKSim_LV + VKS_V);
+                                    intern = Vect_05 * (UKS_W_LV + UKS_V);
+                                    intern2 = Vect_05 * (VKS_W_LV + VKS_V);
                                     windhilf = Vector.Max(Vector.SquareRoot(intern * intern + intern2 * intern2), Vect_01);
 
                                     if (CUTK_L < 1) // building heigth < 1 m
@@ -428,7 +428,7 @@ namespace GRAL_2001
                                         if (Z0 >= DZK_V[ii] * 0.1F)
                                         {
                                             int ind = k + ii + 1;
-                                            Ustern_Buildings = Ustern_terrain_helpterm * MathF.Sqrt(Program.Pow2(0.5F * ((UKSim_L[ind]) + UKS_L[ind])) + Program.Pow2(0.5F * ((VKSim_L[ind]) + VKS_L[ind])));
+                                            Ustern_Buildings = Ustern_terrain_helpterm * MathF.Sqrt(Program.Pow2(0.5F * ((UKS_W_L[ind]) + UKS_L[ind])) + Program.Pow2(0.5F * ((VKS_W_L[ind]) + VKS_L[ind])));
                                         }
                                         Vector<float> Ustern_Buildings_V = new Vector<float>(Ustern_Buildings * Ustern_Buildings);
                                         DIMV -= VK_LV / windhilf * Ustern_Buildings_V * AREAxy_V * new Vector<float>(Mask2);
@@ -445,12 +445,12 @@ namespace GRAL_2001
                                 //additional terms of the eddy-viscosity model
                                 if (k > KKART_LL_P1)
                                 {
-                                    DVDYN = (VKjp_LV - VK_LV) * DXKDZK;
-                                    DVDYS = (VK_LV - VKjm_LV) * DXKDZK;
-                                    DUDYE = (Vect_05 * (new Vector<float>(UKSipjp_L, k) + UKSip_LV) - Vect_05 * (UKSip_LV + UKSipjm_LV)) * DXKDZK;
-                                    DUDYW = (Vect_05 * (new Vector<float>(UKSimjp_L, k) + UKSim_LV) - Vect_05 * (UKSim_LV + UKSimjm_LV)) * DXKDZK;
-                                    DWDYT = (Vect_05 * (new Vector<float>(WKSjp_L, k) + WKS_V) - Vect_05 * (WKS_V + WKSjm_LV)) * AREAxy_V;
-                                    DWDYB = (Vect_05 * (new Vector<float>(WKSjp_L, kM1) + WKSkM_LV) - Vect_05 * (WKSkM_LV + WKSjm_LV)) * AREAxy_V;
+                                    DVDYN = (VK_N_LV - VK_LV) * DXKDZK;
+                                    DVDYS = (VK_LV - VK_S_LV) * DXKDZK;
+                                    DUDYE = (Vect_05 * (new Vector<float>(UKS_EN_L, k) + UKS_E_LV) - Vect_05 * (UKS_E_LV + UKS_ES_LV)) * DXKDZK;
+                                    DUDYW = (Vect_05 * (new Vector<float>(UKS_WN_L, k) + UKS_W_LV) - Vect_05 * (UKS_W_LV + UKS_WS_LV)) * DXKDZK;
+                                    DWDYT = (Vect_05 * (new Vector<float>(WKS_N_L, k) + WKS_V) - Vect_05 * (WKS_V + WKS_S_LV)) * AREAxy_V;
+                                    DWDYB = (Vect_05 * (new Vector<float>(WKS_N_L, kM1) + WKS_B_LV) - Vect_05 * (WKS_B_LV + WKS_S_LV)) * AREAxy_V;
 
                                     if (mask_v_enable) // compute ADD_DIFF and add to DIMW
                                     {
