@@ -664,7 +664,7 @@ Erlaube neben "\t" auch "," als Trennzeichen für Austrittstemp. und Austrittsge
 14.11.2020 (Kuntner)
 Umstellung auf .NET5
 
-01.02.2020 (Kuntner)
+01.02.2021 (Kuntner)
 Reduktion des Speicherbedarfs durch:
    Anlegen der Arrays für das staggered grid nur wo benötigt
    Anlegen der Arrays für Vegetation nur wo benötigt
@@ -677,8 +677,11 @@ Verwendung der Top Row und Top Column für die Konzentrationsdateien
 Schnellere Array-Erzeugung für Quellen
 Verwende List<>.IndexOf für Quellgruppen statt linearer Suche
 
-10.3.2020 (Kuntner)
+10.3.2021 (Kuntner)
 Einführung von Konstanten zur Verminderung von MagicNumbers und besserer Lesbarkeit
 Diagnostisches Windfeld - Gebäude Boundary Layer außerhalb prognostischer Windfelder setzen
 TunnelFileOptional neuer Bug, weil I-Index zu hoch war
 Ohne Gebäude keine Fehlermeldung anzeigen, dass Gebäude fehlen (neuer Bug)
+
+4.6.2021 (Kuntner)
+Benutze MathF. Klasse für den Zufallsgenerator (Performance)
