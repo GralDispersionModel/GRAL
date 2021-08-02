@@ -1269,11 +1269,11 @@ namespace GRAL_2001
             ///<summary>
             /// Deposition velocity factor for PM2,5, PM10 and gaseous substances
             ///</summary>
-            public float VelGasFact { get; }
+            public readonly float VelGasFact { get; }
             ///<summary>
             /// Deposition velocity factor for PM30 and larger particles
             ///</summary>
-            public float VelPMxxFact { get; }
+            public readonly float VelPMxxFact { get; }
 
             public override string ToString() => $"({(VelGasFact + 1)}, {(VelPMxxFact + 1)})";
         }
