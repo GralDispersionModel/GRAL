@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 21.09            < <   +";
+            string Info =     "+  > >         G R A L VERSION: 21.09RC2         < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -334,6 +334,9 @@ namespace GRAL_2001
 
             //read mettimeseries.dat, meteopgt.all and Precipitation.txt in case of transient simulations
             InputMettimeSeries InputMetTimeSeries = new InputMettimeSeries();
+
+            // read vegetation deposition factors
+            VegetationDepoVelFactors = ReaderClass.ReadVegetationDeposition();
 
             if ((ISTATIONAER == Consts.TransientMode) && (IStatistics == Consts.MeteoPgtAll))
             {

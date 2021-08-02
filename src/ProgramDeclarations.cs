@@ -1250,5 +1250,32 @@ namespace GRAL_2001
         /// Distance of buildings to a source to set a prognostic sub domain in meters: no reduction if value > 10000
         ///</summary>
         public static bool GRALOnlineFunctions = true;
+
+        ///<summary>
+        /// Deposition velocity factors within vegetation areas
+        ///</summary>
+        public static VegetationDepoVel VegetationDepoVelFactors = new VegetationDepoVel(1.5F, 3);
+
+        ///<summary>
+        /// Deposition velocity factor within vegetation areas
+        ///</summary>
+        public struct VegetationDepoVel
+        {
+            public VegetationDepoVel(float velGas, float velPMxx)
+            {
+                VelGasFact = MathF.Max(0, velGas - 1);
+                VelPMxxFact = MathF.Max(0, velPMxx - 1);
+            }
+            ///<summary>
+            /// Deposition velocity factor for PM2,5, PM10 and gaseous substances
+            ///</summary>
+            public float VelGasFact { get; }
+            ///<summary>
+            /// Deposition velocity factor for PM30 and larger particles
+            ///</summary>
+            public float VelPMxxFact { get; }
+
+            public override string ToString() => $"({(VelGasFact + 1)}, {(VelPMxxFact + 1)})";
+        }
     }
 }

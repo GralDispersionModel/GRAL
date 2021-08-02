@@ -257,5 +257,42 @@ namespace GRAL_2001
                 ProgramWriters.LogfileGralCoreWrite(" ");
             }
         }//read vegetation_Domain
+
+        /// <summary>
+        /// Read the file VegetationDepoFactor.txt and return the factors or default values 
+        /// </summary>	
+        public Program.VegetationDepoVel ReadVegetationDeposition()
+        {
+            CultureInfo ic = CultureInfo.InvariantCulture;
+            float gasFact = 1.5F;
+            float pmxxFact = 3;
+
+            if (File.Exists("VegetationDepoFactor.txt") == true)
+            {
+                try
+                {
+                    string[] text;
+                    using (StreamReader read = new StreamReader("vegetation.dat"))
+                    {
+                        text = read.ReadLine().Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        gasFact = Convert.ToSingle(text[0], ic);
+                        if (read.EndOfStream == false)
+                        {
+                            text = read.ReadLine().Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            pmxxFact = Convert.ToSingle(text[0], ic);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            Program.VegetationDepoVel depoVel = new Program.VegetationDepoVel(gasFact, pmxxFact);
+            string Info = "Deposition factors for vegetation areas: " + depoVel.ToString();
+            Console.WriteLine(Info);
+            ProgramWriters.LogfileGralCoreWrite(Info);
+            return depoVel;
+        }
     }
 }
