@@ -2088,19 +2088,22 @@ namespace GRAL_2001
         public static float Pd(float varw, float vsed, float vdep, int Deposition_Type, int IndexI, int IndexJ)
         {
             varw = MathF.Sqrt(varw);
-            if (Deposition_Type == 2) // Deposition only - PM30 or larger
+            // inside a vegetation area?
+            if (Program.COV[IndexI][IndexJ] > 0)
             {
-                vdep *= (1F + Program.VegetationDepoVelFactors.VelPMxxFact * Program.COV[IndexI][IndexJ]); // default: up to * 3 for large particles if COV[][] > 0
+                if (Deposition_Type == 2) // Deposition only - PM30 or larger
+                {
+                    vdep *= (1F + Program.VegetationDepoVelFactors.VelPMxxFact * Program.COV[IndexI][IndexJ]); // default: up to * 3 for large particles if COV[][] > 0
+                }
+                else
+                {
+                    vdep *= (1F + Program.VegetationDepoVelFactors.VelGasFact * Program.COV[IndexI][IndexJ]); // default: up to * 1.5 for small particles and gases if COV[][] > 0
+                }
             }
-            else
-            {
-                vdep *= (1F + Program.VegetationDepoVelFactors.VelGasFact * Program.COV[IndexI][IndexJ]); // default: up to * 1.5 for small particles and gases if COV[][] > 0
-            }
-
             // compute deposition probability according to VDI 3945 for this particle
             float Ks = vsed / (sqrt2F * varw);
             float Fs = sqrtPiF * Ks + MathF.Exp(-MathF.Pow(Ks, 2)) / (1 + Erf(Ks));
-            float Pd = 4 * sqrtPiF * 3600 / Program.TAUS * vdep / (sqrt2F * varw * Fs + sqrtPiF * vdep);
+            float Pd = 3 * sqrtPiF * 3600 / Program.TAUS * vdep / (sqrt2F * varw * Fs + sqrtPiF * vdep);
             if (Pd < 1.0)
             {
                 return Pd;

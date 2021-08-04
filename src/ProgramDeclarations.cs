@@ -1259,23 +1259,31 @@ namespace GRAL_2001
         ///<summary>
         /// Deposition velocity factor within vegetation areas
         ///</summary>
-        public struct VegetationDepoVel
+        public readonly struct VegetationDepoVel
         {
+            /// <summary>
+            /// Set the deposition factors for vegetation areas
+            /// </summary>
+            /// <param name="velGas">Factor for gaseous pollutants and PM2,5 and PM10</param>
+            /// <param name="velPMxx">Factor for PM30 and larger particles</param>
             public VegetationDepoVel(float velGas, float velPMxx)
             {
                 VelGasFact = MathF.Max(0, velGas - 1);
                 VelPMxxFact = MathF.Max(0, velPMxx - 1);
             }
             ///<summary>
-            /// Deposition velocity factor for PM2,5, PM10 and gaseous substances
+            /// Deposition velocity factor for PM2,5, PM10 and gaseous pollutants
             ///</summary>
-            public readonly float VelGasFact { get; }
+            public float VelGasFact { get; }
             ///<summary>
             /// Deposition velocity factor for PM30 and larger particles
             ///</summary>
-            public readonly float VelPMxxFact { get; }
+            public float VelPMxxFact { get; }
 
-            public override string ToString() => $"({(VelGasFact + 1)}, {(VelPMxxFact + 1)})";
+            public override string ToString()
+            {
+                return (VelGasFact + 1).ToString(CultureInfo.InvariantCulture) + ", " + (VelPMxxFact + 1).ToString(CultureInfo.InvariantCulture);
+            } 
         }
     }
 }

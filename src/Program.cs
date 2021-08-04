@@ -265,7 +265,8 @@ namespace GRAL_2001
                     VEG[i][0] = new float[NKK + 1];
                 }
             }
-            Program.VEG[0][0][0] = -0.001f;
+            Program.VEG[0][0][0] = -0.001f; //sign for reading vegetation one times, when claculating flow fields
+            Program.VEG[0][0][1] = -0.001f; //sign for reading vegetation, if *.gff files exist
             COV = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
 
             //reading optional files used to define areas where either the tunnel jet stream is destroyed due to traffic
@@ -527,6 +528,7 @@ namespace GRAL_2001
 
                     //optional: read pre-computed GRAL flow fields
                     bool GffFiles = ReadGralFlowFields.Read();
+
                     if (GffFiles == false) // Reading of GRAL Flowfields not successful
                     {
                         //microscale flow field: complex terrain
@@ -551,6 +553,18 @@ namespace GRAL_2001
                         if (FirstLoop)
                         {
                             WriteGRALFlowFields.WriteGRALGeometries();
+                        }
+                    }
+                    else
+                    {
+                        //Read Vegetation areas
+                        if ((Program.FlowFieldLevel == Consts.FlowFieldProg) && (File.Exists("vegetation.dat") == true) && Program.VEG[0][0][1] < 0)
+                        {
+                            //read vegetation only once
+                            ProgramReaders Readclass = new ProgramReaders();
+                            Readclass.ReadVegetation();
+                            Program.VEG[0][0][1] = 0;
+                            Program.VEG[0][0][0] = -0.001f; //reset marker, that vegetation is available
                         }
                     }
                     ProgramWriters WriteClass = new ProgramWriters();

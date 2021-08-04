@@ -26,7 +26,7 @@ namespace GRAL_2001
         public void ReadVegetation()
         {
             CultureInfo ic = CultureInfo.InvariantCulture;
-
+            
             if (File.Exists("vegetation.dat") == true)
             {
                 int block = 0;
@@ -55,7 +55,7 @@ namespace GRAL_2001
                         string text1;
                         Int32 IXCUT;
                         Int32 IYCUT;
-                        //set marker, that vegetation is used
+                        //set marker, that vegetation is available
                         Program.VEG[0][0][0] = 0;
 
                         while (read.EndOfStream == false)
@@ -78,7 +78,7 @@ namespace GRAL_2001
                                 double cjc = Convert.ToDouble(text[1], ic);
                                 IXCUT = (int)((cic - Program.GralWest) / Program.DXK) + 1;
                                 IYCUT = (int)((cjc - Program.GralSouth) / Program.DYK) + 1;
-
+                                
                                 if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
                                 {
                                     // Filter vegetation cells if they are far away from sources and the SubDomainDistance is activated
@@ -116,6 +116,7 @@ namespace GRAL_2001
                                     }
                                     //coverage
                                     Program.COV[IXCUT][IYCUT] = (float) COV;
+                                    
                                 }
                             }
                         }
@@ -272,7 +273,7 @@ namespace GRAL_2001
                 try
                 {
                     string[] text;
-                    using (StreamReader read = new StreamReader("vegetation.dat"))
+                    using (StreamReader read = new StreamReader("VegetationDepoFactor.txt"))
                     {
                         text = read.ReadLine().Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
                         gasFact = Convert.ToSingle(text[0], ic);
@@ -289,9 +290,14 @@ namespace GRAL_2001
             }
 
             Program.VegetationDepoVel depoVel = new Program.VegetationDepoVel(gasFact, pmxxFact);
-            string Info = "Deposition factors for vegetation areas: " + depoVel.ToString();
-            Console.WriteLine(Info);
-            ProgramWriters.LogfileGralCoreWrite(Info);
+
+            if (File.Exists("VegetationDepoFactor.txt") == true)
+            {
+                string Info = "User defined deposition factors for vegetation areas: " + depoVel.ToString();
+                Console.WriteLine(Info);
+                ProgramWriters.LogfileGralCoreWrite(Info);
+            }
+
             return depoVel;
         }
     }

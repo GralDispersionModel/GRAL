@@ -685,3 +685,7 @@ Ohne Gebäude keine Fehlermeldung anzeigen, dass Gebäude fehlen (neuer Bug)
 
 4.6.2021 (Kuntner)
 Benutze MathF. Klasse für den Zufallsgenerator (Performance)
+
+3.8.2021 (Kuntner)
+Behebe Überschätzung der trockenen Deposition
+Ermögliche Benutzervorgabe der Erhöhungsfaktoren für die Deposition in Vegetationsgebieten
