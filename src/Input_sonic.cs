@@ -35,15 +35,14 @@ namespace GRAL_2001
                     //height of observation above ground in m                    
                     Program.MeasurementHeight[1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
                     Console.WriteLine();
-                    Console.Write("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
-                    Console.WriteLine();
-
+                    Console.WriteLine("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
+                    
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
                         string text1 = sr.ReadLine();
                         if (text1 == null)
                         {
-                            Program.IEND = 1;
+                            Program.IEND = Consts.CalculationFinished;
                             return;
                         }
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);

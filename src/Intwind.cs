@@ -37,7 +37,7 @@ namespace GRAL_2001
             float UZint = 0;
             int IndexK = 0;
 
-            if (Program.Topo == 1)
+            if (Program.Topo == Consts.TerrainAvailable)
             {
                 float f1 = zcoord - Program.AHMIN;
                 IndexK = BinarySearch(f1); //19.05.25 Ku
@@ -56,7 +56,7 @@ namespace GRAL_2001
                 UZint = w1 + (w2 - w1) / Program.DZK[IndexK] * (f1 - Program.HOKART[IndexK - 1]); //19.05.25 Ku: use f1 instead of zcoord - (Program.AHMIN + Program.HOKART[IndexK - 1])
                 //mean wind-speed component gradients are not computed as there is no significant change in computed concentrations, even though the well-mixed criterion (Anfossi et al., 2009) is not met
             }
-            else if (Program.Topo == 0)
+            else if (Program.Topo == Consts.TerrainFlat)
             {
                 int inumm = Program.MetProfileNumb;
                 int NKK = Program.NKK;

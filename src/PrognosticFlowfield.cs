@@ -27,7 +27,7 @@ namespace GRAL_2001
         /// <summary>
         ///Start the calculation of microscale prognostic flow fields
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate()
         {
             CultureInfo ic = CultureInfo.InvariantCulture; //19.05.25 Ku: use ic for the file output
@@ -38,7 +38,7 @@ namespace GRAL_2001
             float DYK = Program.DYK;
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
-            bool topoZ0Available = (Program.Topo == 1) && (Program.LandUseAvailable == true);
+            bool topoZ0Available = (Program.Topo == Consts.TerrainAvailable) && (Program.LandUseAvailable == true);
 
             //some array declarations
             if (Program.UKS.Length < 5) // Arrays already created?
@@ -49,6 +49,7 @@ namespace GRAL_2001
                 Program.VKS = new float[NII + 2][][];
                 Program.WKS = new float[NII + 2][][];
                 Program.DPMNEW = new float[NII + 1][][];
+                long MemRed=0;
                 for (int i = 1; i < NII + 2; ++i)
                 {
                     Program.UKS[i] = new float[NJJ + 2][];
@@ -61,14 +62,34 @@ namespace GRAL_2001
 
                     for (int j = 1; j < NJJ + 2; ++j)
                     {
-                        Program.UKS[i][j] = new float[NKK + 1];
-                        Program.VKS[i][j] = new float[NKK + 1];
-                        Program.WKS[i][j] = new float[NKK + 2];
-                        if (i < NII + 1 && j < NJJ + 1)
+                        int ip = Math.Min(i + 1, NII + 1);
+                        int jp = Math.Min(j + 1, NJJ + 1);
+                        
+                        // Check for prognostic sub domains and reduce memory consumption of the jagged arrays
+                        if (Program.ADVDOM[i][j] == 1 || Program.ADVDOM[i - 1][j] == 1 || Program.ADVDOM[ip][j] == 1 ||
+                            Program.ADVDOM[i][j - 1] == 1 || Program.ADVDOM[i - 1][j - 1] == 1 || Program.ADVDOM[ip][j - 1] == 1 ||
+                            Program.ADVDOM[i][jp] == 1 || Program.ADVDOM[i - 1][jp] == 1 || Program.ADVDOM[ip][jp] == 1)
                         {
-                            Program.DPMNEW[i][j] = new float[Program.KADVMAX + 2];
+                            Program.UKS[i][j] = new float[NKK + 1];
+                            Program.VKS[i][j] = new float[NKK + 1];
+                            Program.WKS[i][j] = new float[NKK + 2];
+                            if (i < NII + 1 && j < NJJ + 1)
+                            {
+                                Program.DPMNEW[i][j] = new float[Program.KADVMAX + 2];
+                            }
+                        }
+                        else
+                        {
+                            MemRed++;
                         }
                     }
+                }
+
+                if (MemRed > 500)
+                {
+                    string Info = "Reduce Memory Usage (Staggered Prognostic Grid): " + MemRed.ToString() + " x " + NKK.ToString() + " Cells: " + Math.Round(MemRed / 1000000D * 16D * (NKK + 2), 1) + " MByte";
+                    Console.WriteLine(Info);
+                    ProgramWriters.LogfileGralCoreWrite(Info);
                 }
 
                 Program.VerticalIndex = new int[NII + 1][];
@@ -93,17 +114,26 @@ namespace GRAL_2001
                             Program.UsternObstaclesHelpterm[i][j] = 0;
                             Program.UsternTerrainHelpterm[i][j] = 0;
                         }
-                        for (int k = 0; k <= NKK + 1; ++k)
+
+                        int ip = Math.Min(i + 1, NII + 1);
+                        int jp = Math.Min(j + 1, NJJ + 1);
+                        // Check for prognostic sub domains and reduce memory consumption of the jagged arrays
+                        if (Program.ADVDOM[i][j] == 1 || Program.ADVDOM[i - 1][j] == 1 || Program.ADVDOM[ip][j] == 1 ||
+                            Program.ADVDOM[i][j - 1] == 1 || Program.ADVDOM[i - 1][j - 1] == 1 || Program.ADVDOM[ip][j - 1] == 1 ||
+                            Program.ADVDOM[i][jp] == 1 || Program.ADVDOM[i - 1][jp] == 1 || Program.ADVDOM[ip][jp] == 1)
                         {
-                            if (k < NKK + 1)
+                            for (int k = 0; k <= NKK + 1; ++k)
                             {
-                                Program.UKS[i][j][k] = 0;
-                                Program.VKS[i][j][k] = 0;
-                            }
-                            Program.WKS[i][j][k] = 0;
-                            if ((k < Program.KADVMAX + 2) && (i < NII + 1) && (j < NJJ + 1))
-                            {
-                                Program.DPMNEW[i][j][k] = 0;
+                                if (k < NKK + 1)
+                                {
+                                    Program.UKS[i][j][k] = 0;
+                                    Program.VKS[i][j][k] = 0;
+                                }
+                                Program.WKS[i][j][k] = 0;
+                                if ((k < Program.KADVMAX + 2) && (i < NII + 1) && (j < NJJ + 1))
+                                {
+                                    Program.DPMNEW[i][j][k] = 0;
+                                }
                             }
                         }
                     }
@@ -277,12 +307,20 @@ namespace GRAL_2001
                         float[] VK_L = Program.VK[i][j];
                         float[] WK_L = Program.WK[i][j];
 
-                        for (int k = 1; k <= NKK - 1; ++k)
+                        int ip = Math.Min(i + 1, NII + 1);
+                        int jp = Math.Min(j + 1, NJJ + 1);
+                        // Check for prognostic sub domains and reduce memory consumption of the jagged arrays
+                        if (Program.ADVDOM[i][j] == 1 || Program.ADVDOM[i - 1][j] == 1 || Program.ADVDOM[ip][j] == 1 ||
+                            Program.ADVDOM[i][j - 1] == 1 || Program.ADVDOM[i - 1][j - 1] == 1 || Program.ADVDOM[ip][j - 1] == 1 ||
+                            Program.ADVDOM[i][jp] == 1 || Program.ADVDOM[i - 1][jp] == 1 || Program.ADVDOM[ip][jp] == 1)
                         {
-                            UKS_L[k] = 0.5F * (UK_L[k] + Program.UK[i + 1][j][k]);
-                            VKS_L[k] = 0.5F * (VK_L[k] + Program.VK[i][j + 1][k]);
-                            WKS_L[k] = 0.5F * (WK_L[k] + WK_L[k + 1]);
-                            Geschw_max1 = Math.Max(Geschw_max1, Math.Sqrt(Program.Pow2(UKS_L[k]) + Program.Pow2(VKS_L[k])));
+                            for (int k = 1; k <= NKK - 1; ++k)
+                            {
+                                UKS_L[k] = 0.5F * (UK_L[k] + Program.UK[i + 1][j][k]);
+                                VKS_L[k] = 0.5F * (VK_L[k] + Program.VK[i][j + 1][k]);
+                                WKS_L[k] = 0.5F * (WK_L[k] + WK_L[k + 1]);
+                                Geschw_max1 = Math.Max(Geschw_max1, Math.Sqrt(Program.Pow2(UKS_L[k]) + Program.Pow2(VKS_L[k])));
+                            }
                         }
                     }
                 }
@@ -366,7 +404,7 @@ namespace GRAL_2001
             //geostrophic wind at the reference point
             float UG = Program.UKS[refP.X][refP.Y][NKK - 1];
             float VG = Program.VKS[refP.X][refP.Y][NKK - 1];
-
+            
             //initialization of turbulent kinetic energy, dissipation, and potential temperature
             Parallel.For(1, NII + 1, Program.pOptions, i =>
             {
@@ -414,7 +452,7 @@ namespace GRAL_2001
 
                         float U0int = 0;
                         float varw = 0;
-                        if ((Program.IStatistics == 0) || (Program.IStatistics == 3))
+                        if ((Program.IStatistics == Consts.MeteoZR) || (Program.IStatistics == Consts.MeteoSonic))
                         {
                             //interpolation of observed standard deviations of horizontal wind fluctuations
                             if (zhilf <= Program.MeasurementHeight[1])
@@ -486,7 +524,7 @@ namespace GRAL_2001
 
             //INIITAL USTERN GEOMETRY FACTORS IN HORIZONTAL AND VERTICAL DIRECTIONS, ASSUMING NEUTRAL STABILITY AND A ROUGHNESS LENGTH OF 0.01m 
             float Ustern_factorX = (float)(0.4 / Math.Log(DXK * 0.5 / building_Z0));
-
+            
             //SET VELOCITIES AND TKE/DISSIPATION INSIDE BUILDINGS TO ZERO
             Parallel.For(1, NII + 1, Program.pOptions, i =>
             {
@@ -541,7 +579,7 @@ namespace GRAL_2001
 
         //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
         CONTINUE_SIMULATION:
-            while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel > 1))
+            while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
             {
                 if (IterationLoops == 1)
                 {
@@ -945,7 +983,7 @@ namespace GRAL_2001
                                     Program.UKS[i][1][k] = Program.UKS[i][2][k];
                                 }
 
-                                if (j == NJJ - 1)
+                                if (j == NJJ - 1 && Program.ADVDOM[i][NJJ] == 1)
                                 {
                                     Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];
                                 }
@@ -958,11 +996,18 @@ namespace GRAL_2001
                 {
                     for (int k = 0; k <= NKK; ++k)
                     {
-                        Program.VKS[1][j][k] = Program.VKS[2][j][k];
-                        Program.VKS[NII][j][k] = Program.VKS[NII - 1][j][k];
+                        if (Program.ADVDOM[1][j] == 1)
+                        {
+                            Program.VKS[1][j][k] = Program.VKS[2][j][k];
+
+                        }
+                        if (Program.ADVDOM[NII - 1][j] == 1)
+                        {
+                            Program.VKS[NII][j][k] = Program.VKS[NII - 1][j][k];
+                        }
                     }
                 }
-
+                
                 //TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Part 5: " + TIME_dispersion.ToString("0.000"));
                 //Startzeit = Environment.TickCount;
@@ -1008,7 +1053,7 @@ namespace GRAL_2001
                     DeltaFinish = (float)(DeltaMean / Program.Pow2(topwind));
                 }
 
-                if ((IterationLoops % 100 == 0) && (IterationLoops > 1) && (Program.FlowFieldLevel > 1))
+                if ((IterationLoops % 100 == 0) && (IterationLoops > 1) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
                 {
                     double _delta = DeltaMean / Program.Pow2(topwind);
 
@@ -1032,7 +1077,7 @@ namespace GRAL_2001
                 }
 
                 //ONLINE OUTPUT OF GRAL FLOW FIELDS
-                if ((IterationLoops % 100 == 0) && (Program.FlowFieldLevel > 1))
+                if (Program.GRALOnlineFunctions && (IterationLoops % 100 == 0) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
                 {
                     GRALONLINE.Output(NII, NJJ, NKK);
                 }

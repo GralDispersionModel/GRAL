@@ -74,7 +74,7 @@ namespace GRAL_2001
                 sum += Program.PS_PartNumb[i];
                 Sum_of_Particles += Program.PS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("PS " + i.ToString() + " : " + Math.Abs(Program.PS_PartNumb[i]).ToString());
                 }
@@ -93,7 +93,7 @@ namespace GRAL_2001
                 sum += Program.LS_PartNumb[i];
                 Sum_of_Particles += Program.LS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("LS " + i.ToString() + " : " + Math.Abs(Program.LS_PartNumb[i]).ToString());
                 }
@@ -112,7 +112,7 @@ namespace GRAL_2001
                 sum += Program.TS_PartNumb[i];
                 Sum_of_Particles += Program.TS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("TS " + i.ToString() + " : " + Math.Abs(Program.TS_PartNumb[i]).ToString());
                 }
@@ -131,7 +131,7 @@ namespace GRAL_2001
                 sum += Program.AS_PartNumb[i];
                 Sum_of_Particles += Program.AS_PartNumb[i];
 
-                if (Program.LogLevel == 2) // Show all particle-numbers in the case of Log-Level 02
+                if (Program.LogLevel == Consts.LogLevelRefPart) // Show all particle-numbers in the case of Log-Level 02
                 {
                     Console.WriteLine("AS " + i.ToString() + " : " + Math.Abs(Program.AS_PartNumb[i]).ToString());
                 }
@@ -145,16 +145,16 @@ namespace GRAL_2001
             ProgramWriters.LogfileGralCoreWrite("");
 
             // Resize Arrays 
-            Program.ParticleSource = new Int32[Sum_of_Particles + 1];
-            Program.ParticleSG = new byte[Sum_of_Particles + 1];
-            Program.Xcoord = new double[Sum_of_Particles + 1];
-            Program.YCoord = new double[Sum_of_Particles + 1];
-            Program.ZCoord = new float[Sum_of_Particles + 1];
-            Program.ParticleMass = new double[Sum_of_Particles + 1];
-            Program.SourceType = new byte[Sum_of_Particles + 1];
-            Program.ParticleVsed = new float[Sum_of_Particles + 1];                         // sedimentation velocity of one lagrangian particle
-            Program.ParticleVdep = new float[Sum_of_Particles + 1];                         // deposition velocity of one lagrangian particle
-            Program.ParticleMode = new byte[Sum_of_Particles + 1];
+            Program.ParticleSource = GC.AllocateUninitializedArray<Int32>(Sum_of_Particles + 1);
+            Program.ParticleSG = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+            Program.Xcoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
+            Program.YCoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
+            Program.ZCoord = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);
+            Program.ParticleMass = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
+            Program.SourceType = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+            Program.ParticleVsed = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);         // sedimentation velocity of one lagrangian particle
+            Program.ParticleVdep = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);         // deposition velocity of one lagrangian particle
+            Program.ParticleMode = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
 
             Console.WriteLine();
 

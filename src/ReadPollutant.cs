@@ -62,7 +62,7 @@ namespace GRAL_2001
                             txt[0] = txt[0].Replace(".", decsep);
                             Program.WedDepoAlphaW = Convert.ToDouble(txt[0]);
 
-                            if (Program.ISTATIONAER == 0 && Program.Wet_Depo_CW > 0 && Program.WedDepoAlphaW > 0)
+                            if (Program.ISTATIONAER == Consts.TransientMode && Program.Wet_Depo_CW > 0 && Program.WedDepoAlphaW > 0)
                             {
                                 Program.WetDeposition = true;
                             }

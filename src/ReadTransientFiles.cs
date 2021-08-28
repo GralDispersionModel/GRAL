@@ -10,13 +10,6 @@
 ///</remarks>
 #endregion
 
-/*
- * Created by SharpDevelop.
- * User: Markus Kuntner
- * Date: 15.01.2018
- * Time: 13:58
-*/
-
 using System;
 using System.IO;
 using System.IO.Compression;

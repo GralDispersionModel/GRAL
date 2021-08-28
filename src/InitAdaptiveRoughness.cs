@@ -53,7 +53,7 @@ namespace GRAL_2001
             //read buildings into a local array
             float[][] TempArray = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             
-            if (Topo == 1)
+            if (Topo == Consts.TerrainAvailable)
             {
                 ReaderClass.ReadBuildingsTerrain(TempArray);
             }
@@ -137,7 +137,7 @@ namespace GRAL_2001
                 }
             }
 
-            if ((Program.Topo == 1) && (Program.LandUseAvailable == true))
+            if ((Program.Topo == Consts.TerrainAvailable) && (Program.LandUseAvailable == true))
             {
                 float DDX1 = Program.DDX[1];
                 float DDY1 = Program.DDY[1];

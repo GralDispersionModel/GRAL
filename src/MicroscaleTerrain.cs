@@ -51,24 +51,7 @@ namespace GRAL_2001
             }
 
             // Search the reference point within the prognostic sub domains
-            if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0)
-            {
-                MicroscaleTerrainSearchRefPoint mtsp = new MicroscaleTerrainSearchRefPoint();
-                Program.SubDomainRefPos = mtsp.SearchReferencePoint(Program.ADVDOM);
-                //No prognostic sub array - warning message to the user
-                if (Program.SubDomainRefPos.X == 0 && Program.SubDomainRefPos.Y == 0)
-                {
-                    Program.SubDomainRefPos = new IntPoint(1, 1);
-                    string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-                    Console.WriteLine("Press a key to continue");
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Console.ReadKey(true);
-                    }
-                }
-            }
+            Program.SubDomainRefPos = GetSubDomainPoint(Program.SubDomainRefPos);
 
             //optional: orographical data as used in the GRAMM model is used
             if (File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 999999) // No GRAL topography or GRAL topography = corrupt
@@ -123,25 +106,25 @@ namespace GRAL_2001
                             {
                                 int ik_p = Math.Min(ik + 1, Program.NK);
 
-                                double xdist = DDX1 - xwert;
-                                double ydist = DDY1 - ywert;
+                                float xdist = DDX1 - xwert;
+                                float ydist = DDY1 - ywert;
 
-                                float r1 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F)));
-                                float r2 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F)));
-                                float r3 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F)));
-                                float r4 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F)));
-                                float r5 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r6 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r7 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r8 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r9 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F)));
-                                float r10 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F)));
-                                float r11 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r12 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r13 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r14 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r15 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F)));
-                                float r16 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F)));
+                                float r1 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F));
+                                float r2 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F));
+                                float r3 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F));
+                                float r4 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F));
+                                float r5 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r6 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r7 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r8 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r9 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F));
+                                float r10 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F));
+                                float r11 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r12 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r13 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r14 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r15 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F));
+                                float r16 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F));
 
                                 float gew = r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10 + r11 + r12 + r13 + r14 + r15 + r16;
 
@@ -386,25 +369,25 @@ namespace GRAL_2001
                             {
                                 int ik_p = Math.Min(ik + 1, Program.NK);
 
-                                double xdist = DDX1 - xwert;
-                                double ydist = DDY1 - ywert;
+                                float xdist = DDX1 - xwert;
+                                float ydist = DDY1 - ywert;
 
-                                float r1 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F)));
-                                float r2 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F)));
-                                float r3 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F)));
-                                float r4 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F)));
-                                float r5 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r6 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r7 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r8 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F)));
-                                float r9 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F)));
-                                float r10 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F)));
-                                float r11 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r12 = (float)(1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r13 = (float)(1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r14 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F)));
-                                float r15 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F)));
-                                float r16 = (float)(1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F)));
+                                float r1 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ywert) + .1F));
+                                float r2 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(ydist) + .1F));
+                                float r3 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ydist) + .1F));
+                                float r4 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(ywert) + .1F));
+                                float r5 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r6 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r7 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r8 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ywert) + .1F));
+                                float r9 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ywert) + .1F));
+                                float r10 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(ydist) + .1F));
+                                float r11 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r12 = 1 / (Program.Pow2(Program.Pow2(xdist) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r13 = 1 / (Program.Pow2(Program.Pow2(xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r14 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(DDY1 + ydist) + .1F));
+                                float r15 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ydist) + .1F));
+                                float r16 = 1 / (Program.Pow2(Program.Pow2(DDX1 + xwert) + Program.Pow2(ywert) + .1F));
 
                                 float gew = r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9 + r10 + r11 + r12 + r13 + r14 + r15 + r16;
 
@@ -649,7 +632,7 @@ namespace GRAL_2001
             {
                 if (File.Exists("GRAL_Topography.txt") == true)
                 {
-                    Console.WriteLine("Write file GRAL_Topography.txt");
+                    Console.WriteLine("Writing the file GRAL_Topography.txt");
 
                     try
                     {
@@ -681,160 +664,178 @@ namespace GRAL_2001
                 }
             }
 
-            //in case of the diagnostic approach, a boundary layer is established near the obstacle's walls
-            if ((Program.FlowFieldLevel == 1) && (Program.BuildingsExist == true))
+            //in case of the diagnostic approach or the prognostic approach with reduced SubDomains,, a boundary layer is established near the obstacle's walls
+            if ((Program.FlowFieldLevel <= Consts.FlowFieldDiag) || 
+                (Program.FlowFieldLevel == Consts.FlowFieldProg && Program.SubDomainDistance < 10000) && 
+                Program.BuildingsExist == true)
             {
                 Parallel.For((1 + Program.IGEB), (Program.NII - Program.IGEB + 1), Program.pOptions, i =>
                 {
                     int IGEB = Program.IGEB;
                     for (int j = 1 + IGEB; j <= Program.NJJ - IGEB; j++)
                     {
-                        double entf = 0;
-                        float[] UK_L = Program.UK[i][j];
-                        float[] VK_L = Program.VK[i][j];
-                        float[] WK_L = Program.WK[i][j];
-                        int KKART = Program.KKART[i][j];
-
-                        for (int k = 1; k < Program.NKK; k++)
+                        //in case of diagnostic approach or outside prognostic sub domain area
+                        if ((Program.FlowFieldLevel == Consts.FlowFieldDiag) || (Program.ADVDOM[i][j] == 0))
                         {
-                            double abmind = 1;
-                            double abmind1 = 1;
-                            double abmind2 = 1;
-                            double abmind3 = 1;
-                            double abmind4 = 1;
-                            double abmind5 = 1;
-                            double abmind6 = 1;
-                            double abmind7 = 1;
-                            double abmind8 = 1;
-                            double vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5 + Program.AHMIN;
+                            float entf = 0;
+                            float[] UK_L = Program.UK[i][j];
+                            float[] VK_L = Program.VK[i][j];
+                            float[] WK_L = Program.WK[i][j];
+                            int KKART = Program.KKART[i][j];
 
-                            //search towards west for obstacles
-                            for (int ig = i - IGEB; ig < i; ig++)
+                            for (int k = 1; k < Program.NKK; k++)
                             {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > KKART))
+                                float abmind = 1;
+                                // float abmind1 = 1;
+                                // float abmind2 = 1;
+                                // float abmind3 = 1;
+                                // float abmind4 = 1;
+                                // float abmind5 = 1;
+                                // float abmind6 = 1;
+                                // float abmind7 = 1;
+                                // float abmind8 = 1;
+                                if (k > KKART)
                                 {
-                                    entf = Math.Abs((i - ig) * DXK);
+                                    float vertk = Program.HOKART[k - 1] + Program.DZK[k] * 0.5F + Program.AHMIN;
+
+                                    //search towards west for obstacles
+                                    entf = 21;
+                                    for (int ig = i - 1; ig >= i - IGEB; ig--)
+                                    {
+                                        if ((Program.CUTK[ig][j] > 1) && (vertk <= Program.AHK[ig][j]))
+                                        {
+                                            entf = Math.Abs((i - ig) * DXK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards east for obstacles
+                                    entf = 21;
+                                    for (int ig = i + 1; ig <= i + IGEB; ig++)
+                                    {
+                                        if ((Program.CUTK[ig][j] > 1) && (vertk <= Program.AHK[ig][j]))
+                                        {
+                                            entf = MathF.Abs((i - ig) * DXK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards north for obstacles
+                                    entf = 21;
+                                    for (int jg = j + 1; jg <= j + IGEB; jg++)
+                                    {
+                                        if ((Program.CUTK[i][jg] > 1) && (vertk <= Program.AHK[i][jg]))
+                                        {
+                                            entf = MathF.Abs((j - jg) * DYK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards south for obstacles
+                                    entf = 21;
+                                    for (int jg = j - 1; jg >= j - IGEB; jg--)
+                                    {
+                                        if ((Program.CUTK[i][jg] > 1) && (vertk <= Program.AHK[i][jg]))
+                                        {
+                                            entf = MathF.Abs((j - jg) * DYK);
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards south/east for obstacles
+                                    entf = 21;
+                                    for (int ig = i + 1; ig <= i + IGEB; ig++)
+                                    {
+                                        int jg = j + ig - i;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards north/west for obstacles
+                                    entf = 21;
+                                    for (int ig = i - 1; ig >= i - IGEB; ig--)
+                                    {
+                                        int jg = j + ig - i;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards north/east for obstacles
+                                    entf = 21;
+                                    for (int ig = i + 1; ig <= i + IGEB; ig++)
+                                    {
+                                        int jg = j + i - ig;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //search towards south/west for obstacles
+                                    entf = 21;
+                                    for (int ig = i - 1; ig >= i - IGEB; ig--)
+                                    {
+                                        int jg = j + i - ig;
+                                        if ((Program.CUTK[ig][jg] > 1) && (vertk <= Program.AHK[ig][jg]))
+                                        {
+                                            entf = MathF.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
+                                            break; //break the loop
+                                        }
+                                    }
+                                    if (entf <= 20)
+                                    {
+                                        abmind *= 0.19F * MathF.Log((entf + 0.5F) * 10);
+                                    }
+
+                                    //abmind = abmind1 * abmind2 * abmind3 * abmind4 * abmind5 * abmind6 * abmind7 * abmind8;
+
+                                    UK_L[k] *= abmind;
+                                    VK_L[k] *= abmind;
+                                    WK_L[k] *= abmind;
                                 }
                             }
-                            if (entf <= 20)
-                            {
-                                abmind1 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards east for obstacles
-                            for (int ig = i + IGEB; ig >= i + 1; ig--)
-                            {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][j]) && (Program.CUTK[ig][j] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Abs((i - ig) * DXK);
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind2 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards south for obstacles
-                            for (int jg = j - IGEB; jg < j; jg++)
-                            {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Abs((j - jg) * DYK);
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind3 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards north for obstacles
-                            for (int jg = j + IGEB; jg >= j + 1; jg--)
-                            {
-                                entf = 21;
-                                if ((vertk <= Program.AHK[i][jg]) && (Program.CUTK[i][jg] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Abs((j - jg) * DYK);
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind4 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards north/east for obstacles
-                            for (int ig = i + IGEB; ig >= i + 1; ig--)
-                            {
-                                int jg = j + ig - i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind5 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards south/west for obstacles
-                            for (int ig = i - IGEB; ig < i; ig++)
-                            {
-                                int jg = j + ig - i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind6 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards south/east for obstacles
-                            for (int ig = i + IGEB; ig >= i + 1; ig--)
-                            {
-                                int jg = j - ig + i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind7 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            //search towards north/west for obstacles
-                            for (int ig = i - IGEB; ig < i; ig++)
-                            {
-                                int jg = j - ig + i;
-                                entf = 21;
-                                if ((vertk <= Program.AHK[ig][jg]) && (Program.CUTK[ig][jg] > 0) && (k > KKART))
-                                {
-                                    entf = Math.Sqrt(Program.Pow2((i - ig) * DXK) + Program.Pow2((j - jg) * DYK));
-                                }
-                            }
-                            if (entf <= 20)
-                            {
-                                abmind8 *= 0.19 * Math.Log((entf + 0.5) * 10);
-                            }
-
-                            abmind = abmind1 * abmind2 * abmind3 * abmind4 * abmind5 * abmind6 * abmind7 * abmind8;
-
-                            UK_L[k] *= (float)abmind;
-                            VK_L[k] *= (float)abmind;
-                            WK_L[k] *= (float)abmind;
                         }
                     }
                 });
             }
+
             //prognostic approach
-            if ((Program.FlowFieldLevel == 2) && ((Program.BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
+            if ((Program.FlowFieldLevel == Consts.FlowFieldProg) && ((Program.BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
             {
                 //read vegetation only once
                 if (Program.VEG[0][0][0] < 0)
@@ -847,11 +848,11 @@ namespace GRAL_2001
             }
 
             //Final mass conservation using poisson equation for pressure
-            if (Program.FlowFieldLevel == 1)
+            if (Program.FlowFieldLevel == Consts.FlowFieldDiag)
             {
                 Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
             }
-            else if (Program.FlowFieldLevel == 0)
+            else if (Program.FlowFieldLevel == Consts.FlowFieldNoBuildings)
             {
                 Console.WriteLine("DIAGNOSTIC WIND FIELD CALCULATION");
             }
@@ -864,16 +865,16 @@ namespace GRAL_2001
                 for (int j = 2; j < Program.NJJ; j++)
                 {
                     //Pointers (to speed up the computations)
-                    Single[] UK_L = Program.UK[i][j];
-                    Single[] UKi_L = Program.UK[i + 1][j];
-                    Single[] VK_L = Program.VK[i][j];
-                    Single[] VKj_L = Program.VK[i][j + 1];
-                    Single[] WK_L = Program.WK[i][j];
-                    double fwo1 = 0;
-                    double fwo2 = 0;
-                    double fsn1 = 0;
-                    double fsn2 = 0;
-                    double fbt1 = 0;
+                    float[] UK_L = Program.UK[i][j];
+                    float[] UKi_L = Program.UK[i + 1][j];
+                    float[] VK_L = Program.VK[i][j];
+                    float[] VKj_L = Program.VK[i][j + 1];
+                    float[] WK_L = Program.WK[i][j];
+                    float fwo1 = 0;
+                    float fwo2 = 0;
+                    float fsn1 = 0;
+                    float fsn2 = 0;
+                    float fbt1 = 0;
                     float KKART = Program.KKART[i][j];
 
                     for (int k = 1; k < Program.NKK; k++)
@@ -925,11 +926,40 @@ namespace GRAL_2001
                                 fbt1 = DXK * DYK * WK_L[k];
                             }
 
-                            WK_L[k + 1] = (float)((fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (DXK * DYK));
+                            WK_L[k + 1] = (fwo1 - fwo2 + fsn1 - fsn2 + fbt1) / (DXK * DYK);
                         }
                     }
                 }
             });
         }
+
+        public static IntPoint GetSubDomainPoint(IntPoint Pt)
+        {
+            // Search the reference point within the prognostic sub domains
+            if (Pt.X == 0 && Pt.Y == 0)
+            {
+                MicroscaleTerrainSearchRefPoint mtsp = new MicroscaleTerrainSearchRefPoint();
+                Pt = mtsp.SearchReferencePoint(Program.ADVDOM);
+                //No prognostic sub array - warning message to the user
+                if (Pt.X == 0 && Pt.Y == 0)
+                {
+                    Pt = new IntPoint(1, 1);
+                    if (Program.FlowFieldLevel == Consts.FlowFieldProg)
+                    {
+                        string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
+                        Console.WriteLine(err);
+                        ProgramWriters.LogfileProblemreportWrite(err);
+                        Console.WriteLine("Press a key to exit");
+                        if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                        {
+                            Console.ReadKey(true);
+                        }
+                        Environment.Exit(0);
+                    }
+                }
+            }
+            return Pt;
+        }
+
     }
 }

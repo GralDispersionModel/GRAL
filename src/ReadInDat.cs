@@ -10,13 +10,6 @@
 ///</remarks>
 #endregion
 
-/*
- * Created by SharpDevelop.
- * User: Markus Kuntner
- * Date: 15.01.2018
- * Time: 13:58
-*/
-
 using System;
 using System.IO;
 
@@ -51,7 +44,8 @@ namespace GRAL_2001
                         _line++;
                         text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
                         Program.IStatistics = Convert.ToInt32(text[0].Replace(".", Program.Decsep));
-                        if (Program.IStatistics == 1)
+                        
+                        if (Program.IStatistics == Consts.MeteoAll)
                         {
                             Console.WriteLine();
                             string err = "The meteorological input file meteo.all is not supported anymore. Check flag in file in.dat. -> Execution stopped: press ESC to stop";
@@ -71,7 +65,11 @@ namespace GRAL_2001
 
                         _line++;
                         text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                        Program.ReceptorsAvailable = Convert.ToInt32(text[0].Replace(".", Program.Decsep));
+                        int rec = Convert.ToInt32(text[0].Replace(".", Program.Decsep));
+                        if (rec > 0)
+                        {
+                            Program.ReceptorsAvailable = true;
+                        }
 
                         _line++;
                         text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
@@ -203,15 +201,49 @@ namespace GRAL_2001
                                 {
                                     _line++;
                                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                                    if (text.Length > 0 && float.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out float r) && Program.IStatistics == 4)
+                                    if (text.Length > 0 && float.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out float r) && Program.IStatistics == Consts.MeteoPgtAll)
                                     {
                                         Program.AdaptiveRoughnessMax = r;
                                     }
                                 }
                                 catch
-                                {
+                                { }
+                            }
 
+                            if (sr.EndOfStream == false)
+                            {
+                                try
+                                {
+                                    _line++;
+                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (text.Length > 0 && float.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out float r))
+                                    {
+                                        if (r > 25) //0: no Sub Domain Distance -> Sub Domain > 10000
+                                        {
+                                            Program.SubDomainDistance = Math.Max(50, r);
+                                        }
+                                    }
                                 }
+                                catch
+                                { }
+                            }
+
+                            if (sr.EndOfStream == false)
+                            {
+                                try
+                                {
+                                    _line++;
+                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (text.Length > 0 && int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r))
+                                    {
+                                        if (r == 0) //0: no GRAL Online Functions
+                                        {
+                                            Program.GRALOnlineFunctions = false;
+                                        }
+                                    }
+                                }
+                                catch
+                                { }
                             }
 
                         }

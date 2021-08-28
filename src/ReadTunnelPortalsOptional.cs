@@ -10,13 +10,6 @@
 ///</remarks>
 #endregion
 
-/*
- * Created by SharpDevelop.
- * User: Markus Kuntner
- * Date: 15.01.2018
- * Time: 13:58
-*/
-
 using System;
 using System.IO;
 
@@ -32,8 +25,15 @@ namespace GRAL_2001
         {
             if (Program.TS_Count > 0)
             {
-                Program.TUN_ENTR = Program.CreateArray<byte[]>(Program.NII + 2, () => new byte[Program.NJJ + 2]);
-                Program.OPP_LANE = Program.CreateArray<byte[]>(Program.NII + 2, () => new byte[Program.NJJ + 2]);
+                Program.TUN_ENTR = new byte [Program.NII + 2][];
+                Program.OPP_LANE = new byte [Program.NII + 2][];
+                for (int i = 0; i < Program.NII + 2; ++i)
+                {
+                    Program.TUN_ENTR[i] = GC.AllocateArray<byte>(Program.NJJ + 2);
+                    Program.OPP_LANE[i] = GC.AllocateArray<byte>(Program.NJJ + 2);
+                }
+                //Program.TUN_ENTR = Program.CreateArray<byte[]>(Program.NII + 2, () => new byte[Program.NJJ + 2]);
+                //Program.OPP_LANE = Program.CreateArray<byte[]>(Program.NII + 2, () => new byte[Program.NJJ + 2]);
 
                 if (File.Exists("Opposite_lane.txt") == true)
                 {

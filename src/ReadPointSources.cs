@@ -35,11 +35,6 @@ namespace GRAL_2001
 
             PQ.Add(new SourceData());
 
-            if (Program.IMQ.Count == 0)
-            {
-                Program.IMQ.Add(0);
-            }
-
             Deposition Dep = new Deposition();
 
             StreamReader read = new StreamReader("point.dat");
@@ -129,22 +124,22 @@ namespace GRAL_2001
             Program.PS_Count += PQ.Count - 1;
 
             // Copy Lists to global arrays
-            Array.Resize(ref Program.PS_ER, counter);
-            Array.Resize(ref Program.PS_X, counter);
-            Array.Resize(ref Program.PS_Y, counter);
-            Array.Resize(ref Program.PS_Z, counter);
-            Array.Resize(ref Program.PS_V, counter);
-            Array.Resize(ref Program.PS_D, counter);
-            Array.Resize(ref Program.PS_T, counter);
-            Array.Resize(ref Program.PS_SG, counter);
-            Array.Resize(ref Program.PS_PartNumb, counter);
-            Array.Resize(ref Program.PS_Mode, counter);
-            Array.Resize(ref Program.PS_V_Dep, counter);
-            Array.Resize(ref Program.PS_V_sed, counter);
-            Array.Resize(ref Program.PS_ER_Dep, counter);
-            Array.Resize(ref Program.PS_Absolute_Height, counter);
-            Array.Resize(ref Program.PS_TimeSeriesTemperature, counter);
-            Array.Resize(ref Program.PS_TimeSeriesVelocity, counter);
+            Program.PS_ER = GC.AllocateUninitializedArray<double>(counter);
+            Program.PS_X = GC.AllocateUninitializedArray<double>(counter);
+            Program.PS_Y = GC.AllocateUninitializedArray<double>(counter);
+            Program.PS_Z = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_V = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_T = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_D = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.PS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
+            Program.PS_Mode = GC.AllocateUninitializedArray<byte>(counter);
+            Program.PS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_V_sed = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_ER_Dep = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_Absolute_Height = GC.AllocateUninitializedArray<bool>(counter);
+            Program.PS_TimeSeriesTemperature = GC.AllocateUninitializedArray<int>(counter);
+            Program.PS_TimeSeriesVelocity = GC.AllocateUninitializedArray<int>(counter);
 
             for (int i = 1; i < PQ.Count; i++)
             {
@@ -155,7 +150,7 @@ namespace GRAL_2001
                 if (PQ[i].Z1 < 0) // negative value = absolute height
                 {
                     Program.PS_Absolute_Height[i] = true;
-                    if (Program.Topo != 1)
+                    if (Program.Topo != Consts.TerrainAvailable)
                     {
                         string err = "You are using absolute coordinates but flat terrain  - ESC = Exit";
                         Console.WriteLine(err);
@@ -214,7 +209,8 @@ namespace GRAL_2001
 
             Program.PS_effqu = new float[Program.PS_Count + 1];
 
-            PQ = null;
+            PQ.Clear();
+            PQ.TrimExcess();
             Dep = null;
         }
     }

@@ -44,7 +44,7 @@ namespace GRAL_2001
                     Console.WriteLine(err);
 
                     //in transient mode GRAL should continue the simulation
-                    if (Program.ISTATIONAER != 0)
+                    if (Program.ISTATIONAER != Consts.TransientMode)
                     {
                         Console.WriteLine("Simulation interrupted.");
                         ProgramWriters.LogfileProblemreportWrite(err);

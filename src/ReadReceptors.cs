@@ -29,7 +29,7 @@ namespace GRAL_2001
         /// </summary>
         public void ReadReceptors()
         {
-            if (Program.ReceptorsAvailable == 1)
+            if (Program.ReceptorsAvailable)
             {
                 if (File.Exists("Receptor.dat") == true)
                 {
@@ -64,7 +64,7 @@ namespace GRAL_2001
                         Console.WriteLine(err);
                         ProgramWriters.LogfileProblemreportWrite(err);
                         Program.ReceptorNumber = 0;
-                        Program.ReceptorsAvailable = 0;
+                        Program.ReceptorsAvailable = false;
                         // if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         // 	while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
                         // Environment.Exit(0);

@@ -10,13 +10,6 @@
 ///</remarks>
 #endregion
 
-/*
- * Created by SharpDevelop.
- * User: Markus Kuntner
- * Date: 15.01.2018
- * Time: 13:58
-*/
-
 using System;
 using System.Globalization;
 using System.IO;
@@ -33,7 +26,7 @@ namespace GRAL_2001
         public void ReadVegetation()
         {
             CultureInfo ic = CultureInfo.InvariantCulture;
-
+            
             if (File.Exists("vegetation.dat") == true)
             {
                 int block = 0;
@@ -41,31 +34,33 @@ namespace GRAL_2001
                 Console.WriteLine();
                 Console.WriteLine("Reading building file vegetation.dat");
 
+                //last source type closer than distance to a cell
+                int sourcetype = -1;
+                //last  source number closer than distance to a cell
+                int sourcenumber = 0;
+                bool isCloser = true;
+
                 try
                 {
                     using (StreamReader read = new StreamReader("vegetation.dat"))
                     {
-                        double czu = 0;
-                        double czo = 0;
                         double COV = 0;
-                        double LAD = 0;
                         double trunk_height = 0;
                         double crown_height = 0;
                         double trunk_LAD = 0;
                         double crown_LAD = 0;
                         //Vegetation influence
-                        float veg_fac = 0;
-
+                        
                         string[] text = new string[1];
                         string text1;
                         Int32 IXCUT;
                         Int32 IYCUT;
+                        //set marker, that vegetation is available
                         Program.VEG[0][0][0] = 0;
 
                         while (read.EndOfStream == false)
                         {
                             text1 = read.ReadLine();
-                            block++;
                             text = text1.Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                             //Vegetation influence
@@ -83,43 +78,45 @@ namespace GRAL_2001
                                 double cjc = Convert.ToDouble(text[1], ic);
                                 IXCUT = (int)((cic - Program.GralWest) / Program.DXK) + 1;
                                 IYCUT = (int)((cjc - Program.GralSouth) / Program.DYK) + 1;
-
+                                
                                 if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
                                 {
-                                    //separation between trunk anc crown zone
-                                    for (int n = 1; n < 3; n++)
+                                    // Filter vegetation cells if they are far away from sources and the SubDomainDistance is activated
+                                    if (Program.SubDomainDistance < 10000)
                                     {
-                                        //Vegetation influence
-                                        if (n == 1)
+                                         (isCloser, sourcetype, sourcenumber) = IsCellCloseToASource(IXCUT, IYCUT, Program.SubDomainDistance, sourcetype, sourcenumber);
+                                    }
+                                    if (isCloser)
+                                    {
+                                        block++;
+                                        // Create vegetation Array for used cells only -> reduce the memory usage
+                                        if (Program.VEG[IXCUT][IYCUT] == null)
                                         {
-                                            LAD = trunk_LAD;
-                                            czu = 0;
-                                            czo = trunk_height;
+                                            Program.VEG[IXCUT][IYCUT] = new float [Program.NKK + 1];
                                         }
-                                        else
+                                        // use lowest cell 0 because vegetation is zero bound in UVW prognostic microscale calculation
+                                        for (int k = Program.KKART[IXCUT][IYCUT] - 1; k < Program.NKK; k++)
                                         {
-                                            LAD = crown_LAD;
-                                            czu = trunk_height;
-                                            czo = crown_height;
-                                        }
-
-                                        veg_fac = (float)(0.3 * Math.Pow(COV, 3) * LAD);
-
-                                        for (int k = Program.KKART[IXCUT][IYCUT]; k < Program.NKK; k++)
-                                        {
-                                            if (Program.HOKART[k] - Program.HOKART[Program.KKART[IXCUT][IYCUT]] + Program.DZK[k] * 0.5 >= czu && Program.HOKART[k + 1] - Program.HOKART[Program.KKART[IXCUT][IYCUT]] < czo)
+                                            if (k >= 0)
                                             {
-                                                Program.VEG[IXCUT][IYCUT][k] = veg_fac;
+                                                float MeanCellHeight = Program.HOKART[k] - Program.HOKART[Program.KKART[IXCUT][IYCUT]] + Program.DZK[k] * 0.5F;
+                                                if (MeanCellHeight < crown_height)
+                                                {
+                                                    if (MeanCellHeight >= 0 && MeanCellHeight < trunk_height)
+                                                    {
+                                                        Program.VEG[IXCUT][IYCUT][k] = (float) (0.3 * Math.Pow(COV, 3) * trunk_LAD);
+                                                    }
+                                                    else if (MeanCellHeight >= 0 && MeanCellHeight >= trunk_height)
+                                                    {
+                                                        Program.VEG[IXCUT][IYCUT][k] = (float) (0.3 * Math.Pow(COV, 3) * crown_LAD);
+                                                    }
+                                                }
                                             }
-                                            else if (Program.HOKART[k] >= czu && Program.HOKART[k] + Program.DZK[k] * 0.5 <= czo)
-                                            {
-                                                Program.VEG[IXCUT][IYCUT][k] = veg_fac;
-                                            }
-
                                         }
                                     }
                                     //coverage
-                                    Program.COV[IXCUT][IYCUT] = (float)COV;
+                                    Program.COV[IXCUT][IYCUT] = (float) COV;
+                                    
                                 }
                             }
                         }
@@ -141,12 +138,13 @@ namespace GRAL_2001
 
                     Environment.Exit(0);
                 }
-
+                
                 string Info = "Total number of vegetation cells in 2D: " + block.ToString();
                 Console.WriteLine(Info);
                 ProgramWriters.LogfileGralCoreWrite(Info);
                 ProgramWriters.LogfileGralCoreWrite(" ");
             }
+            
         }//read vegetation
 
 
@@ -163,6 +161,11 @@ namespace GRAL_2001
                 Program.VegetationExist = true;
                 Console.WriteLine();
                 Console.WriteLine("Reading file vegetation.dat");
+                //last source type closer than distance to a cell
+                int sourcetype = -1;
+                //last  source number closer than distance to a cell
+                int sourcenumber = 0;
+                bool isCloser = true;
 
                 try
                 {
@@ -177,7 +180,6 @@ namespace GRAL_2001
                         while (read.EndOfStream == false)
                         {
                             text1 = read.ReadLine();
-                            block++;
                             text = text1.Split(new char[] { '\t', ',' });
 
                             if (text[0].Contains("D") && text.Length > 4) // Data line
@@ -194,30 +196,39 @@ namespace GRAL_2001
 
                                 if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
                                 {
-                                    if (VegHeight == null)
+                                    // Filter vegetation cells if they are far away from sources and the SubDomainDistance is activated - not for reading vegetation for adaptive roughness lenghts
+                                    if (Program.SubDomainDistance < 10000 && VegHeight == null)
                                     {
-                                        if (czo > 1) // filter low vegetation areas -> they are used for roughness only
-                                        {
-                                            //compute sub-domains of GRAL for the prognostic wind-field simulations
-                                            int iplus = (int)(Program.PrognosticSubDomainFactor * czo / Program.DXK);
-                                            int jplus = (int)(Program.PrognosticSubDomainFactor * czo / Program.DYK);
-                                            //for (int i1 = IXCUT - iplus; i1 <= IXCUT + iplus; i1++)
-                                            Parallel.For(IXCUT - iplus, IXCUT + iplus + 1, Program.pOptions, i1 =>
-                                            {
-                                                for (int j1 = IYCUT - jplus; j1 <= IYCUT + jplus; j1++)
-                                                {
-                                                    if ((i1 <= Program.NII) && (i1 >= 1) && (j1 <= Program.NJJ) && (j1 >= 1))
-                                                    {
-                                                        Program.ADVDOM[i1][j1] = 1;
-                                                    }
-                                                }
-                                            });
-                                        }
+                                         (isCloser, sourcetype, sourcenumber) = IsCellCloseToASource(IXCUT, IYCUT, Program.SubDomainDistance, sourcetype, sourcenumber);
                                     }
-                                    else
+                                    if (isCloser)
                                     {
-                                        // read vegetation height
-                                        VegHeight[IXCUT][IYCUT] = (float)Math.Max(czo, VegHeight[IXCUT][IYCUT]);
+                                        block++;
+                                        if (VegHeight == null)
+                                        {
+                                            if (czo > 1) // filter low vegetation areas -> they are used for roughness only
+                                            {
+                                                //compute sub-domains of GRAL for the prognostic wind-field simulations
+                                                int iplus = (int)(Math.Min(150, Program.PrognosticSubDomainFactor * czo) / Program.DXK);
+                                                int jplus = (int)(Math.Min(150, Program.PrognosticSubDomainFactor * czo) / Program.DYK);
+                                                //for (int i1 = IXCUT - iplus; i1 <= IXCUT + iplus; i1++)
+                                                Parallel.For(IXCUT - iplus, IXCUT + iplus + 1, Program.pOptions, i1 =>
+                                                {
+                                                    for (int j1 = IYCUT - jplus; j1 <= IYCUT + jplus; j1++)
+                                                    {
+                                                        if ((i1 <= Program.NII) && (i1 >= 1) && (j1 <= Program.NJJ) && (j1 >= 1))
+                                                        {
+                                                            Program.ADVDOM[i1][j1] = 1;
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }
+                                        else
+                                        {
+                                            // read vegetation height
+                                            VegHeight[IXCUT][IYCUT] = (float)Math.Max(czo, VegHeight[IXCUT][IYCUT]);
+                                        }
                                     }
                                 }
                             }
@@ -247,5 +258,47 @@ namespace GRAL_2001
                 ProgramWriters.LogfileGralCoreWrite(" ");
             }
         }//read vegetation_Domain
+
+        /// <summary>
+        /// Read the file VegetationDepoFactor.txt and return the factors or default values 
+        /// </summary>	
+        public Program.VegetationDepoVel ReadVegetationDeposition()
+        {
+            CultureInfo ic = CultureInfo.InvariantCulture;
+            float gasFact = 1.5F;
+            float pmxxFact = 3;
+
+            if (File.Exists("VegetationDepoFactor.txt") == true)
+            {
+                try
+                {
+                    string[] text;
+                    using (StreamReader read = new StreamReader("VegetationDepoFactor.txt"))
+                    {
+                        text = read.ReadLine().Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        gasFact = Convert.ToSingle(text[0], ic);
+                        if (read.EndOfStream == false)
+                        {
+                            text = read.ReadLine().Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            pmxxFact = Convert.ToSingle(text[0], ic);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            Program.VegetationDepoVel depoVel = new Program.VegetationDepoVel(gasFact, pmxxFact);
+
+            if (File.Exists("VegetationDepoFactor.txt") == true)
+            {
+                string Info = "User defined deposition factors for vegetation areas: " + depoVel.ToString();
+                Console.WriteLine(Info);
+                ProgramWriters.LogfileGralCoreWrite(Info);
+            }
+
+            return depoVel;
+        }
     }
 }

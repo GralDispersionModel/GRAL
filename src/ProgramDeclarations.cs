@@ -13,6 +13,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Globalization;
+
 namespace GRAL_2001
 {
     partial class Program
@@ -23,11 +25,11 @@ namespace GRAL_2001
         ///<summary>
         ///Sets the maximum number of cores to be used in the parallelisation
         /// </summary>
-        public static ParallelOptions pOptions = new ParallelOptions();
+        public static readonly ParallelOptions pOptions = new ParallelOptions();
         ///<summary>
         ///Global decimal separator of the system
         /// </summary>
-        public static string Decsep;
+        public static readonly string Decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
         ///<summary>
         ///Flag to take orography into account - 0: no terrain 1:complex terrain
         ///</summary>
@@ -295,11 +297,11 @@ namespace GRAL_2001
         ///<summary>
         ///Turbulent kinetic energy of GRAMM
         ///</summary>
-        public static float[][][] TKE = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        //public static float[][][] TKE = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
         ///Turbulent dissipation rate of GRAMM
         ///</summary>
-        public static float[][][] DISS = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        //public static float[][][] DISS = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
         ///Heights of the horizontal slices of the GRAL concentration grids
         ///</summary>
@@ -340,10 +342,6 @@ namespace GRAL_2001
         ///Stability class obtained from GRAMM simulations
         ///</summary>
         public static int[,] AKL_GRAMM = new int[1, 1];
-        ///<summary>
-        ///Saves source group for each source, the maximum number of sources is limited by the memory
-        ///</summary>
-        public static List<int> IMQ = new List<int>();
         ///<summary>
         ///Observed vertical profile of u-wind components
         ///</summary>
@@ -479,7 +477,7 @@ namespace GRAL_2001
         ///<summary>
         ///Array used for Vegetation
         ///</summary>
-        public static float[][][] VEG = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        public static float [][][] VEG = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
         ///<summary>
         ///Array used for Vegetation Coverage
         ///</summary>
@@ -506,7 +504,7 @@ namespace GRAL_2001
         ///<summary>
         ///Flag determining if receptor points are included or not
         ///</summary>
-        public static int ReceptorsAvailable = 0;
+        public static bool ReceptorsAvailable = false;
         ///<summary>
         ///Default roughness length in [m]
         ///</summary>
@@ -526,7 +524,7 @@ namespace GRAL_2001
         ///<summary>
         ///Defines the method to take buildings into account: diagnostic (=1), prognostic (=2), no buildings (=0)
         ///</summary>
-        public static int FlowFieldLevel = 0;
+        public static int FlowFieldLevel = Consts.FlowFieldNoBuildings;
         ///<summary>
         ///Defines the factor for the calculation of prognostic sub-domains, default = 15
         ///</summary>
@@ -866,11 +864,11 @@ namespace GRAL_2001
         ///<summary>
         ///Extension in x-direction of area sources
         ///</summary>
-        public static double[] AS_dX = new double[1];
+        public static float[] AS_dX = new float[1];
         ///<summary>
         ///Extension in y-direction of area sources
         ///</summary>
-        public static double[] AS_dY = new double[1];
+        public static float[] AS_dY = new float[1];
         ///<summary>
         ///Extension in z-direction of area sources
         ///</summary>
@@ -966,7 +964,7 @@ namespace GRAL_2001
         ///<summary>
         ///Flag when reaching the final weather situation
         ///</summary>
-        public static int IEND = 0;
+        public static int IEND = Consts.CalculationRunning;
         ///<summary>
         ///Volume of the GRAL concentration grid
         ///</summary>
@@ -1194,7 +1192,7 @@ namespace GRAL_2001
         ///<summary>
         /// Wet deposition precipitation data for the timeseries
         ///</summary>
-        public static List<float> WetDepoPrecipLst = new List<float>();
+        public static readonly List<float> WetDepoPrecipLst = new List<float>();
         ///<summary>
         /// Log additional informations at the console
         ///</summary>
@@ -1202,11 +1200,11 @@ namespace GRAL_2001
         ///<summary>
         /// Reflexion counter for Loglevel == 1;
         ///</summary>
-        public static int[] LogReflexions = new int[6];
+        public static readonly int[] LogReflexions = new int[6];
         ///<summary>
         /// Timestep counter for Loglevel == 1;
         ///</summary>
-        public static int[] Log_Timesteps = new int[6];
+        public static readonly int[] Log_Timesteps = new int[6];
         ///<summary>
         /// Write vertical concentration files?		
         ///</summary>
@@ -1214,7 +1212,7 @@ namespace GRAL_2001
         ///<summary>
         /// decay rate for bioaerosols for each source group
         ///</summary>
-        public static double[] DecayRate = new double[102];
+        public static readonly double[] DecayRate = new double[102];
         ///<summary>
         /// Pollutant name
         ///</summary>
@@ -1243,5 +1241,49 @@ namespace GRAL_2001
         /// Write additional ASCii output
         ///</summary>
         public static bool WriteASCiiResults = false;
+        ///<summary>
+        /// Distance of buildings to a source to set a prognostic sub domain in meters: no reduction if value > 10000
+        ///</summary>
+        public static double SubDomainDistance = 1000000;
+        
+        ///<summary>
+        /// Distance of buildings to a source to set a prognostic sub domain in meters: no reduction if value > 10000
+        ///</summary>
+        public static bool GRALOnlineFunctions = true;
+
+        ///<summary>
+        /// Deposition velocity factors within vegetation areas
+        ///</summary>
+        public static VegetationDepoVel VegetationDepoVelFactors = new VegetationDepoVel(1.5F, 3);
+
+        ///<summary>
+        /// Deposition velocity factor within vegetation areas
+        ///</summary>
+        public readonly struct VegetationDepoVel
+        {
+            /// <summary>
+            /// Set the deposition factors for vegetation areas
+            /// </summary>
+            /// <param name="velGas">Factor for gaseous pollutants and PM2,5 and PM10</param>
+            /// <param name="velPMxx">Factor for PM30 and larger particles</param>
+            public VegetationDepoVel(float velGas, float velPMxx)
+            {
+                VelGasFact = MathF.Max(0, velGas - 1);
+                VelPMxxFact = MathF.Max(0, velPMxx - 1);
+            }
+            ///<summary>
+            /// Deposition velocity factor for PM2,5, PM10 and gaseous pollutants
+            ///</summary>
+            public float VelGasFact { get; }
+            ///<summary>
+            /// Deposition velocity factor for PM30 and larger particles
+            ///</summary>
+            public float VelPMxxFact { get; }
+
+            public override string ToString()
+            {
+                return (VelGasFact + 1).ToString(CultureInfo.InvariantCulture) + ", " + (VelPMxxFact + 1).ToString(CultureInfo.InvariantCulture);
+            } 
+        }
     }
 }

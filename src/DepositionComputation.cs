@@ -100,7 +100,7 @@ namespace GRAL_2001
 
                 if (mode == 0) // no deposition at all
                 {
-                    _sd.Mode = 0; // no deposition
+                    _sd.Mode = Consts.DepoOff; // no deposition
                     _sd.Vdep = 0;
                     _sd.Vsed = 0;
                     _Q.Add(_sd);
@@ -110,13 +110,13 @@ namespace GRAL_2001
                 {
                     if (V_Dep25 < 0.00000001)
                     {
-                        _sd.Mode = 0; // no deposition
+                        _sd.Mode = Consts.DepoOff; // no deposition
                         _sd.Vdep = 0;
                         _sd.Vsed = 0;
                     }
                     else
                     {
-                        _sd.Mode = 1; // concentration + deposition
+                        _sd.Mode = Consts.DepoAndConc; // concentration + deposition
                         _sd.Vdep = V_Dep25;
                         _sd.Vsed = V_Sed25;
                         Program.DepositionExist = true;
@@ -135,7 +135,7 @@ namespace GRAL_2001
                     {
                         SourceData _sd10 = new SourceData();
                         Clone(_sd10);
-                        _sd10.Mode = 2; // deposition only
+                        _sd10.Mode = Consts.DepoOnly; // deposition only
                         _sd10.ER = originalemission * 0.05F; // 5 % of particles for this depo source
                         _sd10.ER_dep = emission10; // real emission rate
                         _sd10.Vdep = V_Dep10;
@@ -147,7 +147,7 @@ namespace GRAL_2001
                     {
                         SourceData _sd30 = new SourceData();
                         Clone(_sd30);
-                        _sd30.Mode = 2; // deposition only
+                        _sd30.Mode = Consts.DepoOnly; // deposition only
                         _sd30.ER = originalemission * 0.05F; // 5 % of particles for this depo source
                         _sd30.ER_dep = emission30; // real emission rate
                         _sd30.Vdep = V_Dep30;
@@ -171,14 +171,14 @@ namespace GRAL_2001
                         if (V_Dep10 < 0.00000001)
                         {
                             _sd.ER = emission10;
-                            _sd.Mode = 0; // no deposition
+                            _sd.Mode = Consts.DepoOff; // no deposition
                             _sd.Vdep = 0;
                             _sd.Vsed = 0;
                         }
                         else
                         {
                             _sd.ER = emission10;
-                            _sd.Mode = 1; // concentration + deposition
+                            _sd.Mode = Consts.DepoAndConc; // concentration + deposition
                             _sd.Vdep = V_Dep10;
                             _sd.Vsed = V_Sed10;
                             Program.DepositionExist = true;
@@ -193,7 +193,7 @@ namespace GRAL_2001
                     {
                         SourceData _sd25 = new SourceData();
                         Clone(_sd25);
-                        _sd25.Mode = 1; // concentration + deposition
+                        _sd25.Mode = Consts.DepoAndConc; // concentration + deposition
                         _sd25.ER = emission25;
                         _sd25.ER_dep = 0;
                         _sd25.Vdep = V_Dep25;
@@ -206,7 +206,7 @@ namespace GRAL_2001
                     {
                         SourceData _sd30 = new SourceData();
                         Clone(_sd30);
-                        _sd30.Mode = 2; // deposition only
+                        _sd30.Mode = Consts.DepoOnly; // deposition only
                         _sd30.ER = originalemission * 0.05F; // 5 % of particles for this depo source
                         _sd30.ER_dep = emission30; // real emission rate
                         _sd30.Vdep = V_Dep30;

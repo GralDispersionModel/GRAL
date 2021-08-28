@@ -110,7 +110,7 @@ namespace GRAL_2001
                                 }
 
                                 //receptor indices in the GRAL flow-field grid
-                                if (Program.FlowFieldLevel > 0)
+                                if (Program.FlowFieldLevel > Consts.FlowFieldNoBuildings)
                                 {
                                     Program.ReceptorIIndFF[block] = (int)(xsi / Program.DXK) + 1;
                                     Program.ReceptorJIndFF[block] = (int)(eta / Program.DYK) + 1;
@@ -124,7 +124,7 @@ namespace GRAL_2001
                                         }
                                     }
 
-                                    if (Program.LogLevel > 0) // additional log output
+                                    if (Program.LogLevel > Consts.LogLevelOff) // additional log output
                                     {
                                         Console.WriteLine("Vertical index of receptor " + block.ToString() + " = " + Program.ReceptorKIndFF[block].ToString());
                                     }
@@ -184,7 +184,7 @@ namespace GRAL_2001
                         Console.WriteLine(err);
                         ProgramWriters.LogfileProblemreportWrite(err);
                         Program.ReceptorNumber = 0;
-                        Program.ReceptorsAvailable = 0;
+                        Program.ReceptorsAvailable = false;
                         return;
 
                         // if (Program.IOUTPUT <= 0) // Soundplan

@@ -34,7 +34,7 @@ namespace GRAL_2001
             float Precipitation_Sum = 0;
             string Info;
 
-            if (Program.ISTATIONAER == 0)
+            if (Program.ISTATIONAER == Consts.TransientMode)
             {
                 if (File.Exists("Precipitation.txt") == true && Program.WetDeposition == true)
                 {

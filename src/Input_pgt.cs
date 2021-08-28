@@ -57,7 +57,7 @@ namespace GRAL_2001
                     int stabilityclass = Convert.ToInt16(text[2]);
 
                     //random wind direction taken from the defined sector width
-                    if ((TIMESERIES == "0") && (Program.Topo != 1))
+                    if ((TIMESERIES == "0") && (Program.Topo != Consts.TerrainAvailable))
                     {
                         Random rnd = new Random();
                         Program.WindDirGral = Program.WindDirGral - (float)(SECTORWIDTH / 20) + (float)(rnd.NextDouble() * SECTORWIDTH / 10);
@@ -76,7 +76,7 @@ namespace GRAL_2001
                         {
                             Program.Z0Gramm[ix][iy] = MathF.Max(Program.Z0Gramm[ix][iy], 0.00001F);
 
-                            if (Program.Topo == 1 && Program.AKL_GRAMM[0, 0] != 0)
+                            if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
                             {
                                 stabilityclass = (int)Program.AKL_GRAMM[ix - 1, iy - 1];
                             }
@@ -106,7 +106,7 @@ namespace GRAL_2001
                                 //index for flat terrain = 1
                                 int IUstern = 1;
                                 int JUstern = 1;
-                                if (Program.Topo == 1 && Program.AKL_GRAMM[0, 0] != 0)
+                                if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
                                 {
                                     double x = ix * Program.DXK + Program.GralWest;
                                     double y = iy * Program.DYK + Program.GralSouth;
@@ -131,7 +131,7 @@ namespace GRAL_2001
                     }
                 }
 
-                return 0; // read meteopgt.all OK
+                return Consts.CalculationRunning; // read meteopgt.all OK
             }
             catch (Exception ex)
             {
@@ -144,7 +144,7 @@ namespace GRAL_2001
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
                 }
                 Environment.Exit(0);
-                return 1; // read meteopgt.all Error
+                return Consts.CalculationFinished; // read meteopgt.all Error
             }
         }
 
@@ -168,7 +168,7 @@ namespace GRAL_2001
                 float phim = MathF.Pow(1 - 16 * AnemoHeight / ObL, 0.25F);
                 float psim = MathF.Log((1 + MathF.Pow(phim, -2)) * 0.5F * MathF.Pow((1 + MathF.Pow(phim, -1)) * 0.5F, 2)) - 2 * MathF.Atan(MathF.Pow(phim, -1)) + 1.57F;
 
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     // flat terrain -> use the wind velocity from meteopgt.all
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
@@ -195,7 +195,7 @@ namespace GRAL_2001
                 ObL = MathF.Min(1 / (-0.12F * MathF.Pow(Z0 * 100, -0.50F)), -4);
                 float phim = MathF.Pow(1 - 16 * AnemoHeight / ObL, 0.25F);
                 float psim = MathF.Log((1 + MathF.Pow(phim, -2)) * 0.5F * MathF.Pow((1 + MathF.Pow(phim, -1)) * 0.5F, 2)) - 2 * MathF.Atan(MathF.Pow(phim, -1)) + 1.57F;
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
                 }
@@ -220,7 +220,7 @@ namespace GRAL_2001
                 ObL = MathF.Min(1 / (-0.067F * MathF.Pow(Z0 * 100, -0.56F)), -4);
                 float phim = MathF.Pow(1 - 16 * AnemoHeight / ObL, 0.25F);
                 float psim = MathF.Log((1 + MathF.Pow(phim, -2)) * 0.5F * MathF.Pow((1 + MathF.Pow(phim, -1)) * 0.5F, 2)) - 2 * MathF.Atan(MathF.Pow(phim, -1)) + 1.57F;
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
                 }
@@ -245,7 +245,7 @@ namespace GRAL_2001
                 ObL = MathF.Min(1 / (0.01F * MathF.Pow(Z0 * 100, -0.5F)), 1000);
                 //float phim = 1 + 5 * AnemoHeight / ObL;
                 float psim = -5 * AnemoHeight / ObL;
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
                 }
@@ -270,7 +270,7 @@ namespace GRAL_2001
                 ObL = MathF.Max(1 / (0.05F * MathF.Pow(Z0 * 100, -0.5F)), 4);
                 //float phim = 1 + 5 * AnemoHeight / ObL;
                 float psim = -5 * AnemoHeight / ObL;
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
                 }
@@ -295,7 +295,7 @@ namespace GRAL_2001
                 ObL = (float)Math.Max(1 / (0.2 * Math.Pow(Z0 * 100, -0.55)), 4);
                 //float phim = 1 + 5 * AnemoHeight / ObL;
                 float psim = -5 * AnemoHeight / ObL;
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
                 }
@@ -320,7 +320,7 @@ namespace GRAL_2001
                 ObL = 1000;
                 //float phim = 1 + 5 * AnemoHeight / ObL;
                 float psim = -5 * AnemoHeight / ObL;
-                if (Program.Topo != 1)
+                if (Program.Topo != Consts.TerrainAvailable)
                 {
                     UStar = (Program.WindVelGral + 0.15F) * 0.4F / (MathF.Log(AnemoHeight / Z0) - psim * (AnemoHeight / ObL));
                 }
