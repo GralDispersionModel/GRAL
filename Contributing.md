@@ -20,19 +20,19 @@ Do not hesitate to contact the project administrators at the beginning of your w
 
 If you're developing a **new feature**
 
-1. Create a feature branch from `develop` branch
+1. Create a feature branch from `V2XXX` branch
 2. Branch name dependend on your new `feature`
-3. When your code is ready for release, pull request to the `develop` branch
+3. When your code is ready for release, pull request to the `V2XXX` branch
 4. Delete the feature branch
 
 
 If you're making a **bug fix**
 
-1. Pull request to the `develop` branch
+1. Pull request to the `V2XXX` branch
 2. Add an issue tag in the commit message or pull request message
 
 If you're making a **hot fix**, which has to be deployed immediately.
-1. Pull request to `develop` **and** `master` branch
+1. Pull request to `V2XXX` **and** `master` branch
 
 ## I don't want to contribute, I just have a question!
 Support is provided by the [Technical University of Graz, Austria](http://lampz.tugraz.at/~gral/). 
@@ -42,7 +42,7 @@ If you find a bug in the source code, you can help us by submitting an issue to 
 Please test the bug fix by one ore more projects and document the changes.
 
 ## What should I know before I get started?
-GRAL is developed on .NetCore 3.1. You can use Visual Studio Code for development across platforms or Visual Studio 2019 in Windows
+GRAL is developed on .Net5. You can use Visual Studio Code for development across platforms or Visual Studio 2019 in Windows
 
 ## Design Decisions
 For performance reasons, static jagged arrays and as few classes as possible are used (avoidance of boxing/unboxing). 
