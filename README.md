@@ -17,7 +17,7 @@ We developed a powerful graphical user interface (GUI) to simplify the numerous 
 The current validated and signed GRAL version, the documentation and a recommendation guide is available at the [GRAL homepage](http://lampz.tugraz.at/~gral/)
 
 ## Contributing
-Everyone is invited to contribute to the project [Contribute](Contribute.md)
+Everyone is invited to contribute to the project [Contributing](Contributing.md)
  
 ## Versioning
 The version number includes the release year and the release month, e.g. 20.01.
