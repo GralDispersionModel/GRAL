@@ -97,11 +97,11 @@ namespace GRAL_2001
             else if (SourceType == 2) // Portal source
             {
                 int i = SourceNumber;
-                float dx = (float)(Program.PS_X[i] - x);
+                float dx = (float)(Program.TS_X1[i] - x);
                 //filter large delta x
                 if (dx < Distance)
                 {
-                    float dy = (float)(Program.PS_Y[i] - y);
+                    float dy = (float)(Program.TS_Y1[i] - y);
                     //filter large delta y
                     if (dy < Distance)
                     {
