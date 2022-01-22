@@ -61,7 +61,7 @@ namespace GRAL_2001
                 //Console.WriteLine ("Running on Unix");
                 RunOnUnix = true;
             }
-
+            
             //WRITE GRAL VERSION INFORMATION TO SCREEN
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
@@ -72,7 +72,11 @@ namespace GRAL_2001
             {
                 Console.WriteLine("|                     L I N U X                        |");
             }
+#if NET6_0_OR_GREATER
+            Console.WriteLine("|                   .NET6 Version                      |");
+#else
             Console.WriteLine("|                 .Net Core Version                    |");
+#endif
             Console.WriteLine("|                                                      |");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("");
