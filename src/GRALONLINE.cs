@@ -92,7 +92,8 @@ namespace GRAL_2001
                         }
 
                         int LX = 1; // Defaultwert
-                        Int32.TryParse(config1, out LX); // Layer oder LX
+                        string[] textSplit = config1.Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        Int32.TryParse(textSplit[0], out LX); // Layer oder LX
                         int LY = 1; // default
                         Int32.TryParse(config2, out LY); // immer LY
 
