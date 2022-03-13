@@ -189,7 +189,12 @@ namespace GRAL_2001
                         SB.Clear();
                         for (int i = 1; i <= Program.NII + 1; i++)
                         {
-                            double val__ = Program.AHK[i][j];
+                            double val__ = 0;
+                            if (Program.Topo == Consts.TerrainAvailable)
+                            {
+                                val__ = Program.AHK[i][j];
+                            }
+                            
                             SB.Append(Math.Round(val__, 1).ToString(ic));
                             SB.Append("\t");
                             //h += Math.Round(val__,1).ToString(ic) + "\t";
