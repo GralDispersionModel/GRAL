@@ -1775,8 +1775,9 @@ namespace GRAL_2001
                 }
 
                 float zcoordRelative = 0;
-                if (Program.BuildingsExist == true)
+                if (Program.BuildingsExist == true && Program.Topo == Consts.TerrainAvailable)
                 {
+                    //AHint contains the building height if terrain is available therefore the terrain height has to be corrected
                     zcoordRelative = zcoord_nteil - AHint + Program.CUTK[FFCellX][FFCellY];
                 }
                 else
