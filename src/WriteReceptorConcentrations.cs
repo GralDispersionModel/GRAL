@@ -245,7 +245,11 @@ namespace GRAL_2001
                             // check if minutes are != 0
                             if (month == month_old && day == day_old && hour == hour_old && Program.TAUS < 3600)
                             {
-                                minute = minute_old + Convert.ToInt32(Program.TAUS / 60);
+                                try
+                                {
+                                    minute = minute_old + Convert.ToInt32(Program.TAUS / 60);
+                                }
+                                catch { }
                                 minute_old = minute;
                             }
                             else
@@ -456,7 +460,7 @@ namespace GRAL_2001
                                     write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                                 "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                                 "\t" + Program.SC_Gral[I_SC][J_SC].ToString(ic) +
-                                                "\t" + Convert.ToInt32(Program.BdLayHeight).ToString(ic) + "\t");
+                                                "\t" + Math.Round(Program.BdLayHeight).ToString(ic) + "\t");
                                 }
                                 else // invalid indices -> write mean SCL or meteogpt SCL
                                 {
@@ -473,7 +477,7 @@ namespace GRAL_2001
                                     write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                                 "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                                 "\t" + Ak.ToString(ic) +
-                                                "\t" + Convert.ToInt32(Program.BdLayHeight).ToString(ic) + "\t");
+                                                "\t" + Math.Round(Program.BdLayHeight).ToString(ic) + "\t");
                                 }
                             }
                             else // original format without SCL
@@ -482,7 +486,7 @@ namespace GRAL_2001
                                 write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                       "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
                                       "\t" + Ak.ToString(ic) +
-                                      "\t" + Convert.ToInt32(Program.BdLayHeight).ToString(ic) + "\t");
+                                      "\t" + Math.Round(Program.BdLayHeight).ToString(ic) + "\t");
                             }
                         }
                     }
