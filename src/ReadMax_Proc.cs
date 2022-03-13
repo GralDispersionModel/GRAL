@@ -35,12 +35,18 @@ namespace GRAL_2001
                 {
                     string text = myreader.ReadLine();
                     Program.IPROC = Convert.ToInt32(text);
-                    Program.IPROC = Math.Min(Environment.ProcessorCount, Program.IPROC); // limit number of cores to available cores
+                    if (Environment.ProcessorCount > 0)
+                    {
+                        Program.IPROC = Math.Max(1, Math.Min(Environment.ProcessorCount, Program.IPROC)); // limit number of cores to available cores
+                    }
                     Program.pOptions.MaxDegreeOfParallelism = Program.IPROC;
                 }
             }
             catch
-            { }
+            { 
+                Program.IPROC = 4; // Fallback
+                Program.pOptions.MaxDegreeOfParallelism = Program.IPROC;
+            }
         }// Read max. number processors
 
         /// <summary>
