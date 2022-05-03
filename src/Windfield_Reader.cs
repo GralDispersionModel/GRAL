@@ -35,8 +35,6 @@ namespace GRAL_2001
         {
             try
             {
-                string decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
-
                 int dummy = 0;
                 using (BinaryReader windfieldb = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
                 {
@@ -45,22 +43,28 @@ namespace GRAL_2001
 
                 if (dummy == -1) // Compact wnd File-format
                 {
-                    using (BinaryReader windfieldb = new BinaryReader(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read)))
+                    using (FileStream str_windfield = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = "Header"
-                        dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Nx
-                        dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Ny
-                        dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Nz
-                        float temp = windfieldb.ReadInt32(); // read 4 bytes from stream = DXX
-                        for (int i = 1; i <= NX; i++)
+                        using (BufferedStream buf_windfield = new BufferedStream(str_windfield, 32768))
                         {
-                            for (int j = 1; j <= NY; j++)
+                            using (BinaryReader windfieldb = new BinaryReader(buf_windfield))
                             {
-                                for (int k = 1; k <= NZ; k++)
+                                dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = "Header"
+                                dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Nx
+                                dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Ny
+                                dummy = windfieldb.ReadInt32(); // read 4 bytes from stream = Nz
+                                float temp = windfieldb.ReadInt32(); // read 4 bytes from stream = DXX
+                                for (int i = 1; i <= NX; i++)
                                 {
-                                    UWI[i][j][k] = (float)windfieldb.ReadInt16() / 100; // 2 Bytes  = word integer value;
-                                    VWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
-                                    WWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
+                                    for (int j = 1; j <= NY; j++)
+                                    {
+                                        for (int k = 1; k <= NZ; k++)
+                                        {
+                                            UWI[i][j][k] = (float)windfieldb.ReadInt16() / 100; // 2 Bytes  = word integer value;
+                                            VWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
+                                            WWI[i][j][k] = (float)windfieldb.ReadInt16() / 100;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -68,8 +72,8 @@ namespace GRAL_2001
                 }
                 else // classic windfield file format
                 {
+                    string decsep = NumberFormatInfo.CurrentInfo.NumberDecimalSeparator;
                     string[] text = new string[1];
-
                     using (StreamReader windfield = new StreamReader(filename))
                     {
                         for (int i = 1; i <= NX; i++)
@@ -86,7 +90,6 @@ namespace GRAL_2001
                             }
                         }
                     }
-
                 }
                 return true; // Reader OK
             }
@@ -95,8 +98,6 @@ namespace GRAL_2001
                 Console.WriteLine(ex.Message.ToString());
                 return false; // Reader Error
             }
-
-
         }
     }
 }

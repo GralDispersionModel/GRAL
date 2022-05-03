@@ -170,55 +170,58 @@ namespace GRAL_2001
             {
                 using (FileStream zipToOpen = new FileStream(GRALflowfield, FileMode.Create))
                 {
-                    using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                    using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                     {
-                        ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
-                        using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
+                        using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Create))
                         {
-                            writer.Write((Int32)Program.NKK);
-                            writer.Write((Int32)Program.NJJ);
-                            writer.Write((Int32)Program.NII);
-                            writer.Write((float)Program.WindDirGral);
-                            writer.Write((float)Program.WindVelGral);
-                            writer.Write((Int32)Program.StabClass);
-                            writer.Write((float)Program.DXK);
-                            int header = -1;
-                            writer.Write(header);
-
-                            for (int i = 1; i <= Program.NII + 1; i++)
+                            ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
+                            using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
                             {
-                                for (int j = 1; j <= Program.NJJ + 1; j++)
+                                writer.Write((Int32)Program.NKK);
+                                writer.Write((Int32)Program.NJJ);
+                                writer.Write((Int32)Program.NII);
+                                writer.Write((float)Program.WindDirGral);
+                                writer.Write((float)Program.WindVelGral);
+                                writer.Write((Int32)Program.StabClass);
+                                writer.Write((float)Program.DXK);
+                                int header = -1;
+                                writer.Write(header);
+
+                                for (int i = 1; i <= Program.NII + 1; i++)
                                 {
-                                    byte[] writeData = new byte[(Program.NKK + 1) * 6]; // byte-buffer
-                                    int z = 0;
-
-                                    for (int k = 1; k <= Program.NKK + 1; k++)
+                                    for (int j = 1; j <= Program.NJJ + 1; j++)
                                     {
-                                        byte[] intbyte = BitConverter.GetBytes((Int16)(
-                                            Math.Max(Int16.MinValue,
-                                                     Math.Min(Int16.MaxValue, Program.UK[i][j][k - 1] * 100))));
-                                        writeData[z] = intbyte[0];
-                                        ++z;
-                                        writeData[z] = intbyte[1];
-                                        ++z;
+                                        byte[] writeData = new byte[(Program.NKK + 1) * 6]; // byte-buffer
+                                        int z = 0;
 
-                                        intbyte = BitConverter.GetBytes((Int16)(
-                                            Math.Max(Int16.MinValue,
-                                                     Math.Min(Int16.MaxValue, Program.VK[i][j][k - 1] * 100))));
-                                        writeData[z] = intbyte[0];
-                                        ++z;
-                                        writeData[z] = intbyte[1];
-                                        ++z;
+                                        for (int k = 1; k <= Program.NKK + 1; k++)
+                                        {
+                                            byte[] intbyte = BitConverter.GetBytes((Int16)(
+                                                Math.Max(Int16.MinValue,
+                                                         Math.Min(Int16.MaxValue, Program.UK[i][j][k - 1] * 100))));
+                                            writeData[z] = intbyte[0];
+                                            ++z;
+                                            writeData[z] = intbyte[1];
+                                            ++z;
 
-                                        intbyte = BitConverter.GetBytes((Int16)(
-                                            Math.Max(Int16.MinValue,
-                                                     Math.Min(Int16.MaxValue, Program.WK[i][j][k] * 100))));
-                                        writeData[z] = intbyte[0];
-                                        ++z;
-                                        writeData[z] = intbyte[1];
-                                        ++z;
+                                            intbyte = BitConverter.GetBytes((Int16)(
+                                                Math.Max(Int16.MinValue,
+                                                         Math.Min(Int16.MaxValue, Program.VK[i][j][k - 1] * 100))));
+                                            writeData[z] = intbyte[0];
+                                            ++z;
+                                            writeData[z] = intbyte[1];
+                                            ++z;
+
+                                            intbyte = BitConverter.GetBytes((Int16)(
+                                                Math.Max(Int16.MinValue,
+                                                         Math.Min(Int16.MaxValue, Program.WK[i][j][k] * 100))));
+                                            writeData[z] = intbyte[0];
+                                            ++z;
+                                            writeData[z] = intbyte[1];
+                                            ++z;
+                                        }
+                                        writer.Write(writeData); // write buffer
                                     }
-                                    writer.Write(writeData); // write buffer
                                 }
                             }
                         }
@@ -256,98 +259,101 @@ namespace GRAL_2001
             {
                 using (FileStream zipToOpen = new FileStream(GRALflowfield, FileMode.Create))
                 {
-                    using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                    using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                     {
-                        ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
-                        using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
+                        using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Create))
                         {
-                            writer.Write((Int32)(-1) * Program.NKK); // write negative value -> throw an error at old GRAL versions to avoid erroneous wind fields
-                            writer.Write((Int32)Program.NJJ);
-                            writer.Write((Int32)Program.NII);
-                            writer.Write((float)Program.WindDirGral);
-                            writer.Write((float)Program.WindVelGral);
-                            writer.Write((Int32)Program.StabClass);
-                            writer.Write((float)Program.DXK);
-                            int header = -2;
-                            writer.Write(header);
-
-                            byte[] writeData = new byte[(Program.NJJ + 1) * 6]; // Byte - buffer
-                            byte[] intbyte = BitConverter.GetBytes((Int16)(0)); // Bitconverter buffer
-
-                            for (int k = 1; k <= Program.NKK + 1; k++)
+                            ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
+                            using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
                             {
-                                for (int i = 1; i <= Program.NII + 1; i++)
+                                writer.Write((Int32)(-1) * Program.NKK); // write negative value -> throw an error at old GRAL versions to avoid erroneous wind fields
+                                writer.Write((Int32)Program.NJJ);
+                                writer.Write((Int32)Program.NII);
+                                writer.Write((float)Program.WindDirGral);
+                                writer.Write((float)Program.WindVelGral);
+                                writer.Write((Int32)Program.StabClass);
+                                writer.Write((float)Program.DXK);
+                                int header = -2;
+                                writer.Write(header);
+
+                                byte[] writeData = new byte[(Program.NJJ + 1) * 6]; // Byte - buffer
+                                byte[] intbyte = BitConverter.GetBytes((Int16)(0)); // Bitconverter buffer
+
+                                for (int k = 1; k <= Program.NKK + 1; k++)
                                 {
-                                    float[][] UK_L = Program.UK[i];
-                                    float[][] VK_L = Program.VK[i];
-                                    float[][] WK_L = Program.WK[i];
-
-                                    // write each component after the other one -> better compression
-                                    // loop unroll for better performance
-                                    int km = k - 1;
-                                    int bytecounter = 0;
-                                    float _val = 0;
-                                    Int16 _valInt16 = 0;
-                                    for (int j = 1; j < Program.NJJ + 2; j++)
+                                    for (int i = 1; i <= Program.NII + 1; i++)
                                     {
-                                        _val = UK_L[j][km] * 100;
-                                        if (_val > Int16.MaxValue)
+                                        float[][] UK_L = Program.UK[i];
+                                        float[][] VK_L = Program.VK[i];
+                                        float[][] WK_L = Program.WK[i];
+
+                                        // write each component after the other one -> better compression
+                                        // loop unroll for better performance
+                                        int km = k - 1;
+                                        int bytecounter = 0;
+                                        float _val = 0;
+                                        Int16 _valInt16 = 0;
+                                        for (int j = 1; j < Program.NJJ + 2; j++)
                                         {
-                                            _valInt16 = Int16.MaxValue;
-                                        }
-                                        else if (_val < Int16.MinValue)
-                                        {
-                                            _valInt16 = Int16.MinValue;
-                                        }
-                                        else
-                                        {
-                                            _valInt16 = (Int16)_val;
+                                            _val = UK_L[j][km] * 100;
+                                            if (_val > Int16.MaxValue)
+                                            {
+                                                _valInt16 = Int16.MaxValue;
+                                            }
+                                            else if (_val < Int16.MinValue)
+                                            {
+                                                _valInt16 = Int16.MinValue;
+                                            }
+                                            else
+                                            {
+                                                _valInt16 = (Int16)_val;
+                                            }
+
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                         }
 
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                        for (int j = 1; j < Program.NJJ + 2; j++)
+                                        {
+                                            _val = VK_L[j][km] * 100;
+                                            if (_val > Int16.MaxValue)
+                                            {
+                                                _valInt16 = Int16.MaxValue;
+                                            }
+                                            else if (_val < Int16.MinValue)
+                                            {
+                                                _valInt16 = Int16.MinValue;
+                                            }
+                                            else
+                                            {
+                                                _valInt16 = (Int16)_val;
+                                            }
+
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                        }
+
+                                        for (int j = 1; j < Program.NJJ + 2; j++)
+                                        {
+                                            _val = WK_L[j][k] * 100;
+                                            if (_val > Int16.MaxValue)
+                                            {
+                                                _valInt16 = Int16.MaxValue;
+                                            }
+                                            else if (_val < Int16.MinValue)
+                                            {
+                                                _valInt16 = Int16.MinValue;
+                                            }
+                                            else
+                                            {
+                                                _valInt16 = (Int16)_val;
+                                            }
+
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                        }
+                                        writer.Write(writeData); // write buffer
                                     }
-
-                                    for (int j = 1; j < Program.NJJ + 2; j++)
-                                    {
-                                        _val = VK_L[j][km] * 100;
-                                        if (_val > Int16.MaxValue)
-                                        {
-                                            _valInt16 = Int16.MaxValue;
-                                        }
-                                        else if (_val < Int16.MinValue)
-                                        {
-                                            _valInt16 = Int16.MinValue;
-                                        }
-                                        else
-                                        {
-                                            _valInt16 = (Int16)_val;
-                                        }
-
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
-                                    }
-
-                                    for (int j = 1; j < Program.NJJ + 2; j++)
-                                    {
-                                        _val = WK_L[j][k] * 100;
-                                        if (_val > Int16.MaxValue)
-                                        {
-                                            _valInt16 = Int16.MaxValue;
-                                        }
-                                        else if (_val < Int16.MinValue)
-                                        {
-                                            _valInt16 = Int16.MinValue;
-                                        }
-                                        else
-                                        {
-                                            _valInt16 = (Int16)_val;
-                                        }
-
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
-                                    }
-                                    writer.Write(writeData); // write buffer
                                 }
                             }
                         }
@@ -385,121 +391,124 @@ namespace GRAL_2001
             {
                 using (FileStream zipToOpen = new FileStream(GRALflowfield, FileMode.Create))
                 {
-                    using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                    using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                     {
-                        ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
-                        using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
+                        using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Create))
                         {
-                            writer.Write((Int32)(-1) * Program.NKK); // write negative value -> throw an error at old GRAL versions to avoid erroneous wind fields
-                            writer.Write((Int32)Program.NJJ);
-                            writer.Write((Int32)Program.NII);
-                            writer.Write((float)Program.WindDirGral);
-                            writer.Write((float)Program.WindVelGral);
-                            writer.Write((Int32)Program.StabClass);
-                            writer.Write((float)Program.DXK);
-                            int header = -3; //flag for *.gff mode 3
-                            writer.Write(header);
-
-                            //Write KKART
-                            Span<byte> _kkartBuffer = new byte[Program.NJJ * 2];
-                            for (int i = 1; i < Program.NII + 1; i++)
+                            ZipArchiveEntry write_entry = archive.CreateEntry(Path.GetFileName(GRALflowfield));
+                            using (BinaryWriter writer = new BinaryWriter(write_entry.Open()))
                             {
-                                int bytecounter = 0;
-                                for (int j = 1; j < Program.NJJ + 1; j++)
+                                writer.Write((Int32)(-1) * Program.NKK); // write negative value -> throw an error at old GRAL versions to avoid erroneous wind fields
+                                writer.Write((Int32)Program.NJJ);
+                                writer.Write((Int32)Program.NII);
+                                writer.Write((float)Program.WindDirGral);
+                                writer.Write((float)Program.WindVelGral);
+                                writer.Write((Int32)Program.StabClass);
+                                writer.Write((float)Program.DXK);
+                                int header = -3; //flag for *.gff mode 3
+                                writer.Write(header);
+
+                                //Write KKART
+                                Span<byte> _kkartBuffer = new byte[Program.NJJ * 2];
+                                for (int i = 1; i < Program.NII + 1; i++)
                                 {
-                                    Int16 _valInt16 = Program.KKART[i][j];
-                                    _kkartBuffer[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                    _kkartBuffer[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
-                                }
-                                writer.Write(_kkartBuffer);
-                            }
-                            _kkartBuffer = null;
-
-                            //Write the vectors
-                            Span<byte> WriteBuffer = new byte[(Program.NKK + 1) * 6]; // byte-buffer
-                            for (int i = 1; i <= Program.NII + 1; i++)
-                            {
-                                for (int j = 1; j <= Program.NJJ + 1; j++)
-                                {
-                                    float[] UK_L = Program.UK[i][j];
-                                    float[] VK_L = Program.VK[i][j];
-                                    float[] WK_L = Program.WK[i][j];
-
-                                    int KKART = Program.KKART[i][j];
-                                    if (KKART < 1)
-                                    {
-                                        KKART = 1;
-                                    }
-
-                                    Span<byte> writeData = WriteBuffer.Slice((KKART - 1) * 6);  // sliced byte-buffer
-
-                                    //keep each wind component together to get a better compression rate
                                     int bytecounter = 0;
-                                    for (int k = KKART; k <= Program.NKK + 1; k++)
+                                    for (int j = 1; j < Program.NJJ + 1; j++)
                                     {
-                                        Int16 _valInt16 = 0;
-                                        float _val = MathF.Round(UK_L[k - 1] * 100);
-                                        if (_val > Int16.MaxValue)
-                                        {
-                                            _valInt16 = Int16.MaxValue;
-                                        }
-                                        else if (_val < Int16.MinValue)
-                                        {
-                                            _valInt16 = Int16.MinValue;
-                                        }
-                                        else
-                                        {
-                                            _valInt16 = (Int16)_val;
-                                        }
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                        Int16 _valInt16 = Program.KKART[i][j];
+                                        _kkartBuffer[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                        _kkartBuffer[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                     }
+                                    writer.Write(_kkartBuffer);
+                                }
+                                _kkartBuffer = null;
 
-                                    for (int k = KKART; k <= Program.NKK + 1; k++)
+                                //Write the vectors
+                                Span<byte> WriteBuffer = new byte[(Program.NKK + 1) * 6]; // byte-buffer
+                                for (int i = 1; i <= Program.NII + 1; i++)
+                                {
+                                    for (int j = 1; j <= Program.NJJ + 1; j++)
                                     {
-                                        Int16 _valInt16 = 0;
-                                        float _val = MathF.Round(VK_L[k -1] * 100);
-                                        if (_val > Int16.MaxValue)
-                                        {
-                                            _valInt16 = Int16.MaxValue;
-                                        }
-                                        else if (_val < Int16.MinValue)
-                                        {
-                                            _valInt16 = Int16.MinValue;
-                                        }
-                                        else
-                                        {
-                                            _valInt16 = (Int16)_val;
-                                        }
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
-                                    }
+                                        float[] UK_L = Program.UK[i][j];
+                                        float[] VK_L = Program.VK[i][j];
+                                        float[] WK_L = Program.WK[i][j];
 
-                                    for (int k = KKART; k <= Program.NKK + 1; k++)
-                                    {
-                                        Int16 _valInt16 = 0;
-                                        float _val = MathF.Round(WK_L[k] * 100);
-                                        if (_val > Int16.MaxValue)
+                                        int KKART = Program.KKART[i][j];
+                                        if (KKART < 1)
                                         {
-                                            _valInt16 = Int16.MaxValue;
+                                            KKART = 1;
                                         }
-                                        else if (_val < Int16.MinValue)
+
+                                        Span<byte> writeData = WriteBuffer.Slice((KKART - 1) * 6);  // sliced byte-buffer
+
+                                        //keep each wind component together to get a better compression rate
+                                        int bytecounter = 0;
+                                        for (int k = KKART; k <= Program.NKK + 1; k++)
                                         {
-                                            _valInt16 = Int16.MinValue;
+                                            Int16 _valInt16 = 0;
+                                            float _val = MathF.Round(UK_L[k - 1] * 100);
+                                            if (_val > Int16.MaxValue)
+                                            {
+                                                _valInt16 = Int16.MaxValue;
+                                            }
+                                            else if (_val < Int16.MinValue)
+                                            {
+                                                _valInt16 = Int16.MinValue;
+                                            }
+                                            else
+                                            {
+                                                _valInt16 = (Int16)_val;
+                                            }
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                         }
-                                        else
+
+                                        for (int k = KKART; k <= Program.NKK + 1; k++)
                                         {
-                                            _valInt16 = (Int16)_val;
+                                            Int16 _valInt16 = 0;
+                                            float _val = MathF.Round(VK_L[k - 1] * 100);
+                                            if (_val > Int16.MaxValue)
+                                            {
+                                                _valInt16 = Int16.MaxValue;
+                                            }
+                                            else if (_val < Int16.MinValue)
+                                            {
+                                                _valInt16 = Int16.MinValue;
+                                            }
+                                            else
+                                            {
+                                                _valInt16 = (Int16)_val;
+                                            }
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
                                         }
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
-                                        writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+
+                                        for (int k = KKART; k <= Program.NKK + 1; k++)
+                                        {
+                                            Int16 _valInt16 = 0;
+                                            float _val = MathF.Round(WK_L[k] * 100);
+                                            if (_val > Int16.MaxValue)
+                                            {
+                                                _valInt16 = Int16.MaxValue;
+                                            }
+                                            else if (_val < Int16.MinValue)
+                                            {
+                                                _valInt16 = Int16.MinValue;
+                                            }
+                                            else
+                                            {
+                                                _valInt16 = (Int16)_val;
+                                            }
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x000000FF));
+                                            writeData[bytecounter++] = (byte)((_valInt16 & 0x0000FF00) >> 8);
+                                        }
+                                        // if (i==26 && j == 23)
+                                        // {
+                                        //     int km=11; int k = 12;
+                                        //     Console.WriteLine(UK_L[km]+"/"+VK_L[km] + "/" + WK_L[k]);
+                                        // }
+                                        writer.Write(writeData); // write buffer
                                     }
-                                    // if (i==26 && j == 23)
-                                    // {
-                                    //     int km=11; int k = 12;
-                                    //     Console.WriteLine(UK_L[km]+"/"+VK_L[km] + "/" + WK_L[k]);
-                                    // }
-                                    writer.Write(writeData); // write buffer
                                 }
                             }
                         }

@@ -76,292 +76,302 @@ namespace GRAL_2001
 
                     if (Convert.ToDouble(isbin[0]) < 0) // binary mode
                     {
-                        using (BinaryReader readbin = new BinaryReader(File.Open(path, FileMode.Open))) // read ggeom.asc binary mode
+                        using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            // read 1st line inclusive carriage return and line feed
-                            byte[] header;
-                            header = readbin.ReadBytes(6);
-
-                            //obtain array size in x,y,z direction
-                            Program.NI = readbin.ReadInt32();
-                            Program.NJ = readbin.ReadInt32();
-                            Program.NK = readbin.ReadInt32();
-
-                            // read AH[] array
-                            for (int j = 1; j < Program.NJ + 1; j++)
+                            using (BufferedStream bs = new BufferedStream(fs, 32768))
                             {
-                                for (int i = 1; i < Program.NI + 1; i++)
+                                using (BinaryReader readbin = new BinaryReader(bs))
                                 {
-                                    Program.AH[i][j] = readbin.ReadSingle();
-                                }
-                            }
-                            for (int k = 1; k < Program.NK + 1; k++)
-                            {
-                                for (int j = 1; j < Program.NJ + 1; j++)
-                                {
-                                    for (int i = 1; i < Program.NI + 1; i++)
+                                    // read 1st line inclusive carriage return and line feed
+                                    byte[] header;
+                                    header = readbin.ReadBytes(6);
+
+                                    //obtain array size in x,y,z direction
+                                    Program.NI = readbin.ReadInt32();
+                                    Program.NJ = readbin.ReadInt32();
+                                    Program.NK = readbin.ReadInt32();
+
+                                    // read AH[] array
+                                    for (int j = 1; j < Program.NJ + 1; j++)
                                     {
-                                        Program.ZSP[i][j][k] = readbin.ReadSingle();
+                                        for (int i = 1; i < Program.NI + 1; i++)
+                                        {
+                                            Program.AH[i][j] = readbin.ReadSingle();
+                                        }
                                     }
-                                }
-                            }
-
-                            for (int i = 1; i < Program.NI + 2; i++)
-                            {
-                                Program.XKO[i] = readbin.ReadSingle();
-                            }
-                            for (int i = 1; i < Program.NJ + 2; i++)
-                            {
-                                Program.YKO[i] = readbin.ReadSingle();
-                            }
-                            for (int i = 1; i < Program.NK + 2; i++)
-                            {
-                                Program.ZKO[i] = readbin.ReadSingle();
-                            }
-
-                            // not used VOL[] and AREAS[]
-                            for (int k = 1; k < Program.NZ + 1; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 1; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 1; i++)
+                                    for (int k = 1; k < Program.NK + 1; k++)
                                     {
-                                        readbin.ReadSingle();
+                                        for (int j = 1; j < Program.NJ + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NI + 1; i++)
+                                            {
+                                                Program.ZSP[i][j][k] = readbin.ReadSingle();
+                                            }
+                                        }
                                     }
-                                }
-                            }
 
-                            for (int k = 1; k < Program.NZ + 1; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 1; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 2; i++)
-                                    {
-                                        readbin.ReadSingle();
-                                    }
-                                }
-                            }
-
-                            for (int k = 1; k < Program.NZ + 1; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 2; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 1; i++)
-                                    {
-                                        readbin.ReadSingle();
-                                    }
-                                }
-                            }
-
-                            for (int k = 1; k < Program.NZ + 2; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 1; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 1; i++)
-                                    {
-                                        readbin.ReadSingle();
-                                    }
-                                }
-                            }
-
-                            for (int k = 1; k < Program.NZ + 2; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 1; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 1; i++)
-                                    {
-                                        readbin.ReadSingle();
-                                    }
-                                }
-                            }
-
-                            for (int k = 1; k < Program.NZ + 2; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 1; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 1; i++)
-                                    {
-                                        readbin.ReadSingle();
-                                    }
-                                }
-                            }
-
-                            for (int i = 1; i < Program.NI + 1; i++)
-                            {
-                                Program.DDX[i] = readbin.ReadSingle();
-                            }
-
-                            for (int i = 1; i < Program.NJ + 1; i++)
-                            {
-                                Program.DDY[i] = readbin.ReadSingle();
-                            }
-
-                            for (int i = 1; i < Program.NI + 1; i++)
-                            {
-                                readbin.ReadSingle();
-                            }
-
-                            for (int i = 1; i < Program.NJ + 1; i++)
-                            {
-                                readbin.ReadSingle();
-                            }
-
-                            Program.GrammWest = readbin.ReadInt32();
-                            Program.GrammSouth = readbin.ReadInt32();
-                            readbin.ReadDouble(); // angle not used
-
-                            for (int k = 1; k < Program.NK + 2; k++)
-                            {
-                                for (int j = 1; j < Program.NJ + 2; j++)
-                                {
                                     for (int i = 1; i < Program.NI + 2; i++)
                                     {
-                                        Program.AHE[i][j][k] = readbin.ReadSingle();
+                                        Program.XKO[i] = readbin.ReadSingle();
                                     }
+                                    for (int i = 1; i < Program.NJ + 2; i++)
+                                    {
+                                        Program.YKO[i] = readbin.ReadSingle();
+                                    }
+                                    for (int i = 1; i < Program.NK + 2; i++)
+                                    {
+                                        Program.ZKO[i] = readbin.ReadSingle();
+                                    }
+
+                                    // not used VOL[] and AREAS[]
+                                    for (int k = 1; k < Program.NZ + 1; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 1; i++)
+                                            {
+                                                readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    for (int k = 1; k < Program.NZ + 1; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 2; i++)
+                                            {
+                                                readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    for (int k = 1; k < Program.NZ + 1; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 2; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 1; i++)
+                                            {
+                                                readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    for (int k = 1; k < Program.NZ + 2; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 1; i++)
+                                            {
+                                                readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    for (int k = 1; k < Program.NZ + 2; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 1; i++)
+                                            {
+                                                readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    for (int k = 1; k < Program.NZ + 2; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 1; i++)
+                                            {
+                                                readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    for (int i = 1; i < Program.NI + 1; i++)
+                                    {
+                                        Program.DDX[i] = readbin.ReadSingle();
+                                    }
+
+                                    for (int i = 1; i < Program.NJ + 1; i++)
+                                    {
+                                        Program.DDY[i] = readbin.ReadSingle();
+                                    }
+
+                                    for (int i = 1; i < Program.NI + 1; i++)
+                                    {
+                                        readbin.ReadSingle();
+                                    }
+
+                                    for (int i = 1; i < Program.NJ + 1; i++)
+                                    {
+                                        readbin.ReadSingle();
+                                    }
+
+                                    Program.GrammWest = readbin.ReadInt32();
+                                    Program.GrammSouth = readbin.ReadInt32();
+                                    readbin.ReadDouble(); // angle not used
+
+                                    for (int k = 1; k < Program.NK + 2; k++)
+                                    {
+                                        for (int j = 1; j < Program.NJ + 2; j++)
+                                        {
+                                            for (int i = 1; i < Program.NI + 2; i++)
+                                            {
+                                                Program.AHE[i][j][k] = readbin.ReadSingle();
+                                            }
+                                        }
+                                    }
+
+                                    if (Program.AHE[1][1][Program.NK] < 1) // Poblem reading AHE[]
+                                    {
+                                        string err = "Error when reading AHE[] from file ggeom.asc. Execution stopped: press ESC to stop";
+                                        Console.WriteLine(err);
+                                        ProgramWriters.LogfileProblemreportWrite(err);
+
+                                        if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
+                                        {
+                                            Console.ReadKey(true);  // wait for a key input
+                                        }
+
+                                        Environment.Exit(0);        // Exit console
+                                    }
+                                    Program.Topo = Consts.TerrainAvailable;
                                 }
                             }
-
-                            if (Program.AHE[1][1][Program.NK] < 1) // Poblem reading AHE[]
-                            {
-                                string err = "Error when reading AHE[] from file ggeom.asc. Execution stopped: press ESC to stop";
-                                Console.WriteLine(err);
-                                ProgramWriters.LogfileProblemreportWrite(err);
-
-                                if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
-                                {
-                                    Console.ReadKey(true); 	// wait for a key input
-                                }
-
-                                Environment.Exit(0);        // Exit console
-                            }
-                            Program.Topo = Consts.TerrainAvailable;
                         }
-
                     }
                     else // ggeom asc - ascii mode
                     {
-                        using (StreamReader read1 = new StreamReader(path))  // read ggeom.asc ascii format
+                        using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            int count = 0;
-
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            count = count + text.Length;
-
-                            //obtain array sizes in x,y,z direction
-                            Program.NI = Convert.ToInt32(text[0]);
-                            Program.NJ = Convert.ToInt32(text[1]);
-                            Program.NK = Convert.ToInt32(text[2]);
-
-                            //obtain X, Y, and Z
-                            for (int i = 3; i < 3 + Program.NX + 1; i++)
+                            using (BufferedStream bs = new BufferedStream(fs, 32768))
                             {
-                                Program.XKO[i - 2] = Convert.ToDouble(text[i].Replace(".", Program.Decsep));
-                            }
-                            int n = 0;
-                            for (int i = 3 + Program.NX + 1; i < 3 + Program.NX + 1 + Program.NY + 1; i++)
-                            {
-                                n++;
-                                Program.YKO[n] = Convert.ToDouble(text[i].Replace(".", Program.Decsep));
-                            }
-                            n = 0;
-                            for (int i = 3 + Program.NX + 1 + Program.NY + 1; i < text.Length; i++)
-                            {
-                                n++;
-                                Program.ZKO[n] = Convert.ToDouble(text[i].Replace(".", Program.Decsep));
-                            }
-
-                            //obtain surface heights
-                            n = 0;
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            for (int j = 1; j < Program.NY + 1; j++)
-                            {
-                                for (int i = 1; i < Program.NX + 1; i++)
+                                using (StreamReader read1 = new StreamReader(bs))  // read ggeom.asc ascii format
                                 {
-                                    Program.AH[i][j] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
-                                    n++;
-                                }
-                            }
-                            //obtain grid volumes are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain areas in x-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain areas in y-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain projection of z-area in x-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain projection of z-area in y-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain area in z-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain cell-heights
-                            n = 0;
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            for (int k = 1; k < Program.NZ + 1; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 1; j++)
-                                {
+                                    int count = 0;
+
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                    count = count + text.Length;
+
+                                    //obtain array sizes in x,y,z direction
+                                    Program.NI = Convert.ToInt32(text[0]);
+                                    Program.NJ = Convert.ToInt32(text[1]);
+                                    Program.NK = Convert.ToInt32(text[2]);
+
+                                    //obtain X, Y, and Z
+                                    for (int i = 3; i < 3 + Program.NX + 1; i++)
+                                    {
+                                        Program.XKO[i - 2] = Convert.ToDouble(text[i].Replace(".", Program.Decsep));
+                                    }
+                                    int n = 0;
+                                    for (int i = 3 + Program.NX + 1; i < 3 + Program.NX + 1 + Program.NY + 1; i++)
+                                    {
+                                        n++;
+                                        Program.YKO[n] = Convert.ToDouble(text[i].Replace(".", Program.Decsep));
+                                    }
+                                    n = 0;
+                                    for (int i = 3 + Program.NX + 1 + Program.NY + 1; i < text.Length; i++)
+                                    {
+                                        n++;
+                                        Program.ZKO[n] = Convert.ToDouble(text[i].Replace(".", Program.Decsep));
+                                    }
+
+                                    //obtain surface heights
+                                    n = 0;
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                    for (int j = 1; j < Program.NY + 1; j++)
+                                    {
+                                        for (int i = 1; i < Program.NX + 1; i++)
+                                        {
+                                            Program.AH[i][j] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
+                                            n++;
+                                        }
+                                    }
+                                    //obtain grid volumes are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain areas in x-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain areas in y-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain projection of z-area in x-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain projection of z-area in y-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain area in z-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain cell-heights
+                                    n = 0;
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                    for (int k = 1; k < Program.NZ + 1; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 1; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 1; i++)
+                                            {
+                                                Program.ZSP[i][j][k] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
+                                                n++;
+                                            }
+                                        }
+                                    }
+                                    //obtain grid cells sizes in x-direction
+                                    n = 0;
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                                     for (int i = 1; i < Program.NX + 1; i++)
                                     {
-                                        Program.ZSP[i][j][k] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
+                                        Program.DDX[i] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
                                         n++;
                                     }
-                                }
-                            }
-                            //obtain grid cells sizes in x-direction
-                            n = 0;
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            for (int i = 1; i < Program.NX + 1; i++)
-                            {
-                                Program.DDX[i] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
-                                n++;
-                            }
-                            //obtain grid cells sizes in y-direction
-                            n = 0;
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            for (int i = 1; i < Program.NY + 1; i++)
-                            {
-                                Program.DDY[i] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
-                                n++;
-                            }
-                            //obtain distances of neighbouring grid cells in x-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain distances of neighbouring grid cells in y-direction are stored here but not used in GRAL
-                            text[0] = read1.ReadLine();
-                            //obtain western and southern borders of the model domain and the angle (not used anymore) between the main model domain axis and north
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            Program.GrammWest = Convert.ToInt32(text[0]);
-                            Program.GrammSouth = Convert.ToInt32(text[1]);
-
-                            //obtain heights of the cell corners
-                            n = 0;
-                            text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                            for (int k = 1; k < Program.NZ + 2; k++)
-                            {
-                                for (int j = 1; j < Program.NY + 2; j++)
-                                {
-                                    for (int i = 1; i < Program.NX + 2; i++)
+                                    //obtain grid cells sizes in y-direction
+                                    n = 0;
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                    for (int i = 1; i < Program.NY + 1; i++)
                                     {
-                                        Program.AHE[i][j][k] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
+                                        Program.DDY[i] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
                                         n++;
                                     }
+                                    //obtain distances of neighbouring grid cells in x-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain distances of neighbouring grid cells in y-direction are stored here but not used in GRAL
+                                    text[0] = read1.ReadLine();
+                                    //obtain western and southern borders of the model domain and the angle (not used anymore) between the main model domain axis and north
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                    Program.GrammWest = Convert.ToInt32(text[0]);
+                                    Program.GrammSouth = Convert.ToInt32(text[1]);
+
+                                    //obtain heights of the cell corners
+                                    n = 0;
+                                    text = read1.ReadLine().Split(new char[] { ' ', ',', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                                    for (int k = 1; k < Program.NZ + 2; k++)
+                                    {
+                                        for (int j = 1; j < Program.NY + 2; j++)
+                                        {
+                                            for (int i = 1; i < Program.NX + 2; i++)
+                                            {
+                                                Program.AHE[i][j][k] = Convert.ToSingle(text[n].Replace(".", Program.Decsep));
+                                                n++;
+                                            }
+                                        }
+                                    }
+
+                                    if (Program.AHE[1][1][Program.NK] < 1) // Poblem reading AHE[]
+                                    {
+                                        string err = "Error when reading AHE[] from file ggeom.asc. Execution stopped: press ESC to stop";
+                                        Console.WriteLine(err);
+                                        ProgramWriters.LogfileProblemreportWrite(err);
+
+                                        if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
+                                        {
+                                            Console.ReadKey(true);  // wait for a key input
+                                        }
+
+                                        Environment.Exit(0);        // Exit console
+                                    }
+                                    Program.Topo = Consts.TerrainAvailable;
                                 }
                             }
-
-                            if (Program.AHE[1][1][Program.NK] < 1) // Poblem reading AHE[]
-                            {
-                                string err = "Error when reading AHE[] from file ggeom.asc. Execution stopped: press ESC to stop";
-                                Console.WriteLine(err);
-                                ProgramWriters.LogfileProblemreportWrite(err);
-
-                                if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
-                                {
-                                    Console.ReadKey(true); 	// wait for a key input
-                                }
-
-                                Environment.Exit(0);        // Exit console
-                            }
-
-                            Program.Topo = Consts.TerrainAvailable;
                         } // Read ggeom.asc ascii format
                     }
                 }

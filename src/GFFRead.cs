@@ -28,11 +28,8 @@ namespace GRAL_2001
         /// </summary>
         public static bool Read()
         {
-            bool ReadingOK = false;
-
-            
+            bool ReadingOK = false;      
             string GRALflowfield = Path.Combine(Program.GFFFilePath, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".gff");
-            
             //reading *.gff-file and GRAL geometries
             if (File.Exists(GRALflowfield) == true && ReadGRALGeometries())
             {
@@ -43,12 +40,15 @@ namespace GRAL_2001
                     {
                         using (FileStream zipToOpen = new FileStream(GRALflowfield, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
+                            using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                             {
-                                string filename = archive.Entries[0].FullName;
-                                using (BinaryReader reader = new BinaryReader(archive.Entries[0].Open()))
+                                using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Read))
                                 {
-                                    ReadingOK = ReadGffData(reader, GRALflowfield);
+                                    string filename = archive.Entries[0].FullName;
+                                    using (BinaryReader reader = new BinaryReader(archive.Entries[0].Open()))
+                                    {
+                                        ReadingOK = ReadGffData(reader, GRALflowfield);
+                                    }
                                 }
                             }
                         }
@@ -308,11 +308,6 @@ namespace GRAL_2001
                                 WK_L[k] = (float)(BitConverter.ToInt16(readData, index) * 0.01F);
                                 index += 2;
                             }
-                            // if (i == 26 && j == 23 )
-                            // {
-                            //     int k =12;
-                            //     Console.WriteLine(UK_L[k-1] + "/" + VK_L[k-1] + "/" + WK_L[k]);
-                            // }
                         }
                     }
                 }
