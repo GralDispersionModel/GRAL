@@ -7,12 +7,12 @@ Do not hesitate to contact the project administrators at the beginning of your w
 ## Branch Configuration
 
 ```
--- master  : production and bug fixes
+-- main    : production and bug fixes
 -- V2XXX   : release ready commits and bug fixes
 -- features/feature-xx: always branch from develop and delete after merging to develop
 ```
 
-- *master* branch is inteded for production release. Keep it simple and easy to rollback
+- *main*   branch is inteded for production release. Keep it simple and easy to rollback
 - *V2XXX*  branch is for release preparation. Only for release ready commits.
 
 
@@ -32,7 +32,7 @@ If you're making a **bug fix**
 2. Add an issue tag in the commit message or pull request message
 
 If you're making a **hot fix**, which has to be deployed immediately.
-1. Pull request to `V2XXX` **and** `master` branch
+1. Pull request to `V2XXX` **and** `main` branch
 
 ## I don't want to contribute, I just have a question!
 Support is provided by the [Technical University of Graz, Austria](http://lampz.tugraz.at/~gral/). 
