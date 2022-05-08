@@ -2,7 +2,7 @@
 Atmospheric dispersion modeling in complex terrain and in situations with low wind speeds is still challenging. Nevertheless, air pollution has to be assessed in such environments.
 It is therefore necessary to develop models and methods, which allow for such assessments with reasonable demands on computational times and with sensible accuracy.
 This has been the motivation for the development of the Lagrangian dispersion model GRAL at the Graz University of Technology, Institute for Internal Combustion Engines and Thermodynamics, ever since 1999. <br>
-Meanwhile the Governments of Tyrol (since 2014) and Styria (since 2006), Austria, are further developing the model. In 2019, the decision was made to publish GRAL as Open Source.<br>
+Dr. Dietmar Oettl from the Office of the Provincial Government of Styria (2006 - 2020) and Markus Kuntner (since 2016), Austria, are further developing the model. In 2019, the decision was made to publish GRAL as Open Source.<br>
 
 The basic principle of Lagrangian models is the tracing/tracking of a multitude of fictitious particles moving on trajectories within a 3-d windfield. GRAL provides a CFD model for the flow calculation around buildings or micrsocale terrain structures. To take the presence of topography into account, GRAL can be linked with the prognostic wind field model GRAMM.<br>
 To speed up the calculation, GRAL is parallelized, the CFD model supports SSE/AVX vectorization and the latest performance optimizations of the .NET framework are used.<br>
