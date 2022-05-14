@@ -37,7 +37,8 @@ namespace GRAL_2001
                     Program.IPROC = Convert.ToInt32(text);
                     if (Environment.ProcessorCount > 0)
                     {
-                        Program.IPROC = Math.Max(1, Math.Min(Environment.ProcessorCount, Program.IPROC)); // limit number of cores to available cores
+                       // Removed, due to the braking change in Environment.ProcessorCount from .NET5 to .NET6 
+                       // Program.IPROC = Math.Max(1, Math.Min(Environment.ProcessorCount, Program.IPROC)); // limit number of cores to available cores
                     }
                     Program.pOptions.MaxDegreeOfParallelism = Program.IPROC;
                 }
