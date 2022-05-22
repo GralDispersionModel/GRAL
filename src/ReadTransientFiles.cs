@@ -54,112 +54,118 @@ namespace GRAL_2001
             {
                 string fname = "Vertical_Concentrations.tmp";
 
-                using (ZipArchive archive = ZipFile.OpenRead(fname))
+                using (FileStream zipToOpen = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    string filename = archive.Entries[0].FullName;
-                    using (BinaryReader rb = new BinaryReader(archive.Entries[0].Open()))
-                    //using (BinaryReader rb = new BinaryReader(File.Open("Vertical_Concentrations.tmp", FileMode.Open))) // read ggeom.asc binary mode
+                    using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                     {
-                        int ff = 0;
-                        // check, if temp field matches to the recent computation
-                        if (rb.ReadInt32() != Program.NII)
+                        using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Read))
                         {
-                            ff = 1;
-                            ok = false;
-                        }
-                        if (rb.ReadInt32() != Program.NJJ)
-                        {
-                            ff = 2;
-                            ok = false;
-                        }
-                        if (rb.ReadInt32() != Program.NKK_Transient)
-                        {
-                            ff = 3;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralWest)
-                        {
-                            ff = 4;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralEast)
-                        {
-                            ff = 5;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralSouth)
-                        {
-                            ff = 5;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralNorth)
-                        {
-                            ff = 6;
-                            ok = false;
-                        }
-
-                        if (rb.ReadSingle() != Program.DXK)
-                        {
-                            ff = 7;
-                            ok = false;
-                        }
-
-                        int LastIWET = rb.ReadInt32(); // check if actual starting disp. situation and temp disp. situation match
-                        int tempCounter = rb.ReadInt32(); // the number of summarized situations
-
-                        if (Math.Abs(LastIWET - Program.IWETstart) > 24)
-                        {
-                            if (Program.TransientTempFileDelete) //continue, if transient files are not deleted
+                            string filename = archive.Entries[0].FullName;
+                            using (BinaryReader rb = new BinaryReader(archive.Entries[0].Open()))
+                            //using (BinaryReader rb = new BinaryReader(File.Open("Vertical_Concentrations.tmp", FileMode.Open))) // read ggeom.asc binary mode
                             {
-                                ff = 8;
-                                ok = false;
-                            }
-                        }
-
-                        if (ok) // then read the data
-                        {
-                            for (int j = 1; j <= Program.NJJ + 1; j++)
-                            {
-                                for (int i = 1; i <= Program.NII + 1; i++)
+                                int ff = 0;
+                                // check, if temp field matches to the recent computation
+                                if (rb.ReadInt32() != Program.NII)
                                 {
-                                    int minindex = rb.ReadInt32();
-                                    if (minindex > -1)
+                                    ff = 1;
+                                    ok = false;
+                                }
+                                if (rb.ReadInt32() != Program.NJJ)
+                                {
+                                    ff = 2;
+                                    ok = false;
+                                }
+                                if (rb.ReadInt32() != Program.NKK_Transient)
+                                {
+                                    ff = 3;
+                                    ok = false;
+                                }
+                                if (rb.ReadDouble() != Program.GralWest)
+                                {
+                                    ff = 4;
+                                    ok = false;
+                                }
+                                if (rb.ReadDouble() != Program.GralEast)
+                                {
+                                    ff = 5;
+                                    ok = false;
+                                }
+                                if (rb.ReadDouble() != Program.GralSouth)
+                                {
+                                    ff = 5;
+                                    ok = false;
+                                }
+                                if (rb.ReadDouble() != Program.GralNorth)
+                                {
+                                    ff = 6;
+                                    ok = false;
+                                }
+
+                                if (rb.ReadSingle() != Program.DXK)
+                                {
+                                    ff = 7;
+                                    ok = false;
+                                }
+
+                                int LastIWET = rb.ReadInt32(); // check if actual starting disp. situation and temp disp. situation match
+                                int tempCounter = rb.ReadInt32(); // the number of summarized situations
+
+                                if (Math.Abs(LastIWET - Program.IWETstart) > 24)
+                                {
+                                    if (Program.TransientTempFileDelete) //continue, if transient files are not deleted
                                     {
-                                        int maxindex = rb.ReadInt32();
-                                        if (maxindex >= minindex)
-                                        {
-                                            for (int k = minindex; k <= maxindex; k++)
-                                            {
-                                                Program.ConzSsum[i][j][k] = rb.ReadSingle();
-                                            } // loop over vertical layers with concentration values
-                                        }
+                                        ff = 8;
+                                        ok = false;
                                     }
                                 }
-                            }
 
-                            Program.ConzSumCounter = tempCounter;
-                            string err = "Reading Vertical_Concentrations.tmp successful";
-                            Console.WriteLine(err);
-                            ProgramWriters.LogfileGralCoreWrite(err);
-                        }
-                        else
-                        {
-                            Program.ConzSumCounter = 0;
-                            if (ff == 8)
-                            {
-                                string err = "Reading Vertical_Concentrations.tmp failed nr. " + ff.ToString();
-                                Console.WriteLine(err);
-                                ProgramWriters.LogfileGralCoreWrite(err);
-                                err = "Saved disp. situation: " + tempCounter.ToString() +
-                                    "  recent disp. situation: " + Program.IWETstart.ToString();
-                                Console.WriteLine(err);
-                                ProgramWriters.LogfileGralCoreWrite(err);
-                            }
+                                if (ok) // then read the data
+                                {
+                                    for (int j = 1; j <= Program.NJJ + 1; j++)
+                                    {
+                                        for (int i = 1; i <= Program.NII + 1; i++)
+                                        {
+                                            int minindex = rb.ReadInt32();
+                                            if (minindex > -1)
+                                            {
+                                                int maxindex = rb.ReadInt32();
+                                                if (maxindex >= minindex)
+                                                {
+                                                    for (int k = minindex; k <= maxindex; k++)
+                                                    {
+                                                        Program.ConzSsum[i][j][k] = rb.ReadSingle();
+                                                    } // loop over vertical layers with concentration values
+                                                }
+                                            }
+                                        }
+                                    }
 
-                        }
+                                    Program.ConzSumCounter = tempCounter;
+                                    string err = "Reading Vertical_Concentrations.tmp successful";
+                                    Console.WriteLine(err);
+                                    ProgramWriters.LogfileGralCoreWrite(err);
+                                }
+                                else
+                                {
+                                    Program.ConzSumCounter = 0;
+                                    if (ff == 8)
+                                    {
+                                        string err = "Reading Vertical_Concentrations.tmp failed nr. " + ff.ToString();
+                                        Console.WriteLine(err);
+                                        ProgramWriters.LogfileGralCoreWrite(err);
+                                        err = "Saved disp. situation: " + tempCounter.ToString() +
+                                            "  recent disp. situation: " + Program.IWETstart.ToString();
+                                        Console.WriteLine(err);
+                                        ProgramWriters.LogfileGralCoreWrite(err);
+                                    }
 
-                    } // binary reader
-                } // ZIP
+                                }
+
+                            } // binary reader
+                        } // ZIP
+                    } // Buffered stream
+                } // FileStream
 
             }
             catch
@@ -188,103 +194,110 @@ namespace GRAL_2001
             int LastIWET = 0;
             try
             {
-                using (ZipArchive archive = ZipFile.OpenRead(fname))
+                using (FileStream zipToOpen = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    string filename = archive.Entries[0].FullName;
-                    using (BinaryReader rb = new BinaryReader(archive.Entries[0].Open()))
+                    using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                     {
-                        int ff = 0;
-                        // check, if temp field matches to the recent computation
-                        if (rb.ReadInt32() != Program.NII)
+                        using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Read))
                         {
-                            ff = 1;
-                            ok = false;
-                        }
-                        if (rb.ReadInt32() != Program.NJJ)
-                        {
-                            ff = 2;
-                            ok = false;
-                        }
-                        if (rb.ReadInt32() != Program.NKK_Transient)
-                        {
-                            ff = 3;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralWest)
-                        {
-                            ff = 4;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralEast)
-                        {
-                            ff = 5;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralSouth)
-                        {
-                            ff = 5;
-                            ok = false;
-                        }
-                        if (rb.ReadDouble() != Program.GralNorth)
-                        {
-                            ff = 6;
-                            ok = false;
-                        }
-
-                        if (rb.ReadSingle() != Program.DXK)
-                        {
-                            ff = 7;
-                            ok = false;
-                        }
-
-                        LastIWET = rb.ReadInt32(); // check if actual starting disp. situation and temp disp. situation match
-                        int SG_COUNT = rb.ReadInt32(); // the number of Source groups
-
-                        if (SG_COUNT != Program.SourceGroups.Count)
-                        {
-                            ff = 8;
-                            ok = false;
-                        }
-
-                        if (ok) // then read the data
-                        {
-                            for (int j = 1; j <= Program.NJJ + 1; j++)
+                            string filename = archive.Entries[0].FullName;
+                            using (BinaryReader rb = new BinaryReader(archive.Entries[0].Open()))
                             {
-                                for (int i = 1; i <= Program.NII + 1; i++)
+                                string error = string.Empty;
+                                // check, if temp field matches to the recent computation
+                                if (rb.ReadInt32() != Program.NII)
                                 {
-                                    for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                                    ok = false;
+                                    error = "Number of horizontal cells (x) has been changed";
+                                }
+                                if (rb.ReadInt32() != Program.NJJ)
+                                {
+                                    ok = false;
+                                    error += " Number of vertical cells (y) has been changed";
+                                }
+                                if (rb.ReadInt32() != Program.NKK_Transient)
+                                {
+                                    ok = false;
+                                    error += " Number of vertical cells had been changed";
+                                }
+                                if (rb.ReadDouble() != Program.GralWest)
+                                {
+                                    ok = false;
+                                    error += " Western bound of GRAL domain has been changed";
+                                }
+                                if (rb.ReadDouble() != Program.GralEast)
+                                {
+                                    ok = false;
+                                    error += " Eastern bound of GRAL domain has been changed";
+                                }
+                                if (rb.ReadDouble() != Program.GralSouth)
+                                {
+                                    ok = false;
+                                    error += " Southern bound of GRAL domain has been changed";
+                                }
+                                if (rb.ReadDouble() != Program.GralNorth)
+                                {
+                                    ok = false;
+                                    error += " Northern bound of GRAL domain has been changed";
+                                }
+
+                                if (rb.ReadSingle() != Program.DXK)
+                                {
+                                    ok = false;
+                                    error += " Horizontal grid size has been changed";
+                                }
+
+                                LastIWET = rb.ReadInt32(); // check if actual starting disp. situation and temp disp. situation match
+                                int SG_COUNT = rb.ReadInt32(); // the number of Source groups
+
+                                if (SG_COUNT != Program.SourceGroups.Count)
+                                {
+                                    ok = false;
+                                }
+
+                                if (ok) // then read the data
+                                {
+                                    for (int j = 1; j <= Program.NJJ + 1; j++)
                                     {
-                                        int minindex = rb.ReadInt32();
-                                        int maxindex = rb.ReadInt32();
-                                        if (minindex > -1 && maxindex >= minindex)
+                                        for (int i = 1; i <= Program.NII + 1; i++)
                                         {
-                                            for (int k = minindex; k <= maxindex; k++)
+                                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                                             {
-                                                Program.Conz4d[i][j][k][IQ] = rb.ReadSingle();
-                                            } // loop over vertical layers with concentration values
+                                                int minindex = rb.ReadInt32();
+                                                int maxindex = rb.ReadInt32();
+                                                if (minindex > -1 && maxindex >= minindex)
+                                                {
+                                                    for (int k = minindex; k <= maxindex; k++)
+                                                    {
+                                                        Program.Conz4d[i][j][k][IQ] = rb.ReadSingle();
+                                                    } // loop over vertical layers with concentration values
+                                                }
+                                            }
                                         }
                                     }
+
+                                    // read emission per source group
+                                    for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                                    {
+                                        Program.EmissionPerSG[IQ] = rb.ReadDouble();
+                                    }
+
+                                    string err = "Reading Transient_Concentrations.tmp successful! Already calculated emission rates:";
+                                    Console.WriteLine(err);
+                                    ProgramWriters.LogfileGralCoreWrite(err);
+                                    //Write already calculated emission rate
+                                    ProgramWriters.ShowEmissionRate();
                                 }
-                            }
+                                else
+                                {
+                                    Console.WriteLine(error);
+                                    ProgramWriters.LogfileGralCoreWrite(error);
+                                }
 
-                            // read emission per source group
-                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
-                            {
-                                Program.EmissionPerSG[IQ] = rb.ReadDouble();
-                            }
-
-                            string err = "Reading Transient_Concentrations.tmp successful! Already calculated emission rates:";
-                            Console.WriteLine(err);
-                            ProgramWriters.LogfileGralCoreWrite(err);
-                            //Write already calculated emission rate
-                            ProgramWriters.ShowEmissionRate();
-                        }
-                        else
-                        {
-                        }
-
-                    } // binary reader
-                } // ZIP
+                            } // binary reader
+                        } // ZIP
+                    } // Buffered Stream
+                } // FileStream
 
             }
             catch

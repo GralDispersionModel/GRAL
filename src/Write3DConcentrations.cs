@@ -376,62 +376,65 @@ namespace GRAL_2001
 
                 using (FileStream zipToOpen = new FileStream(fname, FileMode.Create))
                 {
-                    using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+                    using (BufferedStream bs = new BufferedStream(zipToOpen, 32768))
                     {
-                        ZipArchiveEntry write_entry = archive.CreateEntry(fname);
-
-                        using (BinaryWriter bw = new BinaryWriter(write_entry.Open()))
-                        //using (BinaryWriter bw = new BinaryWriter(File.Open("Vertical_Concentrations.tmp", FileMode.Create)))
+                        using (ZipArchive archive = new ZipArchive(bs, ZipArchiveMode.Create))
                         {
-                            bw.Write((Int32)Program.NII);
-                            bw.Write((Int32)Program.NJJ);
-                            bw.Write((Int32)Program.NKK_Transient);
-                            bw.Write(Program.GralWest);
-                            bw.Write(Program.GralEast);
-                            bw.Write(Program.GralSouth);
-                            bw.Write(Program.GralNorth);
-                            bw.Write((Single)Program.DXK);
-                            bw.Write((Int32)Program.IWET);
-                            bw.Write((Int32)Program.ConzSumCounter);
+                            ZipArchiveEntry write_entry = archive.CreateEntry(fname);
 
-                            byte[] writeData = new byte[(Program.NKK_Transient - 1) * sizeof(float)]; // byte-buffer
-
-                            for (int j = 1; j <= Program.NJJ + 1; j++)
+                            using (BinaryWriter bw = new BinaryWriter(write_entry.Open()))
+                            //using (BinaryWriter bw = new BinaryWriter(File.Open("Vertical_Concentrations.tmp", FileMode.Create)))
                             {
-                                for (int i = 1; i <= Program.NII + 1; i++)
+                                bw.Write((Int32)Program.NII);
+                                bw.Write((Int32)Program.NJJ);
+                                bw.Write((Int32)Program.NKK_Transient);
+                                bw.Write(Program.GralWest);
+                                bw.Write(Program.GralEast);
+                                bw.Write(Program.GralSouth);
+                                bw.Write(Program.GralNorth);
+                                bw.Write((Single)Program.DXK);
+                                bw.Write((Int32)Program.IWET);
+                                bw.Write((Int32)Program.ConzSumCounter);
+
+                                byte[] writeData = new byte[(Program.NKK_Transient - 1) * sizeof(float)]; // byte-buffer
+
+                                for (int j = 1; j <= Program.NJJ + 1; j++)
                                 {
-                                    // find lowest and highest index with values > trans_conc_threshold
-                                    int maxindex = -1;
-                                    int minindex = -1;
-                                    float[] conz_sum_L = Program.ConzSsum[i][j];
-                                    for (int k = 1; k < Program.NKK_Transient; k++)
+                                    for (int i = 1; i <= Program.NII + 1; i++)
                                     {
-                                        if (conz_sum_L[k] > float.Epsilon && (minindex == -1))
+                                        // find lowest and highest index with values > trans_conc_threshold
+                                        int maxindex = -1;
+                                        int minindex = -1;
+                                        float[] conz_sum_L = Program.ConzSsum[i][j];
+                                        for (int k = 1; k < Program.NKK_Transient; k++)
                                         {
-                                            minindex = k;
-                                            maxindex = k;
+                                            if (conz_sum_L[k] > float.Epsilon && (minindex == -1))
+                                            {
+                                                minindex = k;
+                                                maxindex = k;
+                                            }
+                                            if (conz_sum_L[k] > float.Epsilon && (minindex != -1))
+                                            {
+                                                maxindex = k;
+                                            }
                                         }
-                                        if (conz_sum_L[k] > float.Epsilon && (minindex != -1))
+
+                                        bw.Write(minindex);
+                                        if (minindex > -1 && maxindex >= minindex)
                                         {
-                                            maxindex = k;
+                                            bw.Write(maxindex);
+
+                                            for (int k = minindex; k <= maxindex; k++)
+                                            {
+                                                bw.Write(conz_sum_L[k]);
+                                            } // loop over vertical layers
                                         }
+
                                     }
-
-                                    bw.Write(minindex);
-                                    if (minindex > -1 && maxindex >= minindex)
-                                    {
-                                        bw.Write(maxindex);
-
-                                        for (int k = minindex; k <= maxindex; k++)
-                                        {
-                                            bw.Write(conz_sum_L[k]);
-                                        } // loop over vertical layers
-                                    }
-
                                 }
                             }
-                        }
-                    } // Zip Archiv
+                        } // Zip Archiv
+                    } // Buffered stream
                 } //File Stream
             }
             catch { }
