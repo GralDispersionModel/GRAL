@@ -270,7 +270,7 @@ namespace GRAL_2001
             else
             {
                 Console.WriteLine();
-                string err = "Main control file in.dat is missing. -> Execution stopped: press ESC to stop";
+                string err = "Main control file in.dat is missing in the project folder " + Directory.GetCurrentDirectory() + Environment.NewLine + "Execution stopped: press ESC to exit";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
 

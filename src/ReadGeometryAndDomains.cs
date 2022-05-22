@@ -62,6 +62,18 @@ namespace GRAL_2001
             // The variables GRALWest to GRALSouth have to be assigned at program.cs!
             try
             {
+                if (!File.Exists("GRAL.geb"))
+                {
+                    string error = "File GRAL.geb not available in the project folder " + Directory.GetCurrentDirectory() + Environment.NewLine + "Execution stopped: press ESC to exit";
+                    Console.WriteLine(error);
+                    ProgramWriters.LogfileProblemreportWrite(error);
+                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
+                    }
+                    Environment.Exit(0);
+                }
+
                 using (StreamReader myreader = new StreamReader("GRAL.geb"))
                 {
                     string[] text = new string[201];

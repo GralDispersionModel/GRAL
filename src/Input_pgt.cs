@@ -27,6 +27,18 @@ namespace GRAL_2001
         {
             try
             {
+                if (!File.Exists("meteopgt.all"))
+                {
+                    string error = "File meteopgt.all not available in the project folder " + Directory.GetCurrentDirectory() + Environment.NewLine + "Execution stopped: press ESC to exit";
+                    Console.WriteLine(error);
+                    ProgramWriters.LogfileProblemreportWrite(error);
+                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                    {
+                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
+                    }
+                    Environment.Exit(0);
+                }
+
                 using (StreamReader sr = new StreamReader("meteopgt.all"))
                 {
                     string[] text = new string[1];
