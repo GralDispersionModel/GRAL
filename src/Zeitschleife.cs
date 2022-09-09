@@ -163,6 +163,7 @@ namespace GRAL_2001
                     }
                 }
                 //try
+                if (Deposition_type < Consts.DepoOnly) // compute concentrations for this particle
                 {
                     lock (Program.EmissionPerSG)
                     {
