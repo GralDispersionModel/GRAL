@@ -2,17 +2,22 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <VersionPrefix>22.09.0</VersionPrefix>
+    <TargetFramework>net7.0</TargetFramework>
+    <VersionPrefix>23.09.0</VersionPrefix>
     <Authors>Dietmar Oettl;Markus Kuntner</Authors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <Optimize>true</Optimize>
     <TieredCompilation>true</TieredCompilation>
     <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
+    <DOTNET_TC_QuickJitForLoops>false</DOTNET_TC_QuickJitForLoops>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TieredPGO>true</TieredPGO>
+    <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
+    <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
+    <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
   </PropertyGroup>
 
 </Project>
