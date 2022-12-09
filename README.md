@@ -19,7 +19,7 @@ We are also developing a comprehensive graphical user interface (GUI), in order 
 * [Visual Studio Code](https://code.visualstudio.com/)
 
 ## Official Release and Documentation
-The current validated and signed GRAL version, the documentation and a recommendation guide is available at the [GRAL homepage](http://lampz.tugraz.at/~gral/)
+The current validated and signed GRAL version, the documentation and a recommendation guide is available at the [GRAL homepage](https://gral.tugraz.at/)
 
 ## Contributing
 Everyone is invited to contribute to the project [Contributing](Contributing.md)
