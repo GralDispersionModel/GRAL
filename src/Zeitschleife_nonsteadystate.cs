@@ -957,7 +957,7 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    kko[II] = Program.ConvToInt(slice);
+                    kko[II] = (int) slice;
                 }
 
                 //decay rate
@@ -1007,7 +1007,7 @@ namespace GRAL_2001
                                     jko == Program.ReceptorJInd[irec])
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1019,7 +1019,7 @@ namespace GRAL_2001
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1063,7 +1063,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int) MathF.Min(int.MaxValue, slice);
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
@@ -1080,7 +1080,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int) MathF.Min(int.MaxValue, slice);
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
