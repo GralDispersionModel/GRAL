@@ -67,6 +67,7 @@ namespace GRAL_2001
                     Program.WindDirGral = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
                     Program.WindVelGral = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
                     int stabilityclass = Convert.ToInt16(text[2]);
+                    Program.StabClass = stabilityclass;
 
                     //random wind direction taken from the defined sector width
                     if ((TIMESERIES == "0") && (Program.Topo != Consts.TerrainAvailable))
@@ -98,12 +99,13 @@ namespace GRAL_2001
                             Program.GrammWest + Program.DDX[1] * ix < Program.IKOOAGRAL + Program.GralDx * Program.NXL &&
                             Program.GrammSouth + Program.DDY[1] * iy > Program.JKOOAGRAL &&
                             Program.GrammSouth + Program.DDY[1] * iy < Program.JKOOAGRAL + Program.GralDy * Program.NYL)
+                            if (stabilityclass > 0 && stabilityclass < 8)
                             {
                                 akla_sum += stabilityclass;
                                 akla_count++;
                             }
 
-                            Program.SC_Gral[ix][iy] = (byte)Math.Max(0, Math.Min(7, stabilityclass)); // 11.9.2017 Kuntner remember the Stability class for the receptor concenterations
+                            Program.SC_Gral[ix][iy] = (byte)Math.Max(0, Math.Min(7, stabilityclass)); // 11.9.2017 Kuntner remember the Stability class for the receptor concentrations
                             (Program.Ob[ix][iy], Program.Ustern[ix][iy]) = CalcMetParams(stabilityclass, anemoHeight, ix, iy, Program.Z0Gramm[ix][iy]);
                         }
                     }
@@ -135,7 +137,6 @@ namespace GRAL_2001
 
                     }
 
-                    Program.StabClass = stabilityclass;
                     Program.IWETstart = Program.IDISP + 1;
                     if (akla_count > 0)
                     {
