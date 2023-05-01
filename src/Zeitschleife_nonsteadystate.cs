@@ -35,6 +35,7 @@ namespace GRAL_2001
         /// <remarks>
         /// This class is the particle driver for particles, released by the transient grid in the transient GRAL mode
         /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int i, int j, int k, int SG, float TransConcentration)
         {
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
