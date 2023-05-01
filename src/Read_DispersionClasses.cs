@@ -74,21 +74,21 @@ namespace GRAL_2001
                                 {
                                     if (entry.FullName.Contains("scl"))
                                     {
-                                        using (BinaryReader stability = new BinaryReader(entry.Open())) //OPen Zip entry
+                                        using (BinaryReader stability = new BinaryReader(entry.Open())) //Open Zip entry
                                         {
                                             ReadValues(stability, ref _Stabclasses);
                                         }
                                     }
                                     if (entry.FullName.Contains("ust"))
                                     {
-                                        using (BinaryReader stability = new BinaryReader(entry.Open())) //OPen Zip entry
+                                        using (BinaryReader stability = new BinaryReader(entry.Open())) //Open Zip entry
                                         {
                                             ReadValues(stability, ref _Ustar);
                                         }
                                     }
                                     if (entry.FullName.Contains("obl"))
                                     {
-                                        using (BinaryReader stability = new BinaryReader(entry.Open())) //OPen Zip entry
+                                        using (BinaryReader stability = new BinaryReader(entry.Open())) //Open Zip entry
                                         {
                                             ReadValues(stability, ref _MOlength);
                                         }
@@ -140,6 +140,10 @@ namespace GRAL_2001
                     Scl_Array = null; // delete array -
                     Scl_Array = new float[NI, NJ]; // create new array
                 }
+                else
+                {
+                    Array.Clear(Scl_Array);
+                }
 
                 for (int i = 0; i < NI; i++)
                 {
@@ -149,6 +153,47 @@ namespace GRAL_2001
                         Scl_Array[i, j] = (float)(temp);
                     }
                 }
+
+                // fill border values 
+                for (int i = 0; i <= NI; i++)
+                {
+                    if (Scl_Array[i, 0] == 0)
+                    {
+                        Scl_Array[i, 0] = Scl_Array[Math.Max(i, 2), 2];
+                    }
+                    if (Scl_Array[i, 1] == 0)
+                    {
+                        Scl_Array[i, 1] = Scl_Array[Math.Max(i, 2), 2];
+                    }
+                    if (Scl_Array[i, NJ] == 0)
+                    {
+                        Scl_Array[i, NJ] = Scl_Array[Math.Min(NI - 2, Math.Max(i, 2)), NJ - 2];
+                    }
+                    if (Scl_Array[i, NJ - 1] == 0)
+                    {
+                        Scl_Array[i, NJ - 1] = Scl_Array[Math.Min(NI - 2, Math.Max(i, 2)), NJ - 2];
+                    }
+                }
+                for (int j = 0; j <= NJ; j++)
+                {
+                    if (Scl_Array[0, j] == 0)
+                    {
+                        Scl_Array[0, j] = Scl_Array[2, Math.Max(j, 2)];
+                    }
+                    if (Scl_Array[1, j] == 0)
+                    {
+                        Scl_Array[1, j] = Scl_Array[2, Math.Max(j, 2)];
+                    }
+                    if (Scl_Array[NI, j] == 0)
+                    {
+                        Scl_Array[NI, j] = Scl_Array[NI - 2, Math.Min(NJ - 2, Math.Max(j, 2))];
+                    }
+                    if (Scl_Array[NI - 1, j] == 0)
+                    {
+                        Scl_Array[NI - 1, j] = Scl_Array[NI - 2, Math.Min(NJ - 2, Math.Max(j, 2))];
+                    }
+                }
+
                 return true;
             }
             catch
@@ -180,6 +225,10 @@ namespace GRAL_2001
                     Scl_Array = null; // delete array -
                     Scl_Array = new int[NI, NJ]; // create new array
                 }
+                else
+                {
+                    Array.Clear(Scl_Array);
+                }
 
                 for (int i = 0; i < NI; i++)
                 {
@@ -189,10 +238,61 @@ namespace GRAL_2001
                         Scl_Array[i, j] = temp;
                     }
                 }
+
+               // fill border values 
+                for (int i = 0; i <= NI; i++)
+                {
+                    if (Scl_Array[i, 0] == 0)
+                    {
+                        Scl_Array[i, 0] = Scl_Array[Math.Max(i, 2), 2];
+                    }
+                    if (Scl_Array[i, 1] == 0)
+                    {
+                        Scl_Array[i, 1] = Scl_Array[Math.Max(i, 2), 2];
+                    }
+                    if (Scl_Array[i, NJ] == 0)
+                    {
+                        Scl_Array[i, NJ] = Scl_Array[Math.Min(NI - 2, Math.Max(i, 2)), NJ - 2];
+                    }
+                    if (Scl_Array[i, NJ - 1] == 0)
+                    {
+                        Scl_Array[i, NJ - 1] = Scl_Array[Math.Min(NI - 2, Math.Max(i, 2)), NJ - 2];
+                    }
+                }
+                for (int j = 0; j <= NJ; j++)
+                {
+                    if (Scl_Array[0, j] == 0)
+                    {
+                        Scl_Array[0, j] = Scl_Array[2, Math.Max(j, 2)];
+                    }
+                    if (Scl_Array[1, j] == 0)
+                    {
+                        Scl_Array[1, j] = Scl_Array[2, Math.Max(j, 2)];
+                    }
+                    if (Scl_Array[NI, j] == 0)
+                    {
+                        Scl_Array[NI, j] = Scl_Array[NI - 2, Math.Min(NJ - 2, Math.Max(j, 2))];
+                    }
+                    if (Scl_Array[NI - 1, j] == 0)
+                    {
+                        Scl_Array[NI - 1, j] = Scl_Array[NI - 2, Math.Min(NJ - 2, Math.Max(j, 2))];
+                    }
+                }
+                
+                // for (int i = 0; i <= NI; i++)
+                // {
+                //     for (int j = 0; j <= NJ; j++)
+                //     {
+                //         Console.Write(Scl_Array[i, j] + "/");
+                //     }
+                //     Console.WriteLine();
+                // }
+
                 return true;
             }
-            catch
+            catch(Exception Ex )
             {
+                Console.WriteLine(Ex.ToString());
                 return false;
             }
         }
