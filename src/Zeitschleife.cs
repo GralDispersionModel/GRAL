@@ -101,7 +101,7 @@ namespace GRAL_2001
             float GrammGridYRez = 1 / Program.DDY[1];
             float ConcGridXRez = 1 / Program.GralDx;
             float ConcGridYRez = 1 / Program.GralDy;
-            float ConcGridZRez = 1 / Program.GralDz;
+            float ConcGridZRez = 2 / Program.GralDz;
             float ConcGridXHalf = Program.GralDx * 0.5F;
             float ConcGridYHalf = Program.GralDy * 0.5F;
 
@@ -1793,7 +1793,7 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    kko[II] = Program.ConvToInt(slice);
+                    kko[II] = (int) slice;
                 }
 
                 //decay rate
@@ -1842,7 +1842,7 @@ namespace GRAL_2001
                                     jko == Program.ReceptorJInd[irec])
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1854,7 +1854,7 @@ namespace GRAL_2001
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1901,7 +1901,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int) (Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
@@ -1918,7 +1918,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int)(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {

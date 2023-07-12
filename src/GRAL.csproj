@@ -17,7 +17,7 @@
     <TieredPGO>false</TieredPGO>
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
-    <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
+    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
   </PropertyGroup>
 
 </Project>
