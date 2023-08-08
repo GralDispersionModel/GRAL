@@ -445,19 +445,10 @@ namespace GRAL_2001
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                //float zahl1 = (float)SimpleRNG.GetNormal();
-                if (zahl1 > 2)
-                {
-                    zahl1 = 2;
-                }
-
-                if (zahl1 < -2)
-                {
-                    zahl1 = -2;
-                }
-
+                ////float zahl1 = (float)SimpleRNG.GetNormal();
+                Math.Clamp(zahl1, -2, 2);
                 float velz = acc * idt + MathF.Sqrt(Program.C0z * eps * idt) * zahl1 + velzold;
+
                 //******************************************************************************************************************** OETTL, 31 AUG 2016
                 //in adjecent cells to vertical solid walls, turbulent velocities are only allowed in the direction away from the wall
                 if (velz == 0)
@@ -756,7 +747,16 @@ namespace GRAL_2001
                                 {
                                     xcoord_nteil -= (idt * UXint + corx);
                                     ycoord_nteil -= (idt * UYint + cory);
-                                    zcoord_nteil -= (idt * (UZint + velz) + aufhurly);
+                                    //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+
+                                    FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
+                                    FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
+                                    if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                    {
+                                        goto REMOVE_PARTICLE;
+                                    }
+                                    zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs((idt * (UZint + velz)));
+                                    
                                     PartHeightAboveTerrrain = zcoord_nteil - AHint;
                                     if (topo == Consts.TerrainAvailable)
                                     {
@@ -764,10 +764,10 @@ namespace GRAL_2001
                                     }
                                 }
 
-                                int vorzeichen = 1;
+                                int vorzeichen = -1;
                                 if (velzold < 0)
                                 {
-                                    vorzeichen = -1;
+                                    vorzeichen = 1;
                                 }
 
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -779,21 +779,14 @@ namespace GRAL_2001
                                 u_rg = (m_z << 16) + m_w;
                                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                                velzold = zahl1 * MathF.Sqrt(varw);
-                                if (vorzeichen < 0)
-                                {
-                                    velzold = MathF.Abs(velzold);
-                                }
-                                else
-                                {
-                                    velzold = -MathF.Abs(velzold);
-                                }
+                                velzold = MathF.Abs(zahl1 * MathF.Sqrt(varw)) * vorzeichen;
+                                
                             }
 
-                            int vorzeichen1 = 1;
+                            int vorzeichen1 = -1;
                             if (velxold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -804,20 +797,12 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                            velxold = zahl1 * U0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velxold = MathF.Abs(velxold);
-                            }
-                            else
-                            {
-                                velxold = -MathF.Abs(velxold);
-                            }
-
-                            vorzeichen1 = 1;
+                            velxold = MathF.Abs(zahl1 * U0int * 3) * vorzeichen1;
+                            
+                            vorzeichen1 = -1;
                             if (velyold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -828,16 +813,8 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                            velyold = zahl1 * V0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velyold = MathF.Abs(velyold);
-                            }
-                            else
-                            {
-                                velyold = -MathF.Abs(velyold);
-                            }
-
+                            velyold = MathF.Abs(zahl1 * V0int * 3) * vorzeichen1;
+                            
                             back = 1;
                             idt = Program.FloatMax(idt * 0.5F, 0.05F);
                             if (tunpa > 0)

@@ -296,6 +296,7 @@ namespace GRAL_2001
             auszeit = 0;
 
             //initial properties for particles stemming from point sources
+            float PlumeRiseWindFluctuationFactor = 1;
             if (SourceType == Consts.SourceTypePoint)
             {
                 float ExitVelocity = Program.PS_V[Kenn_NTeil];
@@ -332,16 +333,27 @@ namespace GRAL_2001
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                float fmodul = 1 + standwind * zahl1;
-                fmodul = Math.Clamp(fmodul, 0.5F, 1.5F);
+                PlumeRiseWindFluctuationFactor = 1 + standwind * zahl1;
+                if (windge < 1)
+                {
+                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.1F, 5F);
+                }
+                else if(windge < 6)
+                {
+                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.4F, 2F);
+                }
+                else
+                {
+                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.7F, 1.3F);
+                }
 
                 FHurley = (9.81F * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F) *
                                  (ExitTemperature - 273F) / ExitTemperature);
                 GHurley = (273 / ExitTemperature * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F));
                 MHurley = GHurley * ExitVelocity;
-                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge * fmodul) + Program.Pow2(ExitVelocity)));
+                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge * PlumeRiseWindFluctuationFactor) + Program.Pow2(ExitVelocity)));
                 wpHurley = ExitVelocity;
-                upHurley = MathF.Sqrt(Program.Pow2(windge * fmodul) + Program.Pow2(wpHurley));
+                upHurley = MathF.Sqrt(Program.Pow2(windge * PlumeRiseWindFluctuationFactor) + Program.Pow2(wpHurley));
                 MeanHurley = 0;
                 DeltaZHurley = 0;
             }
@@ -412,7 +424,7 @@ namespace GRAL_2001
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                coruri = windge + U0int * zahl1;
+                coruri = windge + U0int * (float) zahl1;
 
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -468,6 +480,7 @@ namespace GRAL_2001
         */
             float ObLength = 0;
             float Ustern = 0;
+ 
         MOVE_FORWARD:
             while (timestep_number <= Max_Loops)
             {
@@ -632,20 +645,10 @@ namespace GRAL_2001
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
+                Math.Clamp(zahl1, -2, 2);
                 //float zahl1 = (float)SimpleRNG.GetNormal();
-                if (zahl1 > 2)
-                {
-                    zahl1 = 2;
-                }
-
-                if (zahl1 < -2)
-                {
-                    zahl1 = -2;
-                }
-
                 float velz = acc * idt + MathF.Sqrt(Program.C0z * eps * idt) * zahl1 + velzold;
-
+                
                 //******************************************************************************************************************** OETTL, 31 AUG 2016
                 //in adjecent cells to vertical solid walls, turbulent velocities are only allowed in the direction away from the wall
                 if (velz == 0)
@@ -713,50 +716,38 @@ namespace GRAL_2001
 
                         //plume-rise velocity
                         float standwind = windge * 0.31F + 0.25F;
-
-                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
-                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        u_rg = (m_z << 16) + m_w;
-                        zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                        float fmodul = 1 + standwind * zahl1;
-                        fmodul = Math.Clamp(fmodul, 0.1F, 5F);
                         float sHurley = 9.81F / 273 * stab;
 
-                        GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windge * fmodul * wpHurley
+                        GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windge * PlumeRiseWindFluctuationFactor * wpHurley
                                                         + 0.1F * upHurley * (MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold))))) * idt;
-                        FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * windge * fmodul + wpHurley) * idt;
+                        FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * windge * PlumeRiseWindFluctuationFactor + wpHurley) * idt;
                         MHurley += FHurley * idt;
                         {
                             RHurley = MathF.Sqrt((GHurley + FHurley / 9.8F) / upHurley);
-                            upHurley = MathF.Sqrt(Program.Pow2(windge * fmodul) + Program.Pow2(wpHurley));
+                            upHurley = MathF.Sqrt(Program.Pow2(windge * PlumeRiseWindFluctuationFactor) + Program.Pow2(wpHurley));
                         }
-                        float sigmawpHurley = (aHurley * Program.Pow2(wpHurley) + bHurley * windge * fmodul * wpHurley) / 4.2F / upHurley;
+                        float sigmawpHurley = (aHurley * Program.Pow2(wpHurley) + bHurley * windge * PlumeRiseWindFluctuationFactor * wpHurley) / 4.2F / upHurley;
                         SigmauHurley = 2 * sigmawpHurley;
                         float wpold = wpHurley;
                         wpHurley = Program.FloatMax(MHurley / GHurley, 0);
                         float wpmittel = (wpHurley + wpold) * 0.5F;
                         MeanHurley += wpmittel * idt;
 
-                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
-                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        u_rg = (m_z << 16) + m_w;
-                        zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                        DeltaZHurley = (wpmittel + zahl1 * sigmawpHurley) * idt;
+                        //m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        //m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        //u_rg = (m_z << 16) + m_w;
+                        //u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                        //m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        //m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        //u_rg = (m_z << 16) + m_w;
+                        //zahl1 = Math.Sqrt(-2F * Math.Log(u1_rg)) * Math.Sin(Pi2F * (u_rg + 1) * RNG_Const);
+                        
+                        DeltaZHurley = (wpmittel + sigmawpHurley) * idt;
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
                     {
-                        zcoord_nteil += (velz + UZint) * idt + DeltaZHurley;
+                        zcoord_nteil = zcoord_nteil + (velz + UZint) * idt + DeltaZHurley;                       
                     }
 
                     velzold = velz;
@@ -1165,7 +1156,8 @@ namespace GRAL_2001
                         if (Program.CUTK[FFCellX][FFCellY] == 0)
                         {
                             zcoord_nteil += (AHint - AHintold);
-                        }
+                       }
+                        
                     }
 
                     //time-step correction to ensure mass-conservation for bending tunnel jets
@@ -1343,7 +1335,7 @@ namespace GRAL_2001
                         zcoord_nteil = AHint - PartHeightAboveTerrain + 0.01F;
                         PartHeightAboveTerrain = zcoord_nteil - AHint;
                         PartHeightAboveBuilding = PartHeightAboveTerrain;
-
+                        
                         // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                         if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                         {
@@ -1532,7 +1524,7 @@ namespace GRAL_2001
                                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                                 }
                                 velzold = -velzold;
-
+                                
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                                 if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
@@ -1581,7 +1573,16 @@ namespace GRAL_2001
                                 {
                                     xcoord_nteil -= (idt * UXint + corx);
                                     ycoord_nteil -= (idt * UYint + cory);
-                                    zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+                                    //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+                                    
+                                    FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
+                                    FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
+                                    if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                    {
+                                        goto REMOVE_PARTICLE;
+                                    }
+                                    zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs((idt * (UZint + velz) + DeltaZHurley));
+                                    
                                     PartHeightAboveTerrain = zcoord_nteil - AHint;
                                     if (topo == Consts.TerrainAvailable)
                                     {
@@ -1589,10 +1590,10 @@ namespace GRAL_2001
                                     }
                                 }
 
-                                int vorzeichen = 1;
+                                int vorzeichen = -1;
                                 if (velzold < 0)
                                 {
-                                    vorzeichen = -1;
+                                    vorzeichen = 1;
                                 }
 
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -1604,21 +1605,13 @@ namespace GRAL_2001
                                 u_rg = (m_z << 16) + m_w;
                                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                                velzold = zahl1 * MathF.Sqrt(varw);
-                                if (vorzeichen < 0)
-                                {
-                                    velzold = Math.Abs(velzold);
-                                }
-                                else
-                                {
-                                    velzold = -Math.Abs(velzold);
-                                }
+                                velzold = MathF.Abs(zahl1 * MathF.Sqrt(varw)) * vorzeichen;
                             }
 
-                            int vorzeichen1 = 1;
+                            int vorzeichen1 = -1;
                             if (velxold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -1629,21 +1622,13 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                            velxold = zahl1 * U0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velxold = MathF.Abs(velxold);
-                            }
-                            else
-                            {
-                                velxold = -MathF.Abs(velxold);
-                            }
-
-                            vorzeichen1 = 1;
+                            
+                            velxold = MathF.Abs(zahl1 * U0int * 3) * vorzeichen1;
+                            
+                            vorzeichen1 = -1;
                             if (velyold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -1655,16 +1640,8 @@ namespace GRAL_2001
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                            velyold = zahl1 * V0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velyold = MathF.Abs(velyold);
-                            }
-                            else
-                            {
-                                velyold = -MathF.Abs(velyold);
-                            }
-
+                            velyold = MathF.Abs(zahl1 * V0int * 3) * vorzeichen1;
+                            
                             back = 1;
                             idt = Program.FloatMax(idt * 0.5F, 0.05F);
                             if (tunpa > 0)
@@ -1741,7 +1718,7 @@ namespace GRAL_2001
                     velzold = -velzold;
                     PartHeightAboveTerrain = zcoord_nteil - AHint;
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
-
+                   
                     // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                     if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                     {
