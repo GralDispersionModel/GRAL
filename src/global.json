@@ -3,6 +3,6 @@
     {
         "version": "5.0.1",
         "rollForward": "latestMajor",
-        "allowPrerelease": false
+        "allowPrerelease": true
     }
 }
