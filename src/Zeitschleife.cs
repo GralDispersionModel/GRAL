@@ -1470,9 +1470,11 @@ namespace GRAL_2001
                     {
                         int IndexKOld = IndexK;
                         IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
-
+                        
+                        // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
                         {
+                            // The particle enters a building or terrain step horizontally
                             if ((IndexK > Program.KKART[FFCellXPrev][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -1493,6 +1495,7 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in x direction
                             else if ((IndexK > Program.KKART[FFCellXPrev][FFCellY]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -1504,6 +1507,7 @@ namespace GRAL_2001
                                     xcoord_nteil = 2 * (IKOOAGRAL + (FFCellX - 1) * FFGridX) - xcoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in y direction
                             else if ((IndexK > Program.KKART[FFCellX][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UYint + cory <= 0)
@@ -1515,6 +1519,7 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Particle comes from z direction on the same cell 
                             else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]) && (FFCellX == FFCellXPrev) && (FFCellY == FFCellYPrev))
                             {
                                 zcoord_nteil = 2 * Program.AHK[FFCellX][FFCellY] - zcoord_nteil + 0.01F;
@@ -1538,7 +1543,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
 
                                     if (masse <= 0)
                                     {
@@ -1546,6 +1551,32 @@ namespace GRAL_2001
                                     }
                                 }
                             }
+                            // Particle comes from the z direction (above the recent cell) and from another cell
+                            else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]))
+                            {
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
+                                {
+                                    float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
+                                    int ik = (int)(xsi * ConcGridXRez) + 1;
+                                    int jk = (int)(eta * ConcGridYRez) + 1;
+                                    double[] depo_L = Program.Depo_conz[ik][jk];
+                                    double conc = masse * Pd1 * area_rez_fac;
+                                    lock (depo_L)
+                                    {
+                                        depo_L[SG_nteil] += conc;
+                                    }
+                                    masse -= masse * Pd1;
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
+
+                                    if (masse <= 0)
+                                    {
+                                        goto REMOVE_PARTICLE;
+                                    }
+                                }
+                                float terrainHeight = Program.AHK[FFCellX][FFCellY];
+                                zcoord_nteil = MathF.Max(terrainHeight, 2 * terrainHeight - zcoord_nteil + 0.01F);
+                            }
+                            // Particle comes from the z direction (below the recent cell, particle direction up or down) and from another cell
                             else
                             {
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
@@ -1561,7 +1592,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
 
                                     if (masse <= 0)
                                     {
@@ -1661,7 +1692,6 @@ namespace GRAL_2001
                             goto REMOVE_PARTICLE;
                         }
                     }
-
                 }   //END OF THE REFLEXION ALGORITHM
 
                 //interpolation of orography

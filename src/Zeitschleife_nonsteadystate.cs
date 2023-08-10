@@ -182,7 +182,7 @@ namespace GRAL_2001
             int FFCellY;
 
             //interpolated orography
-            float PartHeightAboveTerrrain = 0;
+            float PartHeightAboveTerrain = 0;
             float PartHeightAboveBuilding = 0;
 
             if (topo == Consts.TerrainAvailable)
@@ -200,8 +200,8 @@ namespace GRAL_2001
 
                 //interpolated orography
                 AHint = Program.AHK[FFCellX][FFCellY];
-                PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                PartHeightAboveTerrain = zcoord_nteil - AHint;
+                PartHeightAboveBuilding = PartHeightAboveTerrain;
             }
             else
             {
@@ -214,8 +214,8 @@ namespace GRAL_2001
                 }
 
                 //interpolated orography
-                PartHeightAboveTerrrain = zcoord_nteil;
-                PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                PartHeightAboveTerrain = zcoord_nteil;
+                PartHeightAboveBuilding = PartHeightAboveTerrain;
             }
 
             //wind-field interpolation
@@ -300,7 +300,7 @@ namespace GRAL_2001
                 //if particle is within the user-defined tunnel-entrance zone it is removed (sucked-into the tunnel)
                 if (Program.TunnelEntr == true)
                 {
-                    if ((Program.TUN_ENTR[FFCellX][FFCellY] == 1) && (PartHeightAboveTerrrain <= 5))
+                    if ((Program.TUN_ENTR[FFCellX][FFCellY] == 1) && (PartHeightAboveTerrain <= 5))
                     {
                         goto REMOVE_PARTICLE;
                     }
@@ -315,7 +315,7 @@ namespace GRAL_2001
                 }
 
                 //particles below the surface or buildings are removed
-                if (PartHeightAboveTerrrain < 0)
+                if (PartHeightAboveTerrain < 0)
                 {
                     goto REMOVE_PARTICLE;
                 }
@@ -645,8 +645,10 @@ namespace GRAL_2001
                         int IndexKOld = IndexK;
                         IndexK = Zeitschleife.BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
 
+                        // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
                         {
+                            // The particle enters a building or terrain step horizontally
                             if ((IndexK > Program.KKART[FFCellXPrev][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -667,6 +669,7 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in x direction
                             else if ((IndexK > Program.KKART[FFCellXPrev][FFCellY]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -678,6 +681,7 @@ namespace GRAL_2001
                                     xcoord_nteil = 2 * (IKOOAGRAL + (FFCellX - 1) * FFGridX) - xcoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in y direction
                             else if ((IndexK > Program.KKART[FFCellX][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UYint + cory <= 0)
@@ -689,18 +693,19 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Particle comes from z direction on the same cell 
                             else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]) && (FFCellX == FFCellXPrev) && (FFCellY == FFCellYPrev))
                             {
                                 zcoord_nteil = 2 * Program.AHK[FFCellX][FFCellY] - zcoord_nteil + 0.01F;
-                                PartHeightAboveTerrrain = zcoord_nteil - AHint;
+                                PartHeightAboveTerrain = zcoord_nteil - AHint;
                                 if (topo == Consts.TerrainAvailable)
                                 {
-                                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                                 }
                                 velzold = -velzold;
 
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Zeitschleife.Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -712,7 +717,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
 
                                     if (masse <= 0)
                                     {
@@ -720,10 +725,10 @@ namespace GRAL_2001
                                     }
                                 }
                             }
-                            else
+                            // Particle comes from the z direction (above the recent cell) and from another cell
+                            else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]))
                             {
-                                // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Zeitschleife.Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -735,7 +740,33 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
+
+                                    if (masse <= 0)
+                                    {
+                                        goto REMOVE_PARTICLE;
+                                    }
+                                }
+                                float terrainHeight = Program.AHK[FFCellX][FFCellY];
+                                zcoord_nteil = MathF.Max(terrainHeight, 2 * terrainHeight - zcoord_nteil + 0.01F);
+                            }
+                            // Particle comes from the z direction (below the recent cell, particle direction up or down) and from another cell
+                            else
+                            {
+                                // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
+                                {
+                                    float Pd1 = Zeitschleife.Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
+                                    int ik = (int)(xsi * ConcGridXRez) + 1;
+                                    int jk = (int)(eta * ConcGridYRez) + 1;
+                                    double[] depo_L = Program.Depo_conz[ik][jk];
+                                    double conc = masse * Pd1 * area_rez_fac;
+                                    lock (depo_L)
+                                    {
+                                        depo_L[SG_nteil] += conc;
+                                    }
+                                    masse -= masse * Pd1;
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
 
                                     if (masse <= 0)
                                     {
@@ -755,15 +786,15 @@ namespace GRAL_2001
                                     {
                                         goto REMOVE_PARTICLE;
                                     }
-                                    zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs((idt * (UZint + velz)));
-                                    
-                                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
+                                    zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs(idt * (UZint + velz));
+
+                                    PartHeightAboveTerrain = zcoord_nteil - AHint;
                                     if (topo == Consts.TerrainAvailable)
                                     {
-                                        PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                                        PartHeightAboveBuilding = PartHeightAboveTerrain;
                                     }
                                 }
-
+                                
                                 int vorzeichen = -1;
                                 if (velzold < 0)
                                 {
@@ -848,8 +879,8 @@ namespace GRAL_2001
 
                     AHint = Program.AHK[FFCellX][FFCellY];
 
-                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil - AHint;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
                 else
                 {
@@ -858,8 +889,8 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    PartHeightAboveTerrrain = zcoord_nteil;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
 
                 //reflexion at the surface and at the top of the boundary layer
@@ -875,16 +906,16 @@ namespace GRAL_2001
 
                     zcoord_nteil = blh + AHint - (PartHeightAboveBuilding - blh) - 0.01F;
                     velzold = -velzold;
-                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil - AHint;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
 
-                if (PartHeightAboveTerrrain <= 0)
+                if (PartHeightAboveTerrain <= 0)
                 {
-                    zcoord_nteil = AHint - PartHeightAboveTerrrain + 0.01F;
+                    zcoord_nteil = AHint - PartHeightAboveTerrain + 0.01F;
                     velzold = -velzold;
-                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil - AHint;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
 
                     // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                     if (Deposition_type > 0 && depo_reflection_counter >= 0)
