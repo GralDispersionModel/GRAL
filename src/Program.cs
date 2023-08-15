@@ -817,6 +817,7 @@ namespace GRAL_2001
             {
                 Console.WriteLine();
                 Console.WriteLine("GRAL simulations finished. Press any key to continue...");
+                Program.CleanUpMemory();
                 Console.ReadKey(true); 	// wait for a key input
             }
 

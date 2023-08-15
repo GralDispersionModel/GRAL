@@ -81,7 +81,7 @@ namespace GRAL_2001
                                         string err = "You are using absolute building coordinates but no original GRAL terrain  - ESC = Exit";
                                         Console.WriteLine(err);
                                         ProgramWriters.LogfileProblemreportWrite(err);
-
+                                        Program.CleanUpMemory();
                                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                                         {
                                             ;
@@ -110,6 +110,7 @@ namespace GRAL_2001
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     {
+                        Program.CleanUpMemory();
                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                         {
                             ;
@@ -166,6 +167,7 @@ namespace GRAL_2001
                                     string err = "You are using absolute building coordinates but flat terrain  - ESC = Exit";
                                     Console.WriteLine(err);
                                     ProgramWriters.LogfileProblemreportWrite(err);
+                                    Program.CleanUpMemory();
 
                                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                                     {
@@ -193,6 +195,7 @@ namespace GRAL_2001
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     {
+                        Program.CleanUpMemory();
                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                         {
                             ;
