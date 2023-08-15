@@ -322,8 +322,7 @@ namespace GRAL_2001
                 ExitTemperature = MathF.Max(273, ExitTemperature);
 
                 //plume-rise velocity
-                float standwind = windge * 0.31F + 0.25F;
-
+                float StandDeviationWindSpeed = windge * 0.31F + 0.25F;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -332,19 +331,20 @@ namespace GRAL_2001
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
+                                
+                PlumeRiseWindFluctuationFactor = StandDeviationWindSpeed * zahl1 / windge;
 
-                PlumeRiseWindFluctuationFactor = 1 + standwind * zahl1;
-                if (windge < 1)
+                if (windge < 1.5)
                 {
                     PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.1F, 5F);
                 }
                 else if(windge < 6)
                 {
-                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.4F, 2F);
+                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.25F,4F);
                 }
                 else
                 {
-                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.7F, 1.3F);
+                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.4F, 2.5F);
                 }
 
                 FHurley = (9.81F * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F) *
@@ -485,6 +485,11 @@ namespace GRAL_2001
             while (timestep_number <= Max_Loops)
             {
                 ++timestep_number;
+                double xcoord_nteil_Prev = xcoord_nteil;
+                double ycoord_nteil_Prev = ycoord_nteil;
+                float zcoord_nteil_Prev = zcoord_nteil;
+                int FFCellXPrev = FFCellX;
+                int FFCellYPrev = FFCellY;
 
                 //if particle is within the user-defined tunnel-entrance zone it is removed (sucked-into the tunnel)
                 if (Program.TunnelEntr == true)
@@ -733,16 +738,16 @@ namespace GRAL_2001
                         float wpmittel = (wpHurley + wpold) * 0.5F;
                         MeanHurley += wpmittel * idt;
 
-                        //m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        //m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        //u_rg = (m_z << 16) + m_w;
-                        //u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        u_rg = (m_z << 16) + m_w;
+                        u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
                         //m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         //m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         //u_rg = (m_z << 16) + m_w;
                         //zahl1 = Math.Sqrt(-2F * Math.Log(u1_rg)) * Math.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                        
-                        DeltaZHurley = (wpmittel + sigmawpHurley) * idt;
+                        // use a variation of 0.8 +- 0.5 for the calculated DeltaZHurley as a result of validation dataset calculations
+                        DeltaZHurley = (wpmittel + sigmawpHurley) * idt * (u1_rg + 0.3F); 
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
@@ -1153,11 +1158,11 @@ namespace GRAL_2001
                     //in case that orography is taken into account and if there is no particle, then, the particle trajectories are following the terrain
                     if (topo == Consts.TerrainAvailable)
                     {
-                        if (Program.CUTK[FFCellX][FFCellY] == 0)
+                        // no terrain following trajectory, if the recent or the previous cell is a building!
+                        if ((Program.CUTK[FFCellX][FFCellY] + Program.CUTK[FFCellXPrev][FFCellYPrev]) == 0 )
                         {
                             zcoord_nteil += (AHint - AHintold);
-                       }
-                        
+                        }
                     }
 
                     //time-step correction to ensure mass-conservation for bending tunnel jets
@@ -1382,9 +1387,6 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    int FFCellXPrev;
-                    int FFCellYPrev;
-
                     if (topo == Consts.TerrainAvailable)
                     {
                         //with topography
@@ -1543,7 +1545,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep
 
                                     if (masse <= 0)
                                     {
@@ -1592,7 +1594,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep
 
                                     if (masse <= 0)
                                     {
@@ -1602,25 +1604,50 @@ namespace GRAL_2001
 
                                 if (tunpa == 0)
                                 {
-                                    xcoord_nteil -= (idt * UXint + corx);
-                                    ycoord_nteil -= (idt * UYint + cory);
-                                    //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
-                                    
-                                    FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
-                                    FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
-                                    if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                    // Terrain following particles at small steps if there is no building
+                                    if (Program.CUTK[FFCellX][FFCellY] < 1 && (Program.AHK[FFCellX][FFCellY] - zcoord_nteil) < 10)
                                     {
-                                        goto REMOVE_PARTICLE;
+                                        // Move particle above the new terrain surface
+                                        zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs((idt * (UZint + velz) + DeltaZHurley));
                                     }
-                                    zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs((idt * (UZint + velz) + DeltaZHurley));
-                                    
-                                    PartHeightAboveTerrain = zcoord_nteil - AHint;
-                                    if (topo == Consts.TerrainAvailable)
+                                    else
+                                    // Below Building or high terrain step
                                     {
-                                        PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        // reset horizontal coordinates
+                                        double deltax = xcoord_nteil - xcoord_nteil_Prev;
+                                        double deltay = ycoord_nteil - ycoord_nteil_Prev;
+                                        
+                                        xcoord_nteil -= deltax * 1.05;
+                                        ycoord_nteil -= deltay * 1.05;
+                                        //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+
+                                        FFCellXPrev = FFCellX;
+                                        FFCellYPrev = FFCellY;
+
+                                        FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
+                                        FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
+                                        if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                        {
+                                            goto REMOVE_PARTICLE;
+                                        }
+                                        float newTerrainHeight = Program.AHK[FFCellX][FFCellY];
+                                        // if below new terrain -> multiple reflections
+                                        if (zcoord_nteil < newTerrainHeight)
+                                        {
+                                            zcoord_nteil = 2 * newTerrainHeight - zcoord_nteil;
+                                        }
+
+                                        AHintold = AHint;
+                                        AHint = newTerrainHeight;
+                                        PartHeightAboveTerrain = zcoord_nteil - AHint;
+                                        if (topo == Consts.TerrainAvailable)
+                                        {
+                                            PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        }
                                     }
                                 }
 
+                                // Change direction of the vertical velocity
                                 int vorzeichen = -1;
                                 if (velzold < 0)
                                 {
@@ -1639,6 +1666,7 @@ namespace GRAL_2001
                                 velzold = MathF.Abs(zahl1 * MathF.Sqrt(varw)) * vorzeichen;
                             }
 
+                            // Change direction of the horizontal particle velocity
                             int vorzeichen1 = -1;
                             if (velxold < 0)
                             {
@@ -1693,6 +1721,7 @@ namespace GRAL_2001
                         }
                     }
                 }   //END OF THE REFLEXION ALGORITHM
+                depo_reflection_counter = 0;
 
                 //interpolation of orography
                 AHintold = AHint;

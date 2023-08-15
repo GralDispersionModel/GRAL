@@ -296,6 +296,11 @@ namespace GRAL_2001
             while (timestep_number <= Max_Loops)
             {
                 ++timestep_number;
+                double xcoord_nteil_Prev = xcoord_nteil;
+                double ycoord_nteil_Prev = ycoord_nteil;
+                float zcoord_nteil_Prev = zcoord_nteil;
+                int FFCellXPrev = FFCellX;
+                int FFCellYPrev = FFCellY;
 
                 //if particle is within the user-defined tunnel-entrance zone it is removed (sucked-into the tunnel)
                 if (Program.TunnelEntr == true)
@@ -607,9 +612,6 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    int FFCellXPrev = 1;
-                    int FFCellYPrev = 1;
-
                     if (topo == Consts.TerrainAvailable)
                     {
                         //with topography
@@ -776,22 +778,46 @@ namespace GRAL_2001
 
                                 if (tunpa == 0)
                                 {
-                                    xcoord_nteil -= (idt * UXint + corx);
-                                    ycoord_nteil -= (idt * UYint + cory);
-                                    //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
-
-                                    FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
-                                    FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
-                                    if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                    // Terrain following particles at small steps if there is no building
+                                    if (Program.CUTK[FFCellX][FFCellY] < 1 && (Program.AHK[FFCellX][FFCellY] - zcoord_nteil) < 10)
                                     {
-                                        goto REMOVE_PARTICLE;
+                                        // Move particle above the new terrain surface
+                                        zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs(idt * (UZint + velz));
                                     }
-                                    zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs(idt * (UZint + velz));
-
-                                    PartHeightAboveTerrain = zcoord_nteil - AHint;
-                                    if (topo == Consts.TerrainAvailable)
+                                    else
+                                    // Below Building or high terrain step
                                     {
-                                        PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        // reset horizontal coordinates
+                                        double deltax = xcoord_nteil - xcoord_nteil_Prev;
+                                        double deltay = ycoord_nteil - ycoord_nteil_Prev;
+                                        
+                                        xcoord_nteil -= deltax * 1.05;
+                                        ycoord_nteil -= deltay * 1.05;
+                                        //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+
+                                        FFCellXPrev = FFCellX;
+                                        FFCellYPrev = FFCellY;
+
+                                        FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
+                                        FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
+                                        if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                        {
+                                            goto REMOVE_PARTICLE;
+                                        }
+                                        float newTerrainHeight = Program.AHK[FFCellX][FFCellY];
+                                        // if below new terrain -> multiple reflections
+                                        if (zcoord_nteil < newTerrainHeight)
+                                        {
+                                            zcoord_nteil = 2 * newTerrainHeight - zcoord_nteil;
+                                        }
+
+                                        AHintold = AHint;
+                                        AHint = newTerrainHeight;
+                                        PartHeightAboveTerrain = zcoord_nteil - AHint;
+                                        if (topo == Consts.TerrainAvailable)
+                                        {
+                                            PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        }
                                     }
                                 }
                                 
