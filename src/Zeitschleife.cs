@@ -332,7 +332,7 @@ namespace GRAL_2001
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                                 
-                PlumeRiseWindFluctuationFactor = StandDeviationWindSpeed * zahl1 / windge;
+                PlumeRiseWindFluctuationFactor = (windge + StandDeviationWindSpeed * zahl1) / windge;
 
                 if (windge < 1.5)
                 {
