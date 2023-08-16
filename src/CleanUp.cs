@@ -26,7 +26,10 @@ namespace GRAL_2001
             DZK_Trans = null;
             HOKART = null;
             HoKartTrans = null;
-            StretchFlexible.Clear();
+            if (StretchFlexible != null)
+            {
+                StretchFlexible.Clear();
+            }
             StretchFlexible = null;
             Conz3d = null;
             MeasurementHeight = null;
@@ -67,7 +70,10 @@ namespace GRAL_2001
             ReceptorY = null;
             ReceptorZ = null;
             ReceptorNearbyBuilding = null;
-            ReceptorName.Clear();
+            if (ReceptorName != null)
+            {
+                ReceptorName.Clear();
+            }
             ReceptorName = null;
             ReceptorIInd = null;
             ReceptorJInd = null;
@@ -91,9 +97,15 @@ namespace GRAL_2001
             PS_Absolute_Height = null;
             PS_TimeSeriesTemperature = null;
             PS_TimeSeriesVelocity = null;
-            PS_TimeSerTempValues.Clear();
+            if (PS_TimeSerTempValues != null)
+            {
+                PS_TimeSerTempValues.Clear();
+            }
             PS_TimeSerTempValues = null;
-            PS_TimeSerVelValues.Clear();
+            if (PS_TimeSerVelValues != null)
+            {
+                PS_TimeSerVelValues.Clear();
+            }
             PS_TimeSerVelValues = null;
 
             LS_ER = null;
@@ -134,9 +146,15 @@ namespace GRAL_2001
             TS_Absolute_Height = null;
             TS_TimeSeriesTemperature = null;
             TS_TimeSeriesVelocity = null;
-            TS_TimeSerTempValues.Clear();
+            if (TS_TimeSerTempValues != null)
+            {
+                TS_TimeSerTempValues.Clear();
+            }
             TS_TimeSerTempValues = null;
-            TS_TimeSerVelValues.Clear();
+            if (TS_TimeSerVelValues != null)
+            {
+                TS_TimeSerVelValues.Clear();
+            }
             TS_TimeSerVelValues = null;
 
             AS_X = null;
@@ -189,14 +207,22 @@ namespace GRAL_2001
             ConzSsum = null;
             EmFacTimeSeries = null;
 
-            MeteoTimeSer.Clear();
+            if (MeteoTimeSer != null)
+            {
+                MeteoTimeSer.Clear();
+            }
             MeteoTimeSer = null;
-            MeteopgtLst.Clear();
+            if (MeteopgtLst != null)
+            {
+                MeteopgtLst.Clear();
+            }
             MeteopgtLst = null;
 
             TransientDepo = null;
-            WetDepoPrecipLst.Clear();
-            
+            if (WetDepoPrecipLst != null)
+            {
+                WetDepoPrecipLst.Clear();
+            }
             System.GC.Collect();
         }
     }
