@@ -720,11 +720,11 @@ namespace GRAL_2001
                         }
 
                         //plume-rise velocity
-                        float standwind = windge * 0.31F + 0.25F;
+                        //float standwind = windge * 0.31F + 0.25F;
                         float sHurley = 9.81F / 273 * stab;
 
                         GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windge * PlumeRiseWindFluctuationFactor * wpHurley
-                                                        + 0.1F * upHurley * (MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold))))) * idt;
+                                                        + 0.1F * upHurley * MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold)))) * idt;
                         FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * windge * PlumeRiseWindFluctuationFactor + wpHurley) * idt;
                         MHurley += FHurley * idt;
                         {
