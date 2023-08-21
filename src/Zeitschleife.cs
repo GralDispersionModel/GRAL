@@ -742,12 +742,12 @@ namespace GRAL_2001
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
-                        //m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        //m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        //u_rg = (m_z << 16) + m_w;
-                        //zahl1 = Math.Sqrt(-2F * Math.Log(u1_rg)) * Math.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                        // use a variation of 0.8 +- 0.5 for the calculated DeltaZHurley as a result of validation dataset calculations
-                        DeltaZHurley = (wpmittel + sigmawpHurley) * idt * (u1_rg + 0.3F); 
+                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        u_rg = (m_z << 16) + m_w;
+                        zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
+                        zahl1 = Math.Clamp(zahl1, -1, 1);
+                        DeltaZHurley = (wpmittel + sigmawpHurley * zahl1) * idt; 
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
