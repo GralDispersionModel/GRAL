@@ -27,6 +27,9 @@ namespace GRAL_2001
         private const float a2Const = 1.7F;
         private const float a3Const = 1.1F;
 
+        private const float Pi2F = 2F * MathF.PI;
+        private const float RNG_Const = 2.328306435454494e-10F;
+
         /// <summary>
         ///Time loop for all released particles - the particles are tracked until they leave the domain area(steady state mode)
         ///or until the dispersion time has expired (transient mode) 
@@ -44,15 +47,11 @@ namespace GRAL_2001
             uint m_w = (uint)(RND.Next() + 521288629);
             uint m_z = (uint)(RND.Next() + 2232121);
             RND = null;
-
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
 
-            const float Pi2F = 2F * MathF.PI;
-
-            const float RNG_Const = 2.328306435454494e-10F;
-
+            //local particle coordinates and pollution "mass"
             double xcoord_nteil = Program.Xcoord[nteil];
             double ycoord_nteil = Program.YCoord[nteil];
             float zcoord_nteil = Program.ZCoord[nteil];
@@ -88,7 +87,8 @@ namespace GRAL_2001
             float wpHurley = 0;
             float upHurley = 0;
             float DeltaZHurley = 0;
-            float SigmauHurley = 0;
+            float SigmaUpHurley = 0;
+            //float DeltaZHurleySumme = 0;
 
             //Grid variables
             int GrammCellX = 1, GrammCellY = 1; // default value for flat terrain
@@ -257,7 +257,7 @@ namespace GRAL_2001
             float deltaZ = roughZ0;
 
             //vertical interpolation of horizontal standard deviations of wind component fluctuations between observations
-            (float U0int, float V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmauHurley);
+            (float U0int, float V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmaUpHurley);
 
             //remove particles above boundary-layer
             if ((PartHeightAboveBuilding > blh) && (Program.ISTATIONAER != Consts.TransientMode) && (ObL < 0)) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh
@@ -273,7 +273,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+            u1_rg = (u_rg + 1) * RNG_Const;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -284,7 +284,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+            u1_rg = (u_rg + 1) * RNG_Const;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -296,7 +296,6 @@ namespace GRAL_2001
             auszeit = 0;
 
             //initial properties for particles stemming from point sources
-            float PlumeRiseWindFluctuationFactor = 1;
             if (SourceType == Consts.SourceTypePoint)
             {
                 float ExitVelocity = Program.PS_V[Kenn_NTeil];
@@ -319,41 +318,31 @@ namespace GRAL_2001
                         ExitTemperature = Program.PS_TimeSerTempValues[tempTimeSeriesIndex].Value[Program.IWET - 1] + 273;
                     }
                 }
-                ExitTemperature = MathF.Max(273, ExitTemperature);
-
-                //plume-rise velocity
-                float StandDeviationWindSpeed = windge * 0.31F + 0.25F;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
+                
+                //fluctuation of exit / ambient temperature
+                ExitTemperature = MathF.Max(273, ExitTemperature * (1.05F - u1_rg * 0.2F));
+
+                //plume-rise velocity
+                m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                u_rg = (m_z << 16) + m_w;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                                
-                PlumeRiseWindFluctuationFactor = (windge + StandDeviationWindSpeed * zahl1) / windge;
-
-                if (windge < 1.5)
-                {
-                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.1F, 5F);
-                }
-                else if(windge < 6)
-                {
-                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.25F,4F);
-                }
-                else
-                {
-                    PlumeRiseWindFluctuationFactor = Math.Clamp(PlumeRiseWindFluctuationFactor, 0.4F, 2.5F);
-                }
-
+                                                
                 FHurley = (9.81F * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F) *
                                  (ExitTemperature - 273F) / ExitTemperature);
                 GHurley = (273 / ExitTemperature * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F));
                 MHurley = GHurley * ExitVelocity;
-                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge * PlumeRiseWindFluctuationFactor) + Program.Pow2(ExitVelocity)));
+                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(ExitVelocity)));
                 wpHurley = ExitVelocity;
-                upHurley = MathF.Sqrt(Program.Pow2(windge * PlumeRiseWindFluctuationFactor) + Program.Pow2(wpHurley));
+                upHurley = MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(wpHurley));
                 MeanHurley = 0;
                 DeltaZHurley = 0;
             }
@@ -418,7 +407,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -429,7 +418,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -635,7 +624,6 @@ namespace GRAL_2001
                  */
 
                 float beta = (dskew - 2 * skew * alpha - Program.C0z * eps) / (2 * varw);
-
                 float gamma = dvarw - varw * alpha;
 
                 //particle acceleration
@@ -645,13 +633,12 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                 Math.Clamp(zahl1, -2, 2);
-                //float zahl1 = (float)SimpleRNG.GetNormal();
                 float velz = acc * idt + MathF.Sqrt(Program.C0z * eps * idt) * zahl1 + velzold;
                 
                 //******************************************************************************************************************** OETTL, 31 AUG 2016
@@ -701,7 +688,7 @@ namespace GRAL_2001
                     float epsambiente = 0;
 
                     DeltaZHurley = 0;
-                    SigmauHurley = 0;
+                    SigmaUpHurley = 0;
 
                     epsambiente = eps;
 
@@ -713,46 +700,65 @@ namespace GRAL_2001
                     if (wpHurley > 0)
                     {
                         float stab = 0;
+                        float unstablefactor = 1;
 
                         if (ObLength >= 0)
                         {
-                            stab = 0.04F * MathF.Exp(-ObLength * 0.05F);
+                            stab = 0.04F * MathF.Pow(2.73F, -ObLength * 0.05F);
+                        }
+                        else 
+                        {
+                            // unstable conditions -> additional fluctuation of wind velocity -> increase vertical plume dispersion
+                            unstablefactor = 1.5F;
                         }
 
                         //plume-rise velocity
-                        //float standwind = windge * 0.31F + 0.25F;
-                        float sHurley = 9.81F / 273 * stab;
-
-                        GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windge * PlumeRiseWindFluctuationFactor * wpHurley
-                                                        + 0.1F * upHurley * MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold)))) * idt;
-                        FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * windge * PlumeRiseWindFluctuationFactor + wpHurley) * idt;
-                        MHurley += FHurley * idt;
-                        {
-                            RHurley = MathF.Sqrt((GHurley + FHurley / 9.8F) / upHurley);
-                            upHurley = MathF.Sqrt(Program.Pow2(windge * PlumeRiseWindFluctuationFactor) + Program.Pow2(wpHurley));
-                        }
-                        float sigmawpHurley = (aHurley * Program.Pow2(wpHurley) + bHurley * windge * PlumeRiseWindFluctuationFactor * wpHurley) / 4.2F / upHurley;
-                        SigmauHurley = 2 * sigmawpHurley;
-                        float wpold = wpHurley;
-                        wpHurley = Program.FloatMax(MHurley / GHurley, 0);
-                        float wpmittel = (wpHurley + wpold) * 0.5F;
-                        MeanHurley += wpmittel * idt;
-
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                        u1_rg = (u_rg + 1) * RNG_Const;
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                        zahl1 = Math.Clamp(zahl1, -1, 1);
-                        DeltaZHurley = (wpmittel + sigmawpHurley * zahl1) * idt; 
+                        //float standwind = windge * 0.31F + 0.25F;
+                        //float fmodul = 1 + standwind * zahl1 * unstablefactor;
+                        //fmodul = Math.Clamp(fmodul, 0.1F, 6);
+                        float windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1 * unstablefactor, 0.1F, 8);
+                                                
+                        float sHurley = 9.81F / 273 * stab;
+                        //Plume volume
+                        GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley
+                                                        + 0.1F * upHurley * MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold)))) * idt;
+                        //Plume buoyancy
+                        //FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * uMeteoStand + wpHurley) * idt;
+                        FHurley += -sHurley * MHurley / upHurley * (0.4444444F * windSpeedStandDev + wpHurley) * idt;
+                        //Momentum flux
+                        MHurley += FHurley;
+                        //Plume radius
+                        //RHurley = MathF.Sqrt((GHurley + FHurley / 9.8F) / upHurley);
+                        RHurley = MathF.Sqrt((GHurley + FHurley * 0.1020408F) / upHurley);
+                        upHurley = MathF.Sqrt(Program.Pow2(windSpeedStandDev) + Program.Pow2(wpHurley));
+                        //standard deviations of velocity 
+                        float sigmawpHurley = (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley) / (4.2F * upHurley);
+                        SigmaUpHurley = 2 * sigmawpHurley;
+                        float wpold = wpHurley;
+                        wpHurley = Program.FloatMax(MHurley / GHurley, 0); // [m/s]
+                        float wpmittel = (wpHurley + wpold) * 0.5F;
+                        MeanHurley += wpmittel;
+
+                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        u_rg = (m_z << 16) + m_w;
+                        zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
+
+                        DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
                     {
-                        zcoord_nteil = zcoord_nteil + (velz + UZint) * idt + DeltaZHurley;                       
+                        zcoord_nteil = zcoord_nteil + (velz + UZint) * idt + DeltaZHurley;
+                        //DeltaZHurleySumme += DeltaZHurley;
                     }
 
                     velzold = velz;
@@ -819,7 +825,7 @@ namespace GRAL_2001
                  */
 
                 //vertical interpolation of horizontal standard deviations of wind speed components
-                (U0int, V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmauHurley);
+                (U0int, V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmaUpHurley);
 
                 //determination of the meandering parameters according to Oettl et al. (2006)
                 float param = 0;
@@ -861,7 +867,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -874,7 +880,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -928,7 +934,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -939,7 +945,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -950,7 +956,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1045,7 +1051,7 @@ namespace GRAL_2001
                     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                     u_rg = (m_z << 16) + m_w;
-                    u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                    u1_rg = (u_rg + 1) * RNG_Const;
                     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                     u_rg = (m_z << 16) + m_w;
@@ -1231,7 +1237,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1242,7 +1248,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1252,7 +1258,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1299,7 +1305,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1310,7 +1316,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1321,7 +1327,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -2066,7 +2072,7 @@ namespace GRAL_2001
 
                 #endregion log_output
             }
-
+            //Console.WriteLine("DZSumme " + DeltaZHurleySumme);
             // Add local receptor concentrations to receptor array and store maximum concentration part for each receptor
             if (Program.ReceptorsAvailable)
             {
