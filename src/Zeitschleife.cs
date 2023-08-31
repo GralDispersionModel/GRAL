@@ -681,37 +681,28 @@ namespace GRAL_2001
                 }
 
                 //bouyancy effects for plume rise
-                if (SourceType == Consts.SourceTypePoint)
+                if (SourceType == Consts.SourceTypePoint && wpHurley > 0)
                 {
                     //plume rise following Hurley, 2005 (TAPM)
-                    float epshurly = 1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.1F);
-                    float epsambiente = 0;
-
+                    //float epshurly = 1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.1F);
+                    //float epsambiente = 0;
+                    //epsambiente = eps;
                     DeltaZHurley = 0;
                     SigmaUpHurley = 0;
 
-                    epsambiente = eps;
-
-                    if (epshurly <= epsambiente)
+                    if (1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.0001F) <= eps)
                     {
                         wpHurley = 0;
                     }
-
-                    if (wpHurley > 0)
+                    else
                     {
                         float stab = 0;
-                        float unstablefactor = 1;
-
+                      
                         if (ObLength >= 0)
                         {
                             stab = 0.04F * MathF.Pow(2.73F, -ObLength * 0.05F);
                         }
-                        else 
-                        {
-                            // unstable conditions -> additional fluctuation of wind velocity -> increase vertical plume dispersion
-                            unstablefactor = 1.5F;
-                        }
-
+                        
                         //plume-rise velocity
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -724,15 +715,17 @@ namespace GRAL_2001
                         //float standwind = windge * 0.31F + 0.25F;
                         //float fmodul = 1 + standwind * zahl1 * unstablefactor;
                         //fmodul = Math.Clamp(fmodul, 0.1F, 6);
-                        float windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1 * unstablefactor, 0.1F, 8);
+                        float windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1, 0.1F, 8);
                                                 
-                        float sHurley = 9.81F / 273 * stab;
                         //Plume volume
                         GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley
                                                         + 0.1F * upHurley * MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold)))) * idt;
+                        //float Tp = 273 / GHurley * wpHurley * RHurley * RHurley;
+
                         //Plume buoyancy
+                        //float sHurley = 9.81F / 273 * stab;
                         //FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * uMeteoStand + wpHurley) * idt;
-                        FHurley += -sHurley * MHurley / upHurley * (0.4444444F * windSpeedStandDev + wpHurley) * idt;
+                        FHurley += -0.035934F * stab * MHurley / upHurley * (0.4444444F * windSpeedStandDev + wpHurley) * idt;
                         //Momentum flux
                         MHurley += FHurley;
                         //Plume radius
@@ -753,6 +746,7 @@ namespace GRAL_2001
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
                         DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        //Console.WriteLine("Tp= {0} \t dz= {1} \t idt= {2}", Math.Round(Tp, 2), Math.Round(DeltaZHurley,2), idt);
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
