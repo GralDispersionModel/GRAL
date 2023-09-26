@@ -26,7 +26,7 @@
         {
             "label": "build self contained exe Windows",
             "type": "shell",
-            "command": "dotnet publish -c Release -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true",
+            "command": "dotnet publish -c Release -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true -p:IncludeNativeLibrariesForSelfExtract=true",
             "group": {
                 "kind": "build",
                 "isDefault": true
