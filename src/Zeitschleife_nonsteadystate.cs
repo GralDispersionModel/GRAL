@@ -11,8 +11,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Linq;
 
 namespace GRAL_2001
 {
@@ -177,7 +179,8 @@ namespace GRAL_2001
             }
 
             int Max_Reflections = Math.Min(100000, Program.NII * Program.NJJ * 2); // max. 2 reflections per cell in transient mode
-
+            int ConcCellPrevX = -1; int ConcCellPrevY = -1; int ConcCellPrevZ = 0; float ConcCellTimeMax = Math.Max(100, Program.GralDx / 0.04F); float ConcCellTime = 0; float distanceParticle = 50;
+            
             int FFCellX;
             int FFCellY;
 
@@ -984,6 +987,41 @@ namespace GRAL_2001
                 {
                     zcoordRelative = zcoord_nteil - AHint;
                 }
+
+                //Check for trapped particles
+                {
+                    if (auszeit > 3600)
+                    {
+                        distanceParticle += (float)Math.Sqrt(Program.Pow2(xcoord_nteil - xcoord_nteil_Prev) + Program.Pow2(ycoord_nteil - ycoord_nteil_Prev));
+                        distanceParticle *= 0.5F;
+                        if (distanceParticle < 0.02F)
+                        {
+                            goto REMOVE_PARTICLE;
+                        }
+                    }
+
+                    int zko = (int)((zcoordRelative - AHint) * ConcGridZRez);
+                    if (iko == ConcCellPrevX && jko == ConcCellPrevY && zko == ConcCellPrevZ)
+                    {
+                        ConcCellTime += idt;
+                        if (ConcCellTime > ConcCellTimeMax - 10)
+                        {
+                            zcoord_nteil += 2;
+                            if (ConcCellTime > ConcCellTimeMax)
+                            {
+                                goto REMOVE_PARTICLE;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ConcCellPrevX = iko;
+                        ConcCellPrevY = jko;
+                        ConcCellPrevZ = zko;
+                        ConcCellTime = 0;
+                    }
+                }
+
                 for (int II = 0; II < kko.Length; II++)
                 {
                     float slice = (zcoordRelative - Program.HorSlices[II]) * ConcGridZRez;

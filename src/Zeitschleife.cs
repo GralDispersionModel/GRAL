@@ -11,6 +11,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -206,9 +208,9 @@ namespace GRAL_2001
 
             int Max_Loops = (int)(3E6 + Math.Min(9.7E7,
                 Math.Max(Math.Abs(Program.EtaMaxGral - Program.EtaMinGral), Math.Abs(Program.XsiMaxGral - Program.XsiMinGral)) * 1000)); // max. Loops 1E6 (max. nr. of reflexions) + 2E6 Min + max(x,y)/0.001 
-
             int Max_Reflections = Math.Min(1000000, Program.NII * Program.NJJ * 10); // max. 10 reflections per cell
-
+            int ConcCellPrevX = -1; int ConcCellPrevY = -1; int ConcCellPrevZ = 0; float ConcCellTimeMax = Math.Max(100, Program.GralDx / 0.04F); float ConcCellTime = 0; float distanceParticle = 50;
+            
             //interpolated orography
             float PartHeightAboveTerrain = 0;
             float PartHeightAboveBuilding = 0;
@@ -1800,6 +1802,16 @@ namespace GRAL_2001
                     }
                 }
 
+                if (auszeit > 3600)
+                {
+                    distanceParticle += (float)Math.Sqrt(Program.Pow2(xcoord_nteil - xcoord_nteil_Prev) + Program.Pow2(ycoord_nteil - ycoord_nteil_Prev));
+                    distanceParticle *= 0.5F;
+                    if (distanceParticle < 0.02F)
+                    {
+                        goto REMOVE_PARTICLE;
+                    }
+                }
+
             MOVE_TO_CONCENTRATIONCALCULATION:
 
                 //coordinate indices
@@ -1821,6 +1833,31 @@ namespace GRAL_2001
                 {
                     zcoordRelative = zcoord_nteil - AHint;
                 }
+
+                //Check for trapped particles
+                {
+                    int zko = (int)((zcoordRelative - AHint) * ConcGridZRez);
+                    if (iko == ConcCellPrevX && jko == ConcCellPrevY && zko == ConcCellPrevZ)
+                    {
+                        ConcCellTime += idt;
+                        if (ConcCellTime > ConcCellTimeMax - 10)
+                        {
+                            zcoord_nteil += 2;
+                            if (ConcCellTime > ConcCellTimeMax)
+                            {
+                                goto REMOVE_PARTICLE;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ConcCellPrevX = iko;
+                        ConcCellPrevY = jko;
+                        ConcCellPrevZ = zko;
+                        ConcCellTime = 0;
+                    }
+                }
+
                 for (int II = 0; II < kko.Length; II++)
                 {
                     float slice = (zcoordRelative - Program.HorSlices[II]) * ConcGridZRez;
