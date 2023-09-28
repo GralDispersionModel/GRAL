@@ -1,0 +1,8 @@
+{
+    "runtimeOptions": {
+        "configProperties": 
+        {
+            "Thread_UseAllCpuGroups enabled": true
+        }
+     }    
+}

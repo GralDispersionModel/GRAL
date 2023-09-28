@@ -56,8 +56,9 @@ namespace GRAL_2001
             Vector<float> AREAxy_V = new Vector<float>(AREAxy);
             Vector<float> VG_V = new Vector<float>(VG);
             
-            int maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
-            Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Max(4, (int)(Program.NII / maxTasks))), range =>
+            int maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 8));
+            int minL = Math.Min(64, Program.NII - 4); // Avoid too large slices due to perf issues
+            Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Min(Math.Max(4, (Program.NII / maxTasks)), minL)), Program.pOptions, range =>
             //Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {
                 Span<float> PIMV = stackalloc float[Program.KADVMAX + 1];
