@@ -56,7 +56,7 @@ namespace GRAL_2001
             Vector<float> AREAxy_V = new Vector<float>(AREAxy);
             Vector<float> VG_V = new Vector<float>(VG);
             
-            int maxTasks = Math.Max(1, Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4));
+            int maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
             Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Max(4, (int)(Program.NII / maxTasks))), range =>
             //Parallel.For(2, Program.NII, Program.pOptions, i1 =>
             {

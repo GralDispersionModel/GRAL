@@ -45,8 +45,9 @@ namespace GRAL_2001
             }
             catch
             { 
-                Program.IPROC = 4; // Fallback
+                Program.IPROC = 32; // Fallback
                 Program.pOptions.MaxDegreeOfParallelism = Program.IPROC;
+                Console.WriteLine("The file Max_Proc.txt could not be read and the default value of 32 processor cores is used");
             }
         }// Read max. number processors
 

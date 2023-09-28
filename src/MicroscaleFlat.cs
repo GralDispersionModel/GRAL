@@ -53,7 +53,7 @@ namespace GRAL_2001
             //Set initial wind components of the GRAL wind field
             object obj = new object();
             //Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
-            Parallel.ForEach(Partitioner.Create(1, Program.NII + 1, Math.Max(4, (int)(Program.NII / Program.pOptions.MaxDegreeOfParallelism))), range =>
+            Parallel.ForEach(Partitioner.Create(1, Program.NII + 1, Math.Max(4, (int)(Program.NII / Program.IPROC))), range =>
             {
                 int KADVMAX1 = 1;
 
