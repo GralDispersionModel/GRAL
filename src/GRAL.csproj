@@ -10,11 +10,11 @@
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <Optimize>true</Optimize>
-    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilation>false</TieredCompilation>
     <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
     <DOTNET_TC_QuickJitForLoops>false</DOTNET_TC_QuickJitForLoops>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TieredPGO>true</TieredPGO>
+    <TieredPGO>false</TieredPGO>
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
