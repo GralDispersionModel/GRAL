@@ -81,7 +81,7 @@ namespace GRAL_2001
             double ytun = 0;
 
             // variables for the Hurley plume rise algorithm
-            float MeanHurley = 0;
+            float MeanHurley = 0.1F; // start value
             float GHurley = 0;
             float FHurley = 0;
             float MHurley = 0;
@@ -692,7 +692,7 @@ namespace GRAL_2001
                     DeltaZHurley = 0;
                     SigmaUpHurley = 0;
 
-                    if (1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.0001F) <= eps)
+                    if (1.5F * Program.Pow3(wpHurley) / MeanHurley <= eps)
                     {
                         wpHurley = 0;
                     }
@@ -740,14 +740,14 @@ namespace GRAL_2001
                         float wpold = wpHurley;
                         wpHurley = Program.FloatMax(MHurley / GHurley, 0); // [m/s]
                         float wpmittel = (wpHurley + wpold) * 0.5F;
-                        MeanHurley += wpmittel;
-
+                        
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
                         DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        MeanHurley += DeltaZHurley; // Height of plume delta_h(x) 
                         //Console.WriteLine("Tp= {0} \t dz= {1} \t idt= {2}", Math.Round(Tp, 2), Math.Round(DeltaZHurley,2), idt);
                     }
 
