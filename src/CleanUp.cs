@@ -223,7 +223,10 @@ namespace GRAL_2001
             {
                 WetDepoPrecipLst.Clear();
             }
-            System.GC.Collect();
+            
+            // Release the memory
+            System.GC.Collect(System.GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+            System.GC.WaitForPendingFinalizers();
         }
     }
 }
