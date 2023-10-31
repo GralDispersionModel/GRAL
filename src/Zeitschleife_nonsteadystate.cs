@@ -75,19 +75,29 @@ namespace GRAL_2001
         private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration)
         {
             //random number generator seeds
-            Random RND = new Random();
-            uint m_w = (uint)(RND.Next() + 521288629);
-            uint m_z = (uint)(RND.Next() + 2232121);
-            
+            int rnd = (Environment.TickCount + i + j) & Int32.MaxValue ;
+            uint m_w = (uint)(rnd + 521288629);
+            uint m_z = (uint)(rnd + 2232121);            
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
 
             //transfer grid-concentration and grid position into single particle mass and particle position
-            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25 + RND.NextDouble() * 0.5) * Program.DXK;
-            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25 + RND.NextDouble() * 0.5) * Program.DYK;
-            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.3 + RND.NextDouble() * 0.5) * Program.DZK_Trans[k]);
-            RND = null;
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            u_rg = (m_z << 16) + m_w;
+            u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
+            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25 + u1_rg * 0.5) * Program.DXK;
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            u_rg = (m_z << 16) + m_w;
+            u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
+            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25 + u1_rg * 0.5) * Program.DYK;
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            u_rg = (m_z << 16) + m_w;
+            u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
+            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.3 + u1_rg * 0.5) * Program.DZK_Trans[k]);
 
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
             double Vol_cart = Program.DXK * Program.DYK * Program.DZK_Trans[k];

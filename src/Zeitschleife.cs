@@ -43,12 +43,11 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int nteil)
         {
-            Object thisLock = new Object();
             //random number generator seeds
-            Random RND = new Random();
-            uint m_w = (uint)(RND.Next() + 521288629);
-            uint m_z = (uint)(RND.Next() + 2232121);
-            RND = null;
+            int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
+            uint m_w = (uint)(rnd + 521288629);
+            uint m_z = (uint)(rnd + 2232121);
+            
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
@@ -2017,42 +2016,42 @@ namespace GRAL_2001
                 #region log_output
                 if (reflexion_number > 400000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[5]++;
                     }
                 }
                 else if (reflexion_number > 100000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[4]++;
                     }
                 }
                 else if (reflexion_number > 50000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[3]++;
                     }
                 }
                 else if (reflexion_number > 10000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[2]++;
                     }
                 }
                 else if (reflexion_number > 5000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[1]++;
                     }
                 }
                 else if (reflexion_number > 500)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[0]++;
                     }
@@ -2060,42 +2059,42 @@ namespace GRAL_2001
 
                 if (timestep_number > 100000000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[5]++;
                     }
                 }
                 else if (timestep_number > 10000000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[4]++;
                     }
                 }
                 else if (timestep_number > 1000000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[3]++;
                     }
                 }
                 else if (timestep_number > 100000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[2]++;
                     }
                 }
                 else if (timestep_number > 10000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[1]++;
                     }
                 }
                 else if (timestep_number > 1000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[0]++;
                     }
@@ -2126,7 +2125,6 @@ namespace GRAL_2001
                 }
             }
 
-            thisLock = null;
             return;
         }
 
