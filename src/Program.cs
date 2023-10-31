@@ -693,26 +693,28 @@ namespace GRAL_2001
                         Interlocked.Increment(ref advance);
                         if (advance > percent10)
                         {
-                            Interlocked.Exchange(ref advance, 0); // set advance to 0
-                            Interlocked.Add(ref IPERC, 10);
-                            Console.Write("I");
-                            if (IPERC % 20 == 0)
+                            if (Interlocked.Exchange(ref advance, 0) > 0) // set advance to 0
                             {
-                                try
+                                Interlocked.Add(ref IPERC, 10);
+                                Console.Write("I");
+                                if (IPERC % 20 == 0)
                                 {
-                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                    try
                                     {
-                                        if (ISTATIONAER == Consts.TransientMode)
+                                        using (StreamWriter sr = new StreamWriter("Percent.txt", false))
                                         {
-                                            sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
-                                        }
-                                        else
-                                        {
-                                            sr.Write(IPERC.ToString());
+                                            if (ISTATIONAER == Consts.TransientMode)
+                                            {
+                                                sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
+                                            }
+                                            else
+                                            {
+                                                sr.Write(IPERC.ToString());
+                                            }
                                         }
                                     }
+                                    catch { }
                                 }
-                                catch { }
                             }
                         }
                         Zeitschleife.Calculate(nteil);
