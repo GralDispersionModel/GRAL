@@ -72,8 +72,12 @@ namespace GRAL_2001
             {
                 Console.WriteLine("|                     L I N U X                        |");
             }
-#if NET6_0_OR_GREATER
+#if NET6_0
             Console.WriteLine("|                   .NET6 Version                      |");
+#elif NET7_0
+            Console.WriteLine("|                   .NET7 Version                      |");
+#elif NET8_0_OR_GREATER
+            Console.WriteLine("|                   .NET8 Version                      |");
 #else
             Console.WriteLine("|                 .Net Core Version                    |");
 #endif
@@ -383,6 +387,8 @@ namespace GRAL_2001
              ********************************************/
             Thread ThreadWriteGffFiles = null;
             Thread ThreadWriteConz4dFile = null;
+            Thread ThreadWrite2DConcentrationFiles = null;
+            int recentWeatherSituation = 0;
 
             bool FirstLoop = true;
             while (IEND == Consts.CalculationRunning)
@@ -582,6 +588,23 @@ namespace GRAL_2001
                         ReadReceptors.ReceptorResetConcentration();
                     }
 
+                    // if writing thread for *.grz files has been started -> wait until Thread has been finished
+                    if (ThreadWrite2DConcentrationFiles != null)
+                    {
+                        ThreadWrite2DConcentrationFiles.Join(5000); // wait up to 5s or until thread has been finished
+                        if (ThreadWrite2DConcentrationFiles.IsAlive)
+                        {
+                            Console.Write("Finish writing *.grz file..");
+                            while (ThreadWrite2DConcentrationFiles.IsAlive)
+                            {
+                                ThreadWrite2DConcentrationFiles.Join(30000); // wait up to 30s or until thread has been finished
+                                Console.Write(".");
+                            }
+                            Console.WriteLine();
+                        }
+                        ThreadWrite2DConcentrationFiles = null; // Release ressources				
+                    }
+
                     if (FirstLoop)
                     {
                         //read receptors
@@ -768,8 +791,11 @@ namespace GRAL_2001
                     catch { }
 
                     //output of 2-D concentration files (concentrations, deposition, odour-files)
-                    WriteClass.Write2DConcentrations();
-
+                    Console.WriteLine("Writing result files in a background thread");
+                    recentWeatherSituation = IWET;
+                    ThreadWrite2DConcentrationFiles = new Thread(() => WriteClass.Write2DConcentrations(recentWeatherSituation, ZippedFile));
+                    ThreadWrite2DConcentrationFiles.Start(); // start writing thread
+                    
                     //receptor concentrations
                     if (ISTATIONAER == Consts.TransientMode)
                     {
@@ -781,7 +807,7 @@ namespace GRAL_2001
                     WriteClass.WriteMicroscaleFlowfieldReceptors();
 
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
-            }
+            } // loop for all meteorological situations
 
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == Consts.TransientMode)
@@ -800,6 +826,12 @@ namespace GRAL_2001
             {
                 ThreadWriteGffFiles.Join(); // wait, until thread has been finished
                 ThreadWriteGffFiles = null; // Release ressources
+            }
+
+            if (ThreadWrite2DConcentrationFiles != null) // if Thread has been started -> wait until *.grz WriteThread has been finished
+            {
+                ThreadWrite2DConcentrationFiles.Join(); // wait, until thread has been finished
+                ThreadWrite2DConcentrationFiles = null; // Release ressources
             }
 
             // Clean transient files
