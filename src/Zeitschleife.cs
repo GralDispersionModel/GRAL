@@ -716,7 +716,18 @@ namespace GRAL_2001
                         //float standwind = windge * 0.31F + 0.25F;
                         //float fmodul = 1 + standwind * zahl1 * unstablefactor;
                         //fmodul = Math.Clamp(fmodul, 0.1F, 6);
-                        float windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1, 0.1F, 8);
+                        float windSpeedStandDev = 0;  
+                        
+                        if (auszeit < 3) // reduced wind fluctuation at the start of the plume rise for higher wind speeds
+                        {
+                            float maxFac = MathF.Max(8 - windge * 0.3F, 1.2F);
+                            float minFac = MathF.Min(windge * 0.06F, 0.9F);
+                            windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.35F + 0.25F) * zahl1, minFac, maxFac);
+                        }
+                        else
+                        {
+                            windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1, 0.1F, 8);
+                        }
                                                 
                         //Plume volume
                         GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley
@@ -728,7 +739,7 @@ namespace GRAL_2001
                         //FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * uMeteoStand + wpHurley) * idt;
                         FHurley += -0.035934F * stab * MHurley / upHurley * (0.4444444F * windSpeedStandDev + wpHurley) * idt;
                         //Momentum flux
-                        MHurley += FHurley;
+                        MHurley += FHurley * idt;
                         //Plume radius
                         //RHurley = MathF.Sqrt((GHurley + FHurley / 9.8F) / upHurley);
                         RHurley = MathF.Sqrt((GHurley + FHurley * 0.1020408F) / upHurley);
