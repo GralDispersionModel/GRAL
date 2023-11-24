@@ -721,7 +721,7 @@ namespace GRAL_2001
                         if (auszeit < 3) // reduced wind fluctuation at the start of the plume rise for higher wind speeds
                         {
                             float maxFac = MathF.Max(8 - windge * 0.3F, 1.2F);
-                            float minFac = MathF.Min(windge * 0.06F, 0.9F);
+                            float minFac = MathF.Min(windge * 0.06F, 0.8F);
                             windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.35F + 0.25F) * zahl1, minFac, maxFac);
                         }
                         else
@@ -750,15 +750,24 @@ namespace GRAL_2001
                         float wpold = wpHurley;
                         wpHurley = Program.FloatMax(MHurley / GHurley, 0); // [m/s]
                         float wpmittel = (wpHurley + wpold) * 0.5F;
-                        
+
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                        DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        
+                        if (auszeit < 0.6F && wpHurley < wpold * 0.8F) // fix plume rise algorithm problems at the start of the plume rise
+                        {
+                            wpHurley = wpold * MathF.Exp(-auszeit);
+                            wpmittel = wpHurley;
+                            DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        }
+                        else
+                        {
+                            DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        }
                         MeanHurley += DeltaZHurley; // Height of plume delta_h(x) 
-                        //Console.WriteLine("Tp= {0} \t dz= {1} \t idt= {2}", Math.Round(Tp, 2), Math.Round(DeltaZHurley,2), idt);
+                        //Console.WriteLine("MeanHurley= {0} \t dz= {1} \t idt= {2} \t wpold= {3}" , Math.Round(MeanHurley, 2), Math.Round(DeltaZHurley,2), idt, Math.Round(wpold, 1));
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
