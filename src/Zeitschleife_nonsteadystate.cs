@@ -242,10 +242,9 @@ namespace GRAL_2001
                 windge = 0.01F;
             }
 
-            //variables tunpa and aufhurly needs to be defined even if not used
+            //variable tunpa needs to be defined even if not used
             float tunpa = 0;
-            float aufhurly = 0;
-
+            
             float ObL = Program.Ob[GrammCellX][GrammCellY];
             float roughZ0 = Program.Z0Gramm[GrammCellX][GrammCellY];
             if (Program.AdaptiveRoughnessMax > 0)
