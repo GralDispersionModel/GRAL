@@ -756,10 +756,14 @@ namespace GRAL_2001
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                         
-                        if (auszeit < 0.6F && wpHurley < wpold * 0.8F) // fix plume rise algorithm problems at the start of the plume rise
+                        if (auszeit < 0.6F) // fix plume rise algorithm problems at the start of the plume rise
                         {
-                            wpHurley = wpold * MathF.Exp(-auszeit);
-                            wpmittel = wpHurley;
+                            wpold *= MathF.Exp(-auszeit);
+                            if (wpHurley < wpold)
+                            {
+                                wpHurley = wpold;
+                                wpmittel = wpHurley;
+                            }
                             DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
                         }
                         else
