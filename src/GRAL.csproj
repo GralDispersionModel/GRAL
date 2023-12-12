@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <VersionPrefix>23.09.6</VersionPrefix>
+    <VersionPrefix>23.11.6</VersionPrefix>
     <Authors>Dietmar Oettl;Markus Kuntner</Authors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
@@ -18,7 +18,6 @@
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
-    <PublishAot>true</PublishAot>
     <!-- 
     <PublishAot>true</PublishAot>
     -->
