@@ -233,6 +233,7 @@ namespace GRAL_2001
 
                                         if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
                                         {
+                                            Program.CleanUpMemory();
                                             Console.ReadKey(true);  // wait for a key input
                                         }
 
@@ -364,6 +365,7 @@ namespace GRAL_2001
 
                                         if (Program.IOUTPUT <= 0)           // if not a SOUNDPLAN Project
                                         {
+                                            Program.CleanUpMemory();
                                             Console.ReadKey(true);  // wait for a key input
                                         }
 
@@ -383,6 +385,7 @@ namespace GRAL_2001
                     
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     {
+                        Program.CleanUpMemory();
                         Console.ReadKey(true); 	// wait for a key input
                     }
 

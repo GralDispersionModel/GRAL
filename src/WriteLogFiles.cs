@@ -338,15 +338,14 @@ namespace GRAL_2001
         /// <summary>
         ///Output of GRAL Problem report
         /// </summary>
-        public static void LogfileProblemreportWrite(string a)
+        public async static void LogfileProblemreportWrite(string a)
         {
             a = "GRAL Error: " + a;
             try
             {
                 using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
                 {
-                    sw.WriteLine(a);
-                    sw.Flush();
+                    await sw.WriteLineAsync(a);
                 }
             }
             catch { }

@@ -88,8 +88,8 @@ namespace GRAL_2001
                 int maxTasks = 1;
                 if (IterationLoops % 4 == 0)
                 { 
-                    maxTasks = Math.Max(1, Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4));
-                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
@@ -153,8 +153,8 @@ namespace GRAL_2001
                 }
                 else if (IterationLoops % 4 == 1)
                 {
-                    maxTasks = Math.Max(1, Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4));
-                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
@@ -220,8 +220,8 @@ namespace GRAL_2001
                 }
                 else if (IterationLoops % 4 == 2)
                 {
-                    maxTasks = Math.Max(1, Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4));
-                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
@@ -286,8 +286,8 @@ namespace GRAL_2001
                 }
                 else 
                 {
-                    maxTasks = Math.Max(1, Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4));
-                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), range =>
+                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
                         Span<float> PIMP = stackalloc float[Program.NKK + 2];
@@ -351,8 +351,8 @@ namespace GRAL_2001
                 }
 
                 //correcting velocities
-                maxTasks = Math.Max(1, Program.pOptions.MaxDegreeOfParallelism + Math.Abs(Environment.TickCount % 4));
-                Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Max(4, (int)(Program.NII / maxTasks))), range =>
+                maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Max(4, (int)(Program.NII / maxTasks))), Program.pOptions, range =>
                 //Parallel.For(2, Program.NII, Program.pOptions, i =>
                 {
                     float DDPX = 0;

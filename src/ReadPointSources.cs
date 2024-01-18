@@ -109,6 +109,7 @@ namespace GRAL_2001
 
                 if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                 {
+                    Program.CleanUpMemory();
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                     {
                         ;
@@ -158,6 +159,7 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         {
+                            Program.CleanUpMemory();
                             while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                             {
                                 ;

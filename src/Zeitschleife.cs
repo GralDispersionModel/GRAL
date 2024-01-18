@@ -11,6 +11,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -27,6 +29,9 @@ namespace GRAL_2001
         private const float a2Const = 1.7F;
         private const float a3Const = 1.1F;
 
+        private const float Pi2F = 2F * MathF.PI;
+        private const float RNG_Const = 2.328306435454494e-10F;
+
         /// <summary>
         ///Time loop for all released particles - the particles are tracked until they leave the domain area(steady state mode)
         ///or until the dispersion time has expired (transient mode) 
@@ -38,21 +43,16 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int nteil)
         {
-            Object thisLock = new Object();
             //random number generator seeds
-            Random RND = new Random();
-            uint m_w = (uint)(RND.Next() + 521288629);
-            uint m_z = (uint)(RND.Next() + 2232121);
-            RND = null;
-
+            int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
+            uint m_w = (uint)(rnd + 521288629);
+            uint m_z = (uint)(rnd + 2232121);
+            
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
 
-            const float Pi2F = 2F * MathF.PI;
-
-            const float RNG_Const = 2.328306435454494e-10F;
-
+            //local particle coordinates and pollution "mass"
             double xcoord_nteil = Program.Xcoord[nteil];
             double ycoord_nteil = Program.YCoord[nteil];
             float zcoord_nteil = Program.ZCoord[nteil];
@@ -80,7 +80,7 @@ namespace GRAL_2001
             double ytun = 0;
 
             // variables for the Hurley plume rise algorithm
-            float MeanHurley = 0;
+            float MeanHurley = 0.1F; // start value
             float GHurley = 0;
             float FHurley = 0;
             float MHurley = 0;
@@ -88,7 +88,8 @@ namespace GRAL_2001
             float wpHurley = 0;
             float upHurley = 0;
             float DeltaZHurley = 0;
-            float SigmauHurley = 0;
+            float SigmaUpHurley = 0;
+            //float DeltaZHurleySumme = 0;
 
             //Grid variables
             int GrammCellX = 1, GrammCellY = 1; // default value for flat terrain
@@ -101,7 +102,7 @@ namespace GRAL_2001
             float GrammGridYRez = 1 / Program.DDY[1];
             float ConcGridXRez = 1 / Program.GralDx;
             float ConcGridYRez = 1 / Program.GralDy;
-            float ConcGridZRez = 1 / Program.GralDz;
+            float ConcGridZRez = 2 / Program.GralDz;
             float ConcGridXHalf = Program.GralDx * 0.5F;
             float ConcGridYHalf = Program.GralDy * 0.5F;
 
@@ -206,9 +207,9 @@ namespace GRAL_2001
 
             int Max_Loops = (int)(3E6 + Math.Min(9.7E7,
                 Math.Max(Math.Abs(Program.EtaMaxGral - Program.EtaMinGral), Math.Abs(Program.XsiMaxGral - Program.XsiMinGral)) * 1000)); // max. Loops 1E6 (max. nr. of reflexions) + 2E6 Min + max(x,y)/0.001 
-
             int Max_Reflections = Math.Min(1000000, Program.NII * Program.NJJ * 10); // max. 10 reflections per cell
-
+            int ConcCellPrevX = -1; int ConcCellPrevY = -1; int ConcCellPrevZ = 0; float ConcCellTimeMax = Math.Max(100, Program.GralDx / 0.04F); float ConcCellTime = 0; float distanceParticle = 50;
+            
             //interpolated orography
             float PartHeightAboveTerrain = 0;
             float PartHeightAboveBuilding = 0;
@@ -257,7 +258,7 @@ namespace GRAL_2001
             float deltaZ = roughZ0;
 
             //vertical interpolation of horizontal standard deviations of wind component fluctuations between observations
-            (float U0int, float V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmauHurley);
+            (float U0int, float V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmaUpHurley);
 
             //remove particles above boundary-layer
             if ((PartHeightAboveBuilding > blh) && (Program.ISTATIONAER != Consts.TransientMode) && (ObL < 0)) //26042020 (Ku): removed for transient mode -> particles shoulb be tracked above blh
@@ -273,7 +274,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+            u1_rg = (u_rg + 1) * RNG_Const;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -284,7 +285,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+            u1_rg = (u_rg + 1) * RNG_Const;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -318,30 +319,31 @@ namespace GRAL_2001
                         ExitTemperature = Program.PS_TimeSerTempValues[tempTimeSeriesIndex].Value[Program.IWET - 1] + 273;
                     }
                 }
-                ExitTemperature = MathF.Max(273, ExitTemperature);
-
-                //plume-rise velocity
-                float standwind = windge * 0.31F + 0.25F;
-
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
+                
+                //fluctuation of exit / ambient temperature
+                ExitTemperature = MathF.Max(273, ExitTemperature * (1.05F - u1_rg * 0.2F));
+
+                //plume-rise velocity
+                m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                u_rg = (m_z << 16) + m_w;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                float fmodul = 1 + standwind * zahl1;
-                fmodul = Math.Clamp(fmodul, 0.5F, 1.5F);
-
+                                                
                 FHurley = (9.81F * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F) *
                                  (ExitTemperature - 273F) / ExitTemperature);
                 GHurley = (273 / ExitTemperature * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F));
                 MHurley = GHurley * ExitVelocity;
-                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge * fmodul) + Program.Pow2(ExitVelocity)));
+                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(ExitVelocity)));
                 wpHurley = ExitVelocity;
-                upHurley = MathF.Sqrt(Program.Pow2(windge * fmodul) + Program.Pow2(wpHurley));
+                upHurley = MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(wpHurley));
                 MeanHurley = 0;
                 DeltaZHurley = 0;
             }
@@ -406,18 +408,18 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                coruri = windge + U0int * zahl1;
+                coruri = windge + U0int * (float) zahl1;
 
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -468,10 +470,16 @@ namespace GRAL_2001
         */
             float ObLength = 0;
             float Ustern = 0;
+ 
         MOVE_FORWARD:
             while (timestep_number <= Max_Loops)
             {
                 ++timestep_number;
+                double xcoord_nteil_Prev = xcoord_nteil;
+                double ycoord_nteil_Prev = ycoord_nteil;
+                float zcoord_nteil_Prev = zcoord_nteil;
+                int FFCellXPrev = FFCellX;
+                int FFCellYPrev = FFCellY;
 
                 //if particle is within the user-defined tunnel-entrance zone it is removed (sucked-into the tunnel)
                 if (Program.TunnelEntr == true)
@@ -617,7 +625,6 @@ namespace GRAL_2001
                  */
 
                 float beta = (dskew - 2 * skew * alpha - Program.C0z * eps) / (2 * varw);
-
                 float gamma = dvarw - varw * alpha;
 
                 //particle acceleration
@@ -627,25 +634,14 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                //float zahl1 = (float)SimpleRNG.GetNormal();
-                if (zahl1 > 2)
-                {
-                    zahl1 = 2;
-                }
-
-                if (zahl1 < -2)
-                {
-                    zahl1 = -2;
-                }
-
+                Math.Clamp(zahl1, -2, 2);
                 float velz = acc * idt + MathF.Sqrt(Program.C0z * eps * idt) * zahl1 + velzold;
-
+                
                 //******************************************************************************************************************** OETTL, 31 AUG 2016
                 //in adjecent cells to vertical solid walls, turbulent velocities are only allowed in the direction away from the wall
                 if (velz == 0)
@@ -686,77 +682,102 @@ namespace GRAL_2001
                 }
 
                 //bouyancy effects for plume rise
-                if (SourceType == Consts.SourceTypePoint)
+                if (SourceType == Consts.SourceTypePoint && wpHurley > 0)
                 {
                     //plume rise following Hurley, 2005 (TAPM)
-                    float epshurly = 1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.1F);
-                    float epsambiente = 0;
-
+                    //float epshurly = 1.5F * Program.Pow3(wpHurley) / (MeanHurley + 0.1F);
+                    //float epsambiente = 0;
+                    //epsambiente = eps;
                     DeltaZHurley = 0;
-                    SigmauHurley = 0;
+                    SigmaUpHurley = 0;
 
-                    epsambiente = eps;
-
-                    if (epshurly <= epsambiente)
+                    if (1.5F * Program.Pow3(wpHurley) / MeanHurley <= eps)
                     {
                         wpHurley = 0;
                     }
-
-                    if (wpHurley > 0)
+                    else
                     {
                         float stab = 0;
-
+                      
                         if (ObLength >= 0)
                         {
-                            stab = 0.04F * MathF.Exp(-ObLength * 0.05F);
+                            stab = 0.04F * MathF.Pow(2.73F, -ObLength * 0.05F);
                         }
-
+                        
                         //plume-rise velocity
-                        float standwind = windge * 0.31F + 0.25F;
-
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                        u1_rg = (u_rg + 1) * RNG_Const;
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                        float fmodul = 1 + standwind * zahl1;
-                        fmodul = Math.Clamp(fmodul, 0.1F, 5F);
-                        float sHurley = 9.81F / 273 * stab;
-
-                        GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windge * fmodul * wpHurley
-                                                        + 0.1F * upHurley * (MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold))))) * idt;
-                        FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * windge * fmodul + wpHurley) * idt;
-                        MHurley += FHurley * idt;
+                        //float standwind = windge * 0.31F + 0.25F;
+                        //float fmodul = 1 + standwind * zahl1 * unstablefactor;
+                        //fmodul = Math.Clamp(fmodul, 0.1F, 6);
+                        float windSpeedStandDev = 0;  
+                        
+                        if (auszeit < 3) // reduced wind fluctuation at the start of the plume rise for higher wind speeds
                         {
-                            RHurley = MathF.Sqrt((GHurley + FHurley / 9.8F) / upHurley);
-                            upHurley = MathF.Sqrt(Program.Pow2(windge * fmodul) + Program.Pow2(wpHurley));
+                            float maxFac = MathF.Max(8 - windge * 0.3F, 1.2F);
+                            float minFac = MathF.Min(windge * 0.06F, 0.8F);
+                            windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.35F + 0.25F) * zahl1, minFac, maxFac);
                         }
-                        float sigmawpHurley = (aHurley * Program.Pow2(wpHurley) + bHurley * windge * fmodul * wpHurley) / 4.2F / upHurley;
-                        SigmauHurley = 2 * sigmawpHurley;
-                        float wpold = wpHurley;
-                        wpHurley = Program.FloatMax(MHurley / GHurley, 0);
-                        float wpmittel = (wpHurley + wpold) * 0.5F;
-                        MeanHurley += wpmittel * idt;
+                        else
+                        {
+                            windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1, 0.1F, 8);
+                        }
+                                                
+                        //Plume volume
+                        GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley
+                                                        + 0.1F * upHurley * MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold)))) * idt;
+                        //float Tp = 273 / GHurley * wpHurley * RHurley * RHurley;
 
-                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                        //Plume buoyancy
+                        //float sHurley = 9.81F / 273 * stab;
+                        //FHurley += -sHurley * MHurley / upHurley * (1 / 2.25F * uMeteoStand + wpHurley) * idt;
+                        FHurley += -0.035934F * stab * MHurley / upHurley * (0.4444444F * windSpeedStandDev + wpHurley) * idt;
+                        //Momentum flux
+                        MHurley += FHurley * idt;
+                        //Plume radius
+                        //RHurley = MathF.Sqrt((GHurley + FHurley / 9.8F) / upHurley);
+                        RHurley = MathF.Sqrt((GHurley + FHurley * 0.1020408F) / upHurley);
+                        upHurley = MathF.Sqrt(Program.Pow2(windSpeedStandDev) + Program.Pow2(wpHurley));
+                        //standard deviations of velocity 
+                        float sigmawpHurley = (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley) / (4.2F * upHurley);
+                        SigmaUpHurley = 2 * sigmawpHurley;
+                        float wpold = wpHurley;
+                        wpHurley = Program.FloatMax(MHurley / GHurley, 0); // [m/s]
+                        float wpmittel = (wpHurley + wpold) * 0.5F;
+
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                        DeltaZHurley = (wpmittel + zahl1 * sigmawpHurley) * idt;
+                        
+                        if (auszeit < 0.6F) // fix plume rise algorithm problems at the start of the plume rise
+                        {
+                            wpold *= MathF.Exp(-auszeit);
+                            if (wpHurley < wpold)
+                            {
+                                wpHurley = wpold;
+                                wpmittel = wpHurley;
+                            }
+                            DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        }
+                        else
+                        {
+                            DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                        }
+                        MeanHurley += DeltaZHurley; // Height of plume delta_h(x) 
+                        //Console.WriteLine("MeanHurley= {0} \t dz= {1} \t idt= {2} \t wpold= {3}" , Math.Round(MeanHurley, 2), Math.Round(DeltaZHurley,2), idt, Math.Round(wpold, 1));
                     }
 
                     if (tunfak == Consts.ParticleIsNotAPortal)
                     {
-                        zcoord_nteil += (velz + UZint) * idt + DeltaZHurley;
+                        zcoord_nteil = zcoord_nteil + (velz + UZint) * idt + DeltaZHurley;
+                        //DeltaZHurleySumme += DeltaZHurley;
                     }
 
                     velzold = velz;
@@ -823,7 +844,7 @@ namespace GRAL_2001
                  */
 
                 //vertical interpolation of horizontal standard deviations of wind speed components
-                (U0int, V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmauHurley);
+                (U0int, V0int) = IntStandCalculate(nteil, roughZ0, PartHeightAboveBuilding, windge, SigmaUpHurley);
 
                 //determination of the meandering parameters according to Oettl et al. (2006)
                 float param = 0;
@@ -865,7 +886,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -878,7 +899,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -932,7 +953,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -943,7 +964,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -954,7 +975,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1049,7 +1070,7 @@ namespace GRAL_2001
                     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                     u_rg = (m_z << 16) + m_w;
-                    u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                    u1_rg = (u_rg + 1) * RNG_Const;
                     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                     u_rg = (m_z << 16) + m_w;
@@ -1162,7 +1183,8 @@ namespace GRAL_2001
                     //in case that orography is taken into account and if there is no particle, then, the particle trajectories are following the terrain
                     if (topo == Consts.TerrainAvailable)
                     {
-                        if (Program.CUTK[FFCellX][FFCellY] == 0)
+                        // no terrain following trajectory, if the recent or the previous cell is a building!
+                        if ((Program.CUTK[FFCellX][FFCellY] + Program.CUTK[FFCellXPrev][FFCellYPrev]) == 0 )
                         {
                             zcoord_nteil += (AHint - AHintold);
                         }
@@ -1234,7 +1256,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1245,7 +1267,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1255,7 +1277,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1302,7 +1324,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1313,7 +1335,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1324,7 +1346,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1343,7 +1365,7 @@ namespace GRAL_2001
                         zcoord_nteil = AHint - PartHeightAboveTerrain + 0.01F;
                         PartHeightAboveTerrain = zcoord_nteil - AHint;
                         PartHeightAboveBuilding = PartHeightAboveTerrain;
-
+                        
                         // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                         if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                         {
@@ -1389,9 +1411,6 @@ namespace GRAL_2001
                     {
                         goto REMOVE_PARTICLE;
                     }
-
-                    int FFCellXPrev;
-                    int FFCellYPrev;
 
                     if (topo == Consts.TerrainAvailable)
                     {
@@ -1478,9 +1497,11 @@ namespace GRAL_2001
                     {
                         int IndexKOld = IndexK;
                         IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
-
+                        
+                        // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
                         {
+                            // The particle enters a building or terrain step horizontally
                             if ((IndexK > Program.KKART[FFCellXPrev][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -1501,6 +1522,7 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in x direction
                             else if ((IndexK > Program.KKART[FFCellXPrev][FFCellY]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -1512,6 +1534,7 @@ namespace GRAL_2001
                                     xcoord_nteil = 2 * (IKOOAGRAL + (FFCellX - 1) * FFGridX) - xcoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in y direction
                             else if ((IndexK > Program.KKART[FFCellX][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UYint + cory <= 0)
@@ -1523,6 +1546,7 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Particle comes from z direction on the same cell 
                             else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]) && (FFCellX == FFCellXPrev) && (FFCellY == FFCellYPrev))
                             {
                                 zcoord_nteil = 2 * Program.AHK[FFCellX][FFCellY] - zcoord_nteil + 0.01F;
@@ -1532,7 +1556,7 @@ namespace GRAL_2001
                                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                                 }
                                 velzold = -velzold;
-
+                                
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                                 if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
@@ -1546,7 +1570,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep
 
                                     if (masse <= 0)
                                     {
@@ -1554,6 +1578,32 @@ namespace GRAL_2001
                                     }
                                 }
                             }
+                            // Particle comes from the z direction (above the recent cell) and from another cell
+                            else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]))
+                            {
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
+                                {
+                                    float Pd1 = Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
+                                    int ik = (int)(xsi * ConcGridXRez) + 1;
+                                    int jk = (int)(eta * ConcGridYRez) + 1;
+                                    double[] depo_L = Program.Depo_conz[ik][jk];
+                                    double conc = masse * Pd1 * area_rez_fac;
+                                    lock (depo_L)
+                                    {
+                                        depo_L[SG_nteil] += conc;
+                                    }
+                                    masse -= masse * Pd1;
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
+
+                                    if (masse <= 0)
+                                    {
+                                        goto REMOVE_PARTICLE;
+                                    }
+                                }
+                                float terrainHeight = Program.AHK[FFCellX][FFCellY];
+                                zcoord_nteil = MathF.Max(terrainHeight, 2 * terrainHeight - zcoord_nteil + 0.01F);
+                            }
+                            // Particle comes from the z direction (below the recent cell, particle direction up or down) and from another cell
                             else
                             {
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
@@ -1569,7 +1619,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep
 
                                     if (masse <= 0)
                                     {
@@ -1579,20 +1629,54 @@ namespace GRAL_2001
 
                                 if (tunpa == 0)
                                 {
-                                    xcoord_nteil -= (idt * UXint + corx);
-                                    ycoord_nteil -= (idt * UYint + cory);
-                                    zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
-                                    PartHeightAboveTerrain = zcoord_nteil - AHint;
-                                    if (topo == Consts.TerrainAvailable)
+                                    // Terrain following particles at small steps if there is no building
+                                    if (Program.CUTK[FFCellX][FFCellY] < 1 && (Program.AHK[FFCellX][FFCellY] - zcoord_nteil) < 10)
                                     {
-                                        PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        // Move particle above the new terrain surface
+                                        zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs((idt * (UZint + velz) + DeltaZHurley));
+                                    }
+                                    else
+                                    // Below Building or high terrain step
+                                    {
+                                        // reset horizontal coordinates
+                                        double deltax = xcoord_nteil - xcoord_nteil_Prev;
+                                        double deltay = ycoord_nteil - ycoord_nteil_Prev;
+                                        
+                                        xcoord_nteil -= deltax * 1.05;
+                                        ycoord_nteil -= deltay * 1.05;
+                                        //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+
+                                        FFCellXPrev = FFCellX;
+                                        FFCellYPrev = FFCellY;
+
+                                        FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
+                                        FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
+                                        if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                        {
+                                            goto REMOVE_PARTICLE;
+                                        }
+                                        float newTerrainHeight = Program.AHK[FFCellX][FFCellY];
+                                        // if below new terrain -> multiple reflections
+                                        if (zcoord_nteil < newTerrainHeight)
+                                        {
+                                            zcoord_nteil = 2 * newTerrainHeight - zcoord_nteil;
+                                        }
+
+                                        AHintold = AHint;
+                                        AHint = newTerrainHeight;
+                                        PartHeightAboveTerrain = zcoord_nteil - AHint;
+                                        if (topo == Consts.TerrainAvailable)
+                                        {
+                                            PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        }
                                     }
                                 }
 
-                                int vorzeichen = 1;
+                                // Change direction of the vertical velocity
+                                int vorzeichen = -1;
                                 if (velzold < 0)
                                 {
-                                    vorzeichen = -1;
+                                    vorzeichen = 1;
                                 }
 
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -1604,21 +1688,14 @@ namespace GRAL_2001
                                 u_rg = (m_z << 16) + m_w;
                                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                                velzold = zahl1 * MathF.Sqrt(varw);
-                                if (vorzeichen < 0)
-                                {
-                                    velzold = Math.Abs(velzold);
-                                }
-                                else
-                                {
-                                    velzold = -Math.Abs(velzold);
-                                }
+                                velzold = MathF.Abs(zahl1 * MathF.Sqrt(varw)) * vorzeichen;
                             }
 
-                            int vorzeichen1 = 1;
+                            // Change direction of the horizontal particle velocity
+                            int vorzeichen1 = -1;
                             if (velxold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -1629,21 +1706,13 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                            velxold = zahl1 * U0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velxold = MathF.Abs(velxold);
-                            }
-                            else
-                            {
-                                velxold = -MathF.Abs(velxold);
-                            }
-
-                            vorzeichen1 = 1;
+                            
+                            velxold = MathF.Abs(zahl1 * U0int * 3) * vorzeichen1;
+                            
+                            vorzeichen1 = -1;
                             if (velyold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -1655,16 +1724,8 @@ namespace GRAL_2001
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                            velyold = zahl1 * V0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velyold = MathF.Abs(velyold);
-                            }
-                            else
-                            {
-                                velyold = -MathF.Abs(velyold);
-                            }
-
+                            velyold = MathF.Abs(zahl1 * V0int * 3) * vorzeichen1;
+                            
                             back = 1;
                             idt = Program.FloatMax(idt * 0.5F, 0.05F);
                             if (tunpa > 0)
@@ -1684,8 +1745,8 @@ namespace GRAL_2001
                             goto REMOVE_PARTICLE;
                         }
                     }
-
                 }   //END OF THE REFLEXION ALGORITHM
+                depo_reflection_counter = 0;
 
                 //interpolation of orography
                 AHintold = AHint;
@@ -1741,7 +1802,7 @@ namespace GRAL_2001
                     velzold = -velzold;
                     PartHeightAboveTerrain = zcoord_nteil - AHint;
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
-
+                   
                     // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                     if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                     {
@@ -1761,6 +1822,16 @@ namespace GRAL_2001
                         {
                             goto REMOVE_PARTICLE;
                         }
+                    }
+                }
+
+                if (auszeit > 3600)
+                {
+                    distanceParticle += (float)Math.Sqrt(Program.Pow2(xcoord_nteil - xcoord_nteil_Prev) + Program.Pow2(ycoord_nteil - ycoord_nteil_Prev));
+                    distanceParticle *= 0.5F;
+                    if (distanceParticle < 0.02F)
+                    {
+                        goto REMOVE_PARTICLE;
                     }
                 }
 
@@ -1785,6 +1856,31 @@ namespace GRAL_2001
                 {
                     zcoordRelative = zcoord_nteil - AHint;
                 }
+
+                //Check for trapped particles
+                {
+                    int zko = (int)((zcoordRelative - AHint) * ConcGridZRez);
+                    if (iko == ConcCellPrevX && jko == ConcCellPrevY && zko == ConcCellPrevZ)
+                    {
+                        ConcCellTime += idt;
+                        if (ConcCellTime > ConcCellTimeMax - 10)
+                        {
+                            zcoord_nteil += 2;
+                            if (ConcCellTime > ConcCellTimeMax)
+                            {
+                                goto REMOVE_PARTICLE;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ConcCellPrevX = iko;
+                        ConcCellPrevY = jko;
+                        ConcCellPrevZ = zko;
+                        ConcCellTime = 0;
+                    }
+                }
+
                 for (int II = 0; II < kko.Length; II++)
                 {
                     float slice = (zcoordRelative - Program.HorSlices[II]) * ConcGridZRez;
@@ -1793,7 +1889,7 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    kko[II] = Program.ConvToInt(slice);
+                    kko[II] = (int) slice;
                 }
 
                 //decay rate
@@ -1842,7 +1938,7 @@ namespace GRAL_2001
                                     jko == Program.ReceptorJInd[irec])
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1854,7 +1950,7 @@ namespace GRAL_2001
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1901,7 +1997,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int) (Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
@@ -1918,7 +2014,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int)(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
@@ -1944,42 +2040,42 @@ namespace GRAL_2001
                 #region log_output
                 if (reflexion_number > 400000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[5]++;
                     }
                 }
                 else if (reflexion_number > 100000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[4]++;
                     }
                 }
                 else if (reflexion_number > 50000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[3]++;
                     }
                 }
                 else if (reflexion_number > 10000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[2]++;
                     }
                 }
                 else if (reflexion_number > 5000)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[1]++;
                     }
                 }
                 else if (reflexion_number > 500)
                 {
-                    lock (thisLock)
+                    lock (Program.LogReflexions.SyncRoot)
                     {
                         Program.LogReflexions[0]++;
                     }
@@ -1987,42 +2083,42 @@ namespace GRAL_2001
 
                 if (timestep_number > 100000000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[5]++;
                     }
                 }
                 else if (timestep_number > 10000000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[4]++;
                     }
                 }
                 else if (timestep_number > 1000000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[3]++;
                     }
                 }
                 else if (timestep_number > 100000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[2]++;
                     }
                 }
                 else if (timestep_number > 10000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[1]++;
                     }
                 }
                 else if (timestep_number > 1000)
                 {
-                    lock (thisLock)
+                    lock (Program.Log_Timesteps.SyncRoot)
                     {
                         Program.Log_Timesteps[0]++;
                     }
@@ -2030,7 +2126,7 @@ namespace GRAL_2001
 
                 #endregion log_output
             }
-
+            //Console.WriteLine("DZSumme " + DeltaZHurleySumme);
             // Add local receptor concentrations to receptor array and store maximum concentration part for each receptor
             if (Program.ReceptorsAvailable)
             {
@@ -2053,7 +2149,6 @@ namespace GRAL_2001
                 }
             }
 
-            thisLock = null;
             return;
         }
 

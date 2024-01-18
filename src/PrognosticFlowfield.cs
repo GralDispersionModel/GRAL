@@ -293,7 +293,7 @@ namespace GRAL_2001
             double GESCHW_MAX = 0;
             object obj = new object();
             //Parallel.For(1, NII + 1, Program.pOptions, i =>
-            Parallel.ForEach(Partitioner.Create(1, NII + 1, Math.Max(4, (int)((NII + 1) / Program.pOptions.MaxDegreeOfParallelism))), range =>
+            Parallel.ForEach(Partitioner.Create(1, NII + 1, Math.Max(4, (int)((NII + 1) / Program.IPROC))), Program.pOptions, range =>
             {
                 double Geschw_max1 = 0;
                 for (int i = range.Item1; i < range.Item2; ++i)
@@ -329,7 +329,7 @@ namespace GRAL_2001
 
             //Minimum vertical cell index up to which calculations are performed
             //Parallel.For(1, NII + 1, Program.pOptions, i =>
-            Parallel.ForEach(Partitioner.Create(1, NII + 1, Math.Max(4, (int)((NII + 1) / Program.pOptions.MaxDegreeOfParallelism))), range =>
+            Parallel.ForEach(Partitioner.Create(1, NII + 1, Math.Max(4, (int)((NII + 1) / Program.IPROC))), range =>
             {
                 for (int i = range.Item1; i < range.Item2; ++i)
                 {
@@ -1027,10 +1027,14 @@ namespace GRAL_2001
                 //algebraic mixing length model
                 if (TurbulenceModel == 1)
                 {
+                    Program.pOptions.MaxDegreeOfParallelism += 2;
                     Parallel.Invoke(Program.pOptions,
                         () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                         () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                    // U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
+                    // V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
                     W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                    Program.pOptions.MaxDegreeOfParallelism -= 2;
                 }
 
                 //k-eps model

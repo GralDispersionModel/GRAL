@@ -21,17 +21,19 @@ namespace GRAL_2001
 {
     public partial class ProgramWriters
     {
+        private int weatherSituation = 0;
         /// <summary>
         ///Output of 2-D concentration files (concentrations, deposition, odour-files)
         /// </summary>
-        public void Write2DConcentrations()
+        public void Write2DConcentrations(int WeatherSituation, string ZippedFile)
         {
             try
             {
-                Console.Write("Writing result files.");
+                weatherSituation = WeatherSituation;
+                //Console.Write("Writing result files." + weatherSituation + "/" + ZippedFile);
                 if (Program.ResultFileZipped)
                 {
-                    using (FileStream zipToOpen = new FileStream(Program.ZippedFile, FileMode.OpenOrCreate))
+                    using (FileStream zipToOpen = new FileStream(ZippedFile, FileMode.OpenOrCreate))
                     {
                         using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
                         {
@@ -39,11 +41,11 @@ namespace GRAL_2001
                             {
                                 for (int II = 0; II < Program.NS; II++)
                                 {
-                                    if ((IQ + II) % 2 == 0)
-                                    {
-                                        Console.Write(".");
-                                    }
-                                    string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                                    //if ((IQ + II) % 2 == 0)
+                                    //{
+                                    //    Console.Write(".");
+                                    //}
+                                    string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
 
                                     if (Program.WriteASCiiResults) // aditional ASCii Output
                                     {
@@ -71,7 +73,7 @@ namespace GRAL_2001
                                     // Write deposition
                                     if (II == 0 && (Program.DepositionExist || Program.WetDeposition))
                                     {
-                                        fname = Program.IWET.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
+                                        fname = weatherSituation.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
                                         write_entry = archive.CreateEntry(fname);
 
                                         using (BinaryWriter sw = new BinaryWriter(write_entry.Open()))
@@ -101,12 +103,12 @@ namespace GRAL_2001
                     {
                         for (int II = 0; II < Program.NS; II++)
                         {
-                            if ((IQ + II) % 2 == 0)
-                            {
-                                Console.Write(".");
-                            }
+                            //if ((IQ + II) % 2 == 0)
+                            //{
+                            //    Console.Write(".");
+                            //}
 
-                            string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                            string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
                             if (Program.WriteASCiiResults) // aditional ASCii Output
                             {
                                 writeConDataAscii(fname, IQ, II);
@@ -120,7 +122,7 @@ namespace GRAL_2001
                             // Write deposition
                             if (II == 0 && (Program.DepositionExist || Program.WetDeposition))
                             {
-                                fname = Program.IWET.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
+                                fname = weatherSituation.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
                                 using (BinaryWriter sw = new BinaryWriter(File.Open(fname, FileMode.Create)))
                                 {
                                     WriteDepositionData(sw, IQ);
@@ -132,8 +134,8 @@ namespace GRAL_2001
             }
             catch (Exception exc)
             {
-                Console.WriteLine();
-                LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing con file: " + exc.Message);
+                //Console.WriteLine();
+                LogfileProblemreportWrite("Situation: " + weatherSituation.ToString() + " Error writing con file: " + exc.Message);
             } //Output of concentration files
 
 
@@ -148,10 +150,10 @@ namespace GRAL_2001
                 {
                     for (int II = 0; II < Program.NS; II++)
                     {
-                        if ((IQ + II) % 2 == 0)
-                        {
-                            Console.Write(".");
-                        }
+                        //if ((IQ + II) % 2 == 0)
+                        //{
+                        //    Console.Write(".");
+                        //}
 
                         Object thisLock = new Object();
 
@@ -264,12 +266,12 @@ namespace GRAL_2001
                         Program.DisConcVar[II][IQ] /= (float)Nhor;
 
                         //output of several quantities needed to run the concentration variance model subsequently
-                        string fname = Program.IWET.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".odr";
+                        string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".odr";
                         try
                         {
                             if (Program.ResultFileZipped)
                             {
-                                using (FileStream zipToOpen = new FileStream(Program.ZippedFile, FileMode.OpenOrCreate))
+                                using (FileStream zipToOpen = new FileStream(ZippedFile, FileMode.OpenOrCreate))
                                 {
                                     using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Update))
                                     {
@@ -305,8 +307,8 @@ namespace GRAL_2001
                         {
                             if (IQ == 1)
                             {
-                                Console.WriteLine();
-                                LogfileProblemreportWrite("Situation: " + Program.IWET.ToString() + " Error writing odr file: " + exc.Message);
+                                //Console.WriteLine();
+                                LogfileProblemreportWrite("Situation: " + weatherSituation.ToString() + " Error writing odr file: " + exc.Message);
                             }
                         }
                     }
@@ -314,7 +316,7 @@ namespace GRAL_2001
             }
 
             //reset concentrations
-            Console.WriteLine(".");
+            //Console.WriteLine(".");
             for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
             {
                 for (int II = 0; II < Program.NS; II++)
@@ -336,7 +338,7 @@ namespace GRAL_2001
                     }
                 }
             }
-            Console.WriteLine();
+            //Console.WriteLine();
         }//output of 2-D concentration files (concentrations, deposition, odour-files)
 
         /// <summary>

@@ -952,6 +952,7 @@ namespace GRAL_2001
                         Console.WriteLine("Press a key to exit");
                         if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                         {
+                            Program.CleanUpMemory();
                             Console.ReadKey(true);
                         }
                         Environment.Exit(0);

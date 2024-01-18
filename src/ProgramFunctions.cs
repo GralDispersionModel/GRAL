@@ -218,6 +218,12 @@ namespace GRAL_2001
                     Console.Write("  Stability class [-]: " + StabClass.ToString("F0"));
                 }
 
+                //Show GRAMM stab class when reading a .gff file
+                if (WindVelGramm < -1 && StabClassGramm > 0)
+                {
+                    Console.Write("  GRAMM SC: " + StabClassGramm.ToString("F0"));
+                }
+
                 Console.WriteLine("");
             }
             if (WindVelGramm > -1)
@@ -748,90 +754,86 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="val1">1st value</param> 
         /// <param name="val2">2nd value</param> 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float FloatMax(float val1, float val2)
         {
-            float _val1 = val1; // avoid "starg" optocode
-            float _val2 = val2;
-            if (_val1 > _val2)
+            if (val1 > val2)
             {
-                return _val1;
+                return val1;
             }
 
-            return _val2;
+            return val2;
         }
 
         /// <summary>
     	/// Return an integer, similar to Convert.ToInt32, but faster
     	/// </summary>
     	/// <param name="val1">float value</param> 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ConvToInt(float val1)
         {
-            float _val1 = val1; // avoid "starg" optocode
-            if (_val1 < 0)
+            if (val1 < 0)
             {
-                return ((int)(_val1 - 0.5F));
+                return ((int)(val1 - 0.5F));
             }
             else
             {
-                return ((int)(_val1 + 0.5F));
+                return ((int)(val1 + 0.5F));
             }
         }
         /// <summary>
     	/// Return an integer, similar to Convert.ToInt32, but faster
     	/// </summary>
     	/// <param name="val1">double value</param> 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ConvToInt(double val1)
         {
-            double _val1 = val1; // avoid "starg" optocode
-            if (_val1 < 0)
+            if (val1 < 0)
             {
-                return ((int)(_val1 - 0.5));
+                return ((int)(val1 - 0.5));
             }
             else
             {
-                return ((int)(_val1 + 0.5));
+                return ((int)(val1 + 0.5));
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         //[MethodImpl(MethodImplOptions.NoInlining)]
         public static double Pow5(double x1)
         {
             return (x1 * x1 * x1 * x1 * x1);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         //[MethodImpl(MethodImplOptions.NoInlining)]
         public static float Pow5(float x1)
         {
             return (x1 * x1 * x1 * x1 * x1);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         //[MethodImpl(MethodImplOptions.NoInlining)]
         public static double Pow4(double x1)
         {
             return (x1 * x1 * x1 * x1);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         //[MethodImpl(MethodImplOptions.NoInlining)]
         public static double Pow3(double x1)
         {
             return (x1 * x1 * x1);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Pow3(float x1)
         {
             return (x1 * x1 * x1);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // [MethodImpl(MethodImplOptions.NoInlining)]
         public static double Pow2(double x1)
         {
             return (x1 * x1);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Pow2(float x1)
         {
             return (x1 * x1);

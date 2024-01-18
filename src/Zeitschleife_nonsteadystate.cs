@@ -11,8 +11,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Linq;
 
 namespace GRAL_2001
 {
@@ -35,6 +37,7 @@ namespace GRAL_2001
         /// <remarks>
         /// This class is the particle driver for particles, released by the transient grid in the transient GRAL mode
         /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int i, int j, int k, int SG, float TransConcentration)
         {
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
@@ -72,19 +75,29 @@ namespace GRAL_2001
         private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration)
         {
             //random number generator seeds
-            Random RND = new Random();
-            uint m_w = (uint)(RND.Next() + 521288629);
-            uint m_z = (uint)(RND.Next() + 2232121);
-            
+            int rnd = (Environment.TickCount + i + j) & Int32.MaxValue ;
+            uint m_w = (uint)(rnd + 521288629);
+            uint m_z = (uint)(rnd + 2232121);            
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
 
             //transfer grid-concentration and grid position into single particle mass and particle position
-            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25 + RND.NextDouble() * 0.5) * Program.DXK;
-            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25 + RND.NextDouble() * 0.5) * Program.DYK;
-            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.3 + RND.NextDouble() * 0.5) * Program.DZK_Trans[k]);
-            RND = null;
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            u_rg = (m_z << 16) + m_w;
+            u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
+            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25 + u1_rg * 0.5) * Program.DXK;
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            u_rg = (m_z << 16) + m_w;
+            u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
+            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25 + u1_rg * 0.5) * Program.DYK;
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            u_rg = (m_z << 16) + m_w;
+            u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
+            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.3 + u1_rg * 0.5) * Program.DZK_Trans[k]);
 
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
             double Vol_cart = Program.DXK * Program.DYK * Program.DZK_Trans[k];
@@ -122,7 +135,7 @@ namespace GRAL_2001
             float GrammGridYRez = 1 / Program.DDY[1];
             float ConcGridXRez = 1 / Program.GralDx;
             float ConcGridYRez = 1 / Program.GralDy;
-            float ConcGridZRez = 1 / Program.GralDz;
+            float ConcGridZRez = 2 / Program.GralDz;
             float ConcGridXHalf = Program.GralDx * 0.5F;
             float ConcGridYHalf = Program.GralDy * 0.5F;
 
@@ -176,12 +189,13 @@ namespace GRAL_2001
             }
 
             int Max_Reflections = Math.Min(100000, Program.NII * Program.NJJ * 2); // max. 2 reflections per cell in transient mode
-
+            int ConcCellPrevX = -1; int ConcCellPrevY = -1; int ConcCellPrevZ = 0; float ConcCellTimeMax = Math.Max(100, Program.GralDx / 0.04F); float ConcCellTime = 0; float distanceParticle = 50;
+            
             int FFCellX;
             int FFCellY;
 
             //interpolated orography
-            float PartHeightAboveTerrrain = 0;
+            float PartHeightAboveTerrain = 0;
             float PartHeightAboveBuilding = 0;
 
             if (topo == Consts.TerrainAvailable)
@@ -199,8 +213,8 @@ namespace GRAL_2001
 
                 //interpolated orography
                 AHint = Program.AHK[FFCellX][FFCellY];
-                PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                PartHeightAboveTerrain = zcoord_nteil - AHint;
+                PartHeightAboveBuilding = PartHeightAboveTerrain;
             }
             else
             {
@@ -213,8 +227,8 @@ namespace GRAL_2001
                 }
 
                 //interpolated orography
-                PartHeightAboveTerrrain = zcoord_nteil;
-                PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                PartHeightAboveTerrain = zcoord_nteil;
+                PartHeightAboveBuilding = PartHeightAboveTerrain;
             }
 
             //wind-field interpolation
@@ -228,10 +242,9 @@ namespace GRAL_2001
                 windge = 0.01F;
             }
 
-            //variables tunpa and aufhurly needs to be defined even if not used
+            //variable tunpa needs to be defined even if not used
             float tunpa = 0;
-            float aufhurly = 0;
-
+            
             float ObL = Program.Ob[GrammCellX][GrammCellY];
             float roughZ0 = Program.Z0Gramm[GrammCellX][GrammCellY];
             if (Program.AdaptiveRoughnessMax > 0)
@@ -295,11 +308,16 @@ namespace GRAL_2001
             while (timestep_number <= Max_Loops)
             {
                 ++timestep_number;
+                double xcoord_nteil_Prev = xcoord_nteil;
+                double ycoord_nteil_Prev = ycoord_nteil;
+                float zcoord_nteil_Prev = zcoord_nteil;
+                int FFCellXPrev = FFCellX;
+                int FFCellYPrev = FFCellY;
 
                 //if particle is within the user-defined tunnel-entrance zone it is removed (sucked-into the tunnel)
                 if (Program.TunnelEntr == true)
                 {
-                    if ((Program.TUN_ENTR[FFCellX][FFCellY] == 1) && (PartHeightAboveTerrrain <= 5))
+                    if ((Program.TUN_ENTR[FFCellX][FFCellY] == 1) && (PartHeightAboveTerrain <= 5))
                     {
                         goto REMOVE_PARTICLE;
                     }
@@ -314,7 +332,7 @@ namespace GRAL_2001
                 }
 
                 //particles below the surface or buildings are removed
-                if (PartHeightAboveTerrrain < 0)
+                if (PartHeightAboveTerrain < 0)
                 {
                     goto REMOVE_PARTICLE;
                 }
@@ -444,19 +462,10 @@ namespace GRAL_2001
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-
-                //float zahl1 = (float)SimpleRNG.GetNormal();
-                if (zahl1 > 2)
-                {
-                    zahl1 = 2;
-                }
-
-                if (zahl1 < -2)
-                {
-                    zahl1 = -2;
-                }
-
+                ////float zahl1 = (float)SimpleRNG.GetNormal();
+                Math.Clamp(zahl1, -2, 2);
                 float velz = acc * idt + MathF.Sqrt(Program.C0z * eps * idt) * zahl1 + velzold;
+
                 //******************************************************************************************************************** OETTL, 31 AUG 2016
                 //in adjecent cells to vertical solid walls, turbulent velocities are only allowed in the direction away from the wall
                 if (velz == 0)
@@ -615,9 +624,6 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    int FFCellXPrev = 1;
-                    int FFCellYPrev = 1;
-
                     if (topo == Consts.TerrainAvailable)
                     {
                         //with topography
@@ -653,8 +659,10 @@ namespace GRAL_2001
                         int IndexKOld = IndexK;
                         IndexK = Zeitschleife.BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
 
+                        // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
                         {
+                            // The particle enters a building or terrain step horizontally
                             if ((IndexK > Program.KKART[FFCellXPrev][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -675,6 +683,7 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in x direction
                             else if ((IndexK > Program.KKART[FFCellXPrev][FFCellY]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UXint + corx <= 0)
@@ -686,6 +695,7 @@ namespace GRAL_2001
                                     xcoord_nteil = 2 * (IKOOAGRAL + (FFCellX - 1) * FFGridX) - xcoord_nteil - 0.01F;
                                 }
                             }
+                            // Reflect the particle in y direction
                             else if ((IndexK > Program.KKART[FFCellX][FFCellYPrev]) && (IndexK == IndexKOld))
                             {
                                 if (idt * UYint + cory <= 0)
@@ -697,18 +707,19 @@ namespace GRAL_2001
                                     ycoord_nteil = 2 * (JKOOAGRAL + (FFCellY - 1) * FFGridY) - ycoord_nteil - 0.01F;
                                 }
                             }
+                            // Particle comes from z direction on the same cell 
                             else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]) && (FFCellX == FFCellXPrev) && (FFCellY == FFCellYPrev))
                             {
                                 zcoord_nteil = 2 * Program.AHK[FFCellX][FFCellY] - zcoord_nteil + 0.01F;
-                                PartHeightAboveTerrrain = zcoord_nteil - AHint;
+                                PartHeightAboveTerrain = zcoord_nteil - AHint;
                                 if (topo == Consts.TerrainAvailable)
                                 {
-                                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                                 }
                                 velzold = -velzold;
 
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Zeitschleife.Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -720,7 +731,7 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
 
                                     if (masse <= 0)
                                     {
@@ -728,10 +739,10 @@ namespace GRAL_2001
                                     }
                                 }
                             }
-                            else
+                            // Particle comes from the z direction (above the recent cell) and from another cell
+                            else if ((IndexKOld > Program.KKART[FFCellX][FFCellY]))
                             {
-                                // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
-                                if (Deposition_type > 0 && depo_reflection_counter >= 0)
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
                                     float Pd1 = Zeitschleife.Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
                                     int ik = (int)(xsi * ConcGridXRez) + 1;
@@ -743,7 +754,33 @@ namespace GRAL_2001
                                         depo_L[SG_nteil] += conc;
                                     }
                                     masse -= masse * Pd1;
-                                    depo_reflection_counter = -2; // block deposition 1 for 1 timestep
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
+
+                                    if (masse <= 0)
+                                    {
+                                        goto REMOVE_PARTICLE;
+                                    }
+                                }
+                                float terrainHeight = Program.AHK[FFCellX][FFCellY];
+                                zcoord_nteil = MathF.Max(terrainHeight, 2 * terrainHeight - zcoord_nteil + 0.01F);
+                            }
+                            // Particle comes from the z direction (below the recent cell, particle direction up or down) and from another cell
+                            else
+                            {
+                                // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
+                                if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
+                                {
+                                    float Pd1 = Zeitschleife.Pd(varw, vsed, vdep, Deposition_type, FFCellX, FFCellY);
+                                    int ik = (int)(xsi * ConcGridXRez) + 1;
+                                    int jk = (int)(eta * ConcGridYRez) + 1;
+                                    double[] depo_L = Program.Depo_conz[ik][jk];
+                                    double conc = masse * Pd1 * area_rez_fac;
+                                    lock (depo_L)
+                                    {
+                                        depo_L[SG_nteil] += conc;
+                                    }
+                                    masse -= masse * Pd1;
+                                    depo_reflection_counter = -2; // block deposition 1 for the entire reflection algorithm and 1 timestep 
 
                                     if (masse <= 0)
                                     {
@@ -753,20 +790,53 @@ namespace GRAL_2001
 
                                 if (tunpa == 0)
                                 {
-                                    xcoord_nteil -= (idt * UXint + corx);
-                                    ycoord_nteil -= (idt * UYint + cory);
-                                    zcoord_nteil -= (idt * (UZint + velz) + aufhurly);
-                                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                                    if (topo == Consts.TerrainAvailable)
+                                    // Terrain following particles at small steps if there is no building
+                                    if (Program.CUTK[FFCellX][FFCellY] < 1 && (Program.AHK[FFCellX][FFCellY] - zcoord_nteil) < 10)
                                     {
-                                        PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                                        // Move particle above the new terrain surface
+                                        zcoord_nteil = Program.AHK[FFCellX][FFCellY] + MathF.Abs(idt * (UZint + velz));
+                                    }
+                                    else
+                                    // Below Building or high terrain step
+                                    {
+                                        // reset horizontal coordinates
+                                        double deltax = xcoord_nteil - xcoord_nteil_Prev;
+                                        double deltay = ycoord_nteil - ycoord_nteil_Prev;
+                                        
+                                        xcoord_nteil -= deltax * 1.05;
+                                        ycoord_nteil -= deltay * 1.05;
+                                        //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
+
+                                        FFCellXPrev = FFCellX;
+                                        FFCellYPrev = FFCellY;
+
+                                        FFCellX = (int)((xcoord_nteil - IKOOAGRAL) * FFGridXRez) + 1;
+                                        FFCellY = (int)((ycoord_nteil - JKOOAGRAL) * FFGridYRez) + 1;
+                                        if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                                        {
+                                            goto REMOVE_PARTICLE;
+                                        }
+                                        float newTerrainHeight = Program.AHK[FFCellX][FFCellY];
+                                        // if below new terrain -> multiple reflections
+                                        if (zcoord_nteil < newTerrainHeight)
+                                        {
+                                            zcoord_nteil = 2 * newTerrainHeight - zcoord_nteil;
+                                        }
+
+                                        AHintold = AHint;
+                                        AHint = newTerrainHeight;
+                                        PartHeightAboveTerrain = zcoord_nteil - AHint;
+                                        if (topo == Consts.TerrainAvailable)
+                                        {
+                                            PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        }
                                     }
                                 }
-
-                                int vorzeichen = 1;
+                                
+                                int vorzeichen = -1;
                                 if (velzold < 0)
                                 {
-                                    vorzeichen = -1;
+                                    vorzeichen = 1;
                                 }
 
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -778,21 +848,14 @@ namespace GRAL_2001
                                 u_rg = (m_z << 16) + m_w;
                                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                                velzold = zahl1 * MathF.Sqrt(varw);
-                                if (vorzeichen < 0)
-                                {
-                                    velzold = MathF.Abs(velzold);
-                                }
-                                else
-                                {
-                                    velzold = -MathF.Abs(velzold);
-                                }
+                                velzold = MathF.Abs(zahl1 * MathF.Sqrt(varw)) * vorzeichen;
+                                
                             }
 
-                            int vorzeichen1 = 1;
+                            int vorzeichen1 = -1;
                             if (velxold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -803,20 +866,12 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                            velxold = zahl1 * U0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velxold = MathF.Abs(velxold);
-                            }
-                            else
-                            {
-                                velxold = -MathF.Abs(velxold);
-                            }
-
-                            vorzeichen1 = 1;
+                            velxold = MathF.Abs(zahl1 * U0int * 3) * vorzeichen1;
+                            
+                            vorzeichen1 = -1;
                             if (velyold < 0)
                             {
-                                vorzeichen1 = -1;
+                                vorzeichen1 = 1;
                             }
 
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -827,16 +882,8 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                            velyold = zahl1 * V0int * 3;
-                            if (vorzeichen1 < 0)
-                            {
-                                velyold = MathF.Abs(velyold);
-                            }
-                            else
-                            {
-                                velyold = -MathF.Abs(velyold);
-                            }
-
+                            velyold = MathF.Abs(zahl1 * V0int * 3) * vorzeichen1;
+                            
                             back = 1;
                             idt = Program.FloatMax(idt * 0.5F, 0.05F);
                             if (tunpa > 0)
@@ -870,8 +917,8 @@ namespace GRAL_2001
 
                     AHint = Program.AHK[FFCellX][FFCellY];
 
-                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil - AHint;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
                 else
                 {
@@ -880,8 +927,8 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    PartHeightAboveTerrrain = zcoord_nteil;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
 
                 //reflexion at the surface and at the top of the boundary layer
@@ -897,16 +944,16 @@ namespace GRAL_2001
 
                     zcoord_nteil = blh + AHint - (PartHeightAboveBuilding - blh) - 0.01F;
                     velzold = -velzold;
-                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil - AHint;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
 
-                if (PartHeightAboveTerrrain <= 0)
+                if (PartHeightAboveTerrain <= 0)
                 {
-                    zcoord_nteil = AHint - PartHeightAboveTerrrain + 0.01F;
+                    zcoord_nteil = AHint - PartHeightAboveTerrain + 0.01F;
                     velzold = -velzold;
-                    PartHeightAboveTerrrain = zcoord_nteil - AHint;
-                    PartHeightAboveBuilding = PartHeightAboveTerrrain;
+                    PartHeightAboveTerrain = zcoord_nteil - AHint;
+                    PartHeightAboveBuilding = PartHeightAboveTerrain;
 
                     // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                     if (Deposition_type > 0 && depo_reflection_counter >= 0)
@@ -949,6 +996,41 @@ namespace GRAL_2001
                 {
                     zcoordRelative = zcoord_nteil - AHint;
                 }
+
+                //Check for trapped particles
+                {
+                    if (auszeit > 3600)
+                    {
+                        distanceParticle += (float)Math.Sqrt(Program.Pow2(xcoord_nteil - xcoord_nteil_Prev) + Program.Pow2(ycoord_nteil - ycoord_nteil_Prev));
+                        distanceParticle *= 0.5F;
+                        if (distanceParticle < 0.02F)
+                        {
+                            goto REMOVE_PARTICLE;
+                        }
+                    }
+
+                    int zko = (int)((zcoordRelative - AHint) * ConcGridZRez);
+                    if (iko == ConcCellPrevX && jko == ConcCellPrevY && zko == ConcCellPrevZ)
+                    {
+                        ConcCellTime += idt;
+                        if (ConcCellTime > ConcCellTimeMax - 10)
+                        {
+                            zcoord_nteil += 2;
+                            if (ConcCellTime > ConcCellTimeMax)
+                            {
+                                goto REMOVE_PARTICLE;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ConcCellPrevX = iko;
+                        ConcCellPrevY = jko;
+                        ConcCellPrevZ = zko;
+                        ConcCellTime = 0;
+                    }
+                }
+
                 for (int II = 0; II < kko.Length; II++)
                 {
                     float slice = (zcoordRelative - Program.HorSlices[II]) * ConcGridZRez;
@@ -957,7 +1039,7 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    kko[II] = Program.ConvToInt(slice);
+                    kko[II] = (int) slice;
                 }
 
                 //decay rate
@@ -1007,7 +1089,7 @@ namespace GRAL_2001
                                     jko == Program.ReceptorJInd[irec])
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int) slice == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1019,7 +1101,7 @@ namespace GRAL_2001
                                     Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                 {
                                     float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if (Program.ConvToInt(slice) == 0)
+                                    if ((int)(slice) == 0)
                                     {
                                         ReceptorConcentration[irec] += idt * masse;
                                     }
@@ -1063,7 +1145,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int)(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
@@ -1080,7 +1162,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] - Program.GralDz)) * ConcGridZRez;
-                            kko[II] = Program.ConvToInt(Math.Min(int.MaxValue, slice));
+                            kko[II] = (int)(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {
