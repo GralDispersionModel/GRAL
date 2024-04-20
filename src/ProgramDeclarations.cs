@@ -1257,6 +1257,11 @@ namespace GRAL_2001
         public static VegetationDepoVel VegetationDepoVelFactors = new VegetationDepoVel(1.5F, 3);
 
         ///<summary>
+        /// Use Vector512 class?
+        ///</summary>
+        public static bool UseVector512Class = false;
+
+        ///<summary>
         /// Deposition velocity factor within vegetation areas
         ///</summary>
         public readonly struct VegetationDepoVel
