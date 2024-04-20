@@ -7,14 +7,14 @@
     <Authors>Dietmar Oettl;Markus Kuntner</Authors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
-    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <Optimize>true</Optimize>
-    <TieredCompilation>false</TieredCompilation>
+    <TieredCompilation>true</TieredCompilation>
     <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
     <DOTNET_TC_QuickJitForLoops>false</DOTNET_TC_QuickJitForLoops>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TieredPGO>false</TieredPGO>
+    <TieredPGO>true</TieredPGO>
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
