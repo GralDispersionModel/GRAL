@@ -285,6 +285,7 @@ namespace GRAL_2001
 
                     if (block > 0)
                     {
+                        CalculateSubDomainsForPrognosticWindSimulation();
                         return true;
                     }
                 }
