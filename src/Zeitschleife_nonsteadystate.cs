@@ -158,8 +158,6 @@ namespace GRAL_2001
             int TransientGridY = 1;
             int TransientGridZ = 1;
 
-            TransientConcentration trans_conz = new TransientConcentration();
-
             /*
              *   INITIIALIZING PARTICLE PROPERTIES -> DEPEND ON SOURCE CATEGORY
              */
@@ -432,7 +430,7 @@ namespace GRAL_2001
                 auszeit += idt;
                 if (auszeit >= Program.DispTimeSum)
                 {
-                    trans_conz.Conz5dZeitschleifeTransient(reflexion_flag, zcoord_nteil, AHint, mass_real, Area_cart, idt, xsi, eta, SG_nteil);
+                    TransientConcentration.Conz5dZeitschleifeTransient(reflexion_flag, zcoord_nteil, AHint, mass_real, Area_cart, idt, xsi, eta, SG_nteil);
                     goto REMOVE_PARTICLE;
                 }
 
@@ -631,13 +629,13 @@ namespace GRAL_2001
                         FFCellYPrev = FFCellY;
                         FFCellX = (int)(xsi * FFGridXRez) + 1;
                         FFCellY = (int)(eta * FFGridYRez) + 1;
+                        GrammCellX = Math.Clamp((int)(xsi1 * GrammGridXRez) + 1, 1, Program.NX);
+                        GrammCellY = Math.Clamp((int)(eta1 * GrammGridYRez) + 1, 1, Program.NY);
+
                         if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
                         {
                             goto REMOVE_PARTICLE;
                         }
-
-                        GrammCellX = Math.Clamp((int)(xsi1 * GrammGridXRez) + 1, 1, Program.NX);
-                        GrammCellY = Math.Clamp((int)(eta1 * GrammGridYRez) + 1, 1, Program.NY);
                     }
                     else
                     {
@@ -823,12 +821,15 @@ namespace GRAL_2001
                                             zcoord_nteil = 2 * newTerrainHeight - zcoord_nteil;
                                         }
 
-                                        AHintold = AHint;
-                                        AHint = newTerrainHeight;
-                                        PartHeightAboveTerrain = zcoord_nteil - AHint;
                                         if (topo == Consts.TerrainAvailable)
                                         {
+                                            PartHeightAboveTerrain = zcoord_nteil - newTerrainHeight;
                                             PartHeightAboveBuilding = PartHeightAboveTerrain;
+                                        }
+                                        else
+                                        {
+                                            PartHeightAboveTerrain = zcoord_nteil;
+                                            PartHeightAboveBuilding = zcoord_nteil;
                                         }
                                     }
                                 }
@@ -914,9 +915,7 @@ namespace GRAL_2001
                     {
                         goto REMOVE_PARTICLE;
                     }
-
                     AHint = Program.AHK[FFCellX][FFCellY];
-
                     PartHeightAboveTerrain = zcoord_nteil - AHint;
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
@@ -926,7 +925,7 @@ namespace GRAL_2001
                     {
                         goto REMOVE_PARTICLE;
                     }
-
+                    AHint = 0;
                     PartHeightAboveTerrain = zcoord_nteil;
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
