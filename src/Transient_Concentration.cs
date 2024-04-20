@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 
 namespace GRAL_2001
 {
-    class TransientConcentration
+    internal class TransientConcentration
     {
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace GRAL_2001
         /// <param name="xsi">Particle x position</param>
         /// <param name="eta">Particle y position</param>
         /// <param name="SG_nteil">internal source group number of this particle</param>
-        public void Conz5dZeitschleife(int reflexion_flag, float zcoord_nteil, float AHint, double masse, double Area_cart, float idt, double xsi, double eta, int SG_nteil)
+        public static void Conz5dZeitschleife(int reflexion_flag, float zcoord_nteil, float AHint, double masse, double Area_cart, float idt, double xsi, double eta, int SG_nteil)
         {
             if (reflexion_flag == 0)
             {
@@ -38,7 +38,7 @@ namespace GRAL_2001
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
                 float[] conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
-                lock (conz5d_L)
+                lock (conz5d_L.SyncRoot)
                 {
                     conz5d_L[SG_nteil] += (float)(masse * Program.GridVolume * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
                 }
@@ -57,7 +57,7 @@ namespace GRAL_2001
         /// <param name="xsi">Particle x position</param>
         /// <param name="eta">Particle y position</param>
         /// <param name="SG_nteil">internal source group number of this particle</param>
-        public void Conz5dZeitschleifeTransient(int reflexion_flag, float zcoord_nteil, float AHint, double mass_real, double Area_cart, float idt, double xsi, double eta, int SG_nteil)
+        public static void Conz5dZeitschleifeTransient(int reflexion_flag, float zcoord_nteil, float AHint, double mass_real, double Area_cart, float idt, double xsi, double eta, int SG_nteil)
         {
             if (reflexion_flag == 0)
             {
@@ -66,7 +66,7 @@ namespace GRAL_2001
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
                 float[] conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
-                lock (conz5d_L)
+                lock (conz5d_L.SyncRoot)
                 {
                     conz5d_L[SG_nteil] += (float)(mass_real * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
                 }
