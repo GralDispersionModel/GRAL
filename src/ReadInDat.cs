@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.Intrinsics;
 
 namespace GRAL_2001
 {
@@ -185,7 +186,7 @@ namespace GRAL_2001
                                         if (text.Length > 1 && text[1].Equals("1"))
                                         {
                                             Program.WriteASCiiResults = true;
-                                            Console.WriteLine("Write ASCii Results");
+                                            Console.WriteLine("Writing ASCii results activated");
                                         }
                                     }
                                 }
@@ -240,6 +241,25 @@ namespace GRAL_2001
                                         if (r == 0) //0: no GRAL Online Functions
                                         {
                                             Program.GRALOnlineFunctions = false;
+                                        }
+                                    }
+                                }
+                                catch
+                                { }
+                            }
+
+                            // Use Vector512 class - Opt Out feature
+                            if (sr.EndOfStream == false)
+                            {
+                                try
+                                {
+                                    _line++;
+                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (text.Length > 0 && int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r))
+                                    {
+                                        if (r == 1 && Vector512.IsHardwareAccelerated)
+                                        {
+                                            Program.UseVector512Class = true;
                                         }
                                     }
                                 }

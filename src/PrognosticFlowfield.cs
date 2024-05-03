@@ -15,6 +15,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -589,7 +590,7 @@ namespace GRAL_2001
 
                 //double Startzeit = Environment.TickCount;
 
-                //lateral boundary conditions at the western and eastern boundaries
+                //lateral boundary conditions at the western and eastern boundaries of sub domains
                 Parallel.For(2, NJJ + 1, Program.pOptions, j =>
                 {
                     for (int i = 3; i < NII; ++i)
@@ -599,48 +600,49 @@ namespace GRAL_2001
                             int iM1 = i - 1;
                             int iM2 = i - 2;
                             int iP1 = i + 1;
+                            int iP2 = i + 2;
+
                             float[] VK_L = Program.VK[i][j];
                             float[] WK_L = Program.WK[i][j];
                             int Vert_index = Program.VerticalIndex[i][j];
 
-                            bool ADVDOMiM = (Program.ADVDOM[iM1][j] < 1) || (i == 3);
-                            bool ADVDOMiP = (Program.ADVDOM[iP1][j] < 1) || (i == NII - 1);
+                            bool ADVDOMiM = (Program.ADVDOM[iM1][j] < 1) || (i == 3);       // sub domain or western border
+                            bool ADVDOMiP = (Program.ADVDOM[iP1][j] < 1) || (i == NII - 1); // sub domain or eastern border
 
-                            if (ADVDOMiM || ADVDOMiP)
+                            if (ADVDOMiM)
                             {
-                                int iP2 = i + 2;
+                                // set inflow to values outside the sub domain
                                 for (int k = 1; k <= Vert_index; ++k)
                                 {
-                                    if (ADVDOMiM)
+                                    float UK_L = Program.UK[iM2][j][k];
+                                    if (UK_L >= 0)
                                     {
-                                        float UK_L = Program.UK[iM2][j][k];
-                                        if (UK_L >= 0)
-                                        {
-                                            Program.UK[iM1][j][k] = UK_L;
-                                        }
-
-                                        Program.VK[iM2][j][k] = Program.VK[iM1][j][k];
-                                        Program.WK[iM2][j][k] = Program.WK[iM1][j][k];
+                                        Program.UK[iM1][j][k] = UK_L;
                                     }
+                                    Program.VK[iM2][j][k] = Program.VK[iM1][j][k];
+                                    Program.WK[iM2][j][k] = Program.WK[iM1][j][k];
+                                }
+                            }
 
-                                    if (ADVDOMiP)
+                            if (ADVDOMiP)
+                            {
+                                // set inflow to values outside the sub domain
+                                for (int k = 1; k <= Vert_index; ++k)
+                                {
+                                    float UK_L = Program.UK[iP2][j][k];
+                                    if (UK_L <= 0)
                                     {
-                                        float UK_L = Program.UK[iP2][j][k];
-                                        if (UK_L <= 0)
-                                        {
-                                            Program.UK[iP1][j][k] = UK_L;
-                                        }
-
-                                        Program.VK[iP1][j][k] = VK_L[k];
-                                        Program.WK[iP1][j][k] = WK_L[k];
+                                        Program.UK[iP1][j][k] = UK_L;
                                     }
+                                    Program.VK[iP1][j][k] = VK_L[k];
+                                    Program.WK[iP1][j][k] = WK_L[k];
                                 }
                             }
                         }
                     }
                 });
 
-                //lateral boundary conditions at the northern and southern boundaries
+                //lateral boundary conditions at the northern and southern boundaries of sub domains
                 Parallel.For(2, NII + 1, Program.pOptions, i =>
                 {
                     for (int j = 3; j <= NJJ - 1; ++j)
@@ -650,48 +652,49 @@ namespace GRAL_2001
                             int jM1 = j - 1;
                             int jM2 = j - 2;
                             int jP1 = j + 1;
+                            int jP2 = j + 2;
 
                             float[] UK_L = Program.UK[i][j];
                             float[] WK_L = Program.WK[i][j];
                             int Vert_index = Program.VerticalIndex[i][j];
-                            bool ADVDOMjM = (Program.ADVDOM[i][jM1] < 1) || (j == 3);
-                            bool ADVDOMjP = (Program.ADVDOM[i][jP1] < 1) || (j == NJJ - 1);
 
-                            if (ADVDOMjM || ADVDOMjP)
+                            bool ADVDOMjM = (Program.ADVDOM[i][jM1] < 1) || (j == 3);       // sub domain or southern border
+                            bool ADVDOMjP = (Program.ADVDOM[i][jP1] < 1) || (j == NJJ - 1); // sub domain or northern border
+
+                            if (ADVDOMjM)
                             {
-                                int jP2 = j + 2;
+                                // set inflow to values outside the sub domain
                                 for (int k = 1; k <= Vert_index; ++k)
                                 {
-                                    if (ADVDOMjM)
+                                    float VK_L = Program.VK[i][jM2][k];
+                                    if (VK_L >= 0)
                                     {
-                                        float VK_L = Program.VK[i][jM2][k];
-                                        if (VK_L >= 0)
-                                        {
-                                            Program.VK[i][jM1][k] = VK_L;
-                                        }
-
-                                        Program.UK[i][jM2][k] = Program.UK[i][jM1][k];
-                                        Program.WK[i][jM2][k] = Program.WK[i][jM1][k];
+                                        Program.VK[i][jM1][k] = VK_L;
                                     }
+                                    Program.UK[i][jM2][k] = Program.UK[i][jM1][k];
+                                    Program.WK[i][jM2][k] = Program.WK[i][jM1][k];
+                                }
+                            }
 
-                                    if (ADVDOMjP)
+                            if (ADVDOMjP)
+                            {
+                                // set inflow to values outside the sub domain
+                                for (int k = 1; k <= Vert_index; ++k)
+                                {
+                                    float VK_L = Program.VK[i][jP2][k];
+                                    if (VK_L <= 0)
                                     {
-                                        float VK_L = Program.VK[i][jP2][k];
-                                        if (VK_L <= 0)
-                                        {
-                                            Program.VK[i][jP1][k] = VK_L;
-                                        }
-
-                                        Program.UK[i][jP1][k] = UK_L[k];
-                                        Program.WK[i][jP1][k] = WK_L[k];
+                                        Program.VK[i][jP1][k] = VK_L;
                                     }
+                                    Program.UK[i][jP1][k] = UK_L[k];
+                                    Program.WK[i][jP1][k] = WK_L[k];
                                 }
                             }
                         }
                     }
                 });
 
-                //boundary condition at the top of the domain
+                //boundary condition at the top of the domain for all sub domains
                 Parallel.For(2, NII, Program.pOptions, i =>
                 {
                     for (int j = 2; j <= NJJ - 1; ++j)
@@ -733,21 +736,21 @@ namespace GRAL_2001
                             int KKART_LL = Program.KKART[i][j];
                             int Vert_index = Program.VerticalIndex[i][j];
 
-                            for (int k = 1; k <= Vert_index; ++k)
+                            for (int k = KKART_LL + 1; k <= Vert_index; ++k)
                             {
-                                if (KKART_LL < k)
+                                //if (KKART_LL < k)
+                                //{
+                                if (k > KKART_LL + 1)
                                 {
-                                    if (k > KKART_LL + 1)
-                                    {
-                                        DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] + (WK_L[k] - WK_L[k + 1]) * AREAxy;
-                                    }
-                                    else
-                                    {
-                                        DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] - WK_L[k + 1] * AREAxy;
-                                    }
-
-                                    DPM_L[k] = 0;
+                                    DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] + (WK_L[k] - WK_L[k + 1]) * AREAxy;
                                 }
+                                else
+                                {
+                                    DIV_L[k] = (UK_L[k] - UKip_L[k]) * DYK * Program.DZK[k] + (VK_L[k] - VKjp_L[k]) * DXK * Program.DZK[k] - WK_L[k + 1] * AREAxy;
+                                }
+
+                                DPM_L[k] = 0;
+                                //}
                             }
                         }
                     }
@@ -835,43 +838,43 @@ namespace GRAL_2001
                             int KKART_LL = Program.KKART[i][j];
                             int Vert_index = Program.VerticalIndex[i][j];
 
-                            for (int k = Vert_index; k >= 1; --k)
+                            for (int k = Vert_index; k > KKART_LL; --k)
                             {
-                                if (KKART_LL < k)
+                                //if (KKART_LL < k)
+                                //{
+                                DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                              (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                APP = 2F * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + AREAxy / Program.DZK[k]);
+
+                                if (k > 1)
                                 {
-                                    DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                                  (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
-                                    APP = 2F * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + AREAxy / Program.DZK[k]);
-
-                                    if (k > 1)
-                                    {
-                                        ABP = AREAxy / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
-                                    }
-                                    else
-                                    {
-                                        ABP = AREAxy / Program.DZK[k];
-                                    }
-
-                                    ATP = AREAxy / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
-                                    TERMP = 1 / (APP - ATP * PIMP[k + 1]);
-                                    PIMP[k] = ABP * TERMP;
-                                    QIMP[k] = (ATP * QIMP[k + 1] + DIM) * TERMP;
+                                    ABP = AREAxy / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
                                 }
+                                else
+                                {
+                                    ABP = AREAxy / Program.DZK[k];
+                                }
+
+                                ATP = AREAxy / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
+                                TERMP = 1 / (APP - ATP * PIMP[k + 1]);
+                                PIMP[k] = ABP * TERMP;
+                                QIMP[k] = (ATP * QIMP[k + 1] + DIM) * TERMP;
+                                //}
                             }
 
                             //Obtain new P-components
                             //DPM_L[0] = 0;
-                            for (int k = 1; k <= Vert_index; ++k)
+                            for (int k = KKART_LL + 1; k <= Vert_index; ++k)
                             {
-                                if (KKART_LL < k)
-                                {
-                                    float temp = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                    DeltaUMaxIntern = (float)Math.Max(DeltaUMaxIntern, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
-                                    DPM_L[k] = temp;
+                                //if (KKART_LL < k)
+                                //{
+                                float temp = PIMP[k] * DPM_L[k - 1] + QIMP[k];
+                                DeltaUMaxIntern = (float)Math.Max(DeltaUMaxIntern, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
+                                DPM_L[k] = temp;
 
-                                    //Pressure field to compute pressure gradients in the momentum equations
-                                    DPMNEW_L[k] += relaxp * DPM_L[k];
-                                }
+                                //Pressure field to compute pressure gradients in the momentum equations
+                                DPMNEW_L[k] += relaxp * DPM_L[k];
+                                //}
                             }
                         }
                     }
@@ -976,16 +979,24 @@ namespace GRAL_2001
                                 if (KKART_LL_P1 < k)
                                 {
                                     WKS_L[k] = 0.5F * (WK_L[k] + WK_L[k + 1]);
-                                }
+                                }   
+                            }
 
-                                if (j == 2)
+                            if (j == 2)
+                            {
+                                float[] UKS1_L = Program.UKS[i][1];
+                                for (int k = KSTART; k <= Vert_index; ++k)
                                 {
-                                    Program.UKS[i][1][k] = Program.UKS[i][2][k];
+                                    UKS1_L[k] = UKS_L[k];
                                 }
+                            }
 
-                                if (j == NJJ - 1 && Program.ADVDOM[i][NJJ] == 1)
+                            if (j == NJJ - 1 && Program.ADVDOM[i][NJJ] == 1)
+                            {
+                                float[] UKSNJJ_L = Program.UKS[i][NJJ];
+                                for (int k = KSTART; k <= Vert_index; ++k)
                                 {
-                                    Program.UKS[i][NJJ][k] = Program.UKS[i][NJJ - 1][k];
+                                    UKSNJJ_L[k] = UKS_L[k];
                                 }
                             }
                         }
@@ -994,20 +1005,26 @@ namespace GRAL_2001
 
                 for (int j = 2; j < NJJ; ++j) // AVOID False Sharing! No Parallelization here
                 {
-                    for (int k = 0; k <= NKK; ++k)
+                    if (Program.ADVDOM[1][j] == 1)
                     {
-                        if (Program.ADVDOM[1][j] == 1)
+                        float[] VKS1_L = Program.VKS[1][j];
+                        float[] VKS2_L = Program.VKS[2][j];
+                        for (int k = 0; k <= NKK; ++k)
                         {
-                            Program.VKS[1][j][k] = Program.VKS[2][j][k];
-
+                            VKS1_L[k] = VKS2_L[k];
                         }
-                        if (Program.ADVDOM[NII - 1][j] == 1)
+                    }
+                    if (Program.ADVDOM[NII - 1][j] == 1)
+                    {
+                        float[] VKSNII_L = Program.VKS[NII][j];
+                        float[] VKSNII1_L = Program.VKS[NII - 1][j];
+                        for (int k = 0; k <= NKK; ++k)
                         {
-                            Program.VKS[NII][j][k] = Program.VKS[NII - 1][j][k];
+                           VKSNII_L[k] = VKSNII1_L[k];
                         }
                     }
                 }
-                
+
                 //TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Part 5: " + TIME_dispersion.ToString("0.000"));
                 //Startzeit = Environment.TickCount;
@@ -1028,12 +1045,23 @@ namespace GRAL_2001
                 if (TurbulenceModel == 1)
                 {
                     Program.pOptions.MaxDegreeOfParallelism += 2;
-                    Parallel.Invoke(Program.pOptions,
-                        () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
-                        () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
-                    // U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
-                    // V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
-                    W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+
+                    if (Program.UseVector512Class)
+                    {
+                        Parallel.Invoke(Program.pOptions,
+                            () => U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
+                            () => V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                        W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                    }
+                    else
+                    {
+                        Parallel.Invoke(Program.pOptions,
+                            () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
+                            () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                        // U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
+                        // V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                        W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                    }
                     Program.pOptions.MaxDegreeOfParallelism -= 2;
                 }
 

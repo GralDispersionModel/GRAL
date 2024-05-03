@@ -14,6 +14,7 @@ using System;
 using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Threading;
 using System.Threading.Tasks;
 namespace GRAL_2001
@@ -309,7 +310,16 @@ namespace GRAL_2001
         private static int CheckSIMD()
         {
             int SIMD = Vector<float>.Count;
-            Console.WriteLine("SIMD - support: " + SIMD.ToString() + " float values  IsHardwareAccelerated: " + Vector.IsHardwareAccelerated.ToString());
+            if (Program.UseVector512Class && Vector512.IsHardwareAccelerated)
+            {
+                SIMD = Vector512<float>.Count;   
+                Console.WriteLine("SIMD - support: " + SIMD.ToString() + " float values  Using Vector512 extension"); 
+            }
+            else
+            {   
+                SIMD = Vector<float>.Count;
+                Console.WriteLine("SIMD - support: " + SIMD.ToString() + " float values  IsHardwareAccelerated: " + Vector.IsHardwareAccelerated.ToString());
+            }
             if (Vector.IsHardwareAccelerated == false)
             {
                 string err = "Your system does not support vectors. This results in a very slow flow field calculation. \n Try to use the latest .NetCore framework \n Press a key to continue.";
@@ -451,7 +461,7 @@ namespace GRAL_2001
         /// <summary>
         /// Init GRAL settings for a calculation in complex terrain
         /// </summary>
-        /// <param name="SIMD">Nukber of float values within a vector</param>
+        /// <param name="SIMD">Number of float values within a vector</param>
         private static void InitGralTopography(int SIMD)
         {
             //get the minimum and maximum elevation of the GRAMM orography
@@ -1084,9 +1094,9 @@ namespace GRAL_2001
                 double x0 = i * Program.GralDx;
                 double xmax = x0 + Program.GralDx;
 
-                Span<double> VolumeReduction = stackalloc double[Program.NS];
-                Span<float> HMin = stackalloc float[Program.NS];
-                Span<float> HMax = stackalloc float[Program.NS];
+                Span<double> VolumeReduction = new double[Program.NS];
+                Span<float> HMin = new float[Program.NS];
+                Span<float> HMax = new float[Program.NS];
 
                 for (int k = 0; k < HMin.Length; k++)
                 {
@@ -1184,8 +1194,8 @@ namespace GRAL_2001
             // loop over all concentration cells
             Parallel.For(0, Program.NXL, Program.pOptions, i =>
             {
-                Span<float> HMin = stackalloc float[Program.NS];
-                Span<float> HMax = stackalloc float[Program.NS];
+                Span<float> HMin = new float[Program.NS];
+                Span<float> HMax = new float[Program.NS];
 
                 for (int k = 0; k < HMin.Length; k++)
                 {

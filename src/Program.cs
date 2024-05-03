@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 23.11            < <   +";
+            string Info =     "+  > >         G R A L VERSION: 24.04            < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -90,7 +90,6 @@ namespace GRAL_2001
             // write zipped files?
             ResultFileZipped = false;
             
-            int SIMD = CheckSIMD();
             LogLevel = CheckCommandLineArguments(args);
 
             //Delete file Problemreport_GRAL.txt
@@ -166,18 +165,21 @@ namespace GRAL_2001
 
             //Reading building data
             //case 1: complex terrain
-            if (Topo == Consts.TerrainAvailable)
             {
-                InitGralTopography(SIMD);
-                ReaderClass.ReadBuildingsTerrain(Program.CUTK); //define buildings in GRAL
+                int SIMD = CheckSIMD();
+                if (Topo == Consts.TerrainAvailable)
+                {
+                    InitGralTopography(SIMD);
+                    ReaderClass.ReadBuildingsTerrain(Program.CUTK); //define buildings in GRAL
+                }
+                //flat terrain application
+                else
+                {
+                    InitGralFlat();
+                    ReaderClass.ReadBuildingsFlat(Program.CUTK); //define buildings in GRAL
+                }
             }
-            //flat terrain application
-            else
-            {
-                InitGralFlat();
-                ReaderClass.ReadBuildingsFlat(Program.CUTK); //define buildings in GRAL
-            }
-
+            
             // array declarations for prognostic and diagnostic flow field
             if ((FlowFieldLevel > Consts.FlowFieldNoBuildings) || (Topo == Consts.TerrainAvailable))
             {

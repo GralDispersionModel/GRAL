@@ -143,34 +143,34 @@ namespace GRAL_2001
                             //h = string.Empty;
                             for (int i = 1; i <= Program.NII + 1; i++)
                             {
-                                if (i > 1 && j > 1 && i < (Program.NII - 2) && (j < Program.NJJ - 2)) // low pass filter the 3D concentration
-                                {
-                                    if (Program.ConzSsum[i][j][k] > 0) // concentration != 0?
-                                    {
-                                        double weighting_factor = 0;
-                                        val = 0;
+                                // if (i > 1 && j > 1 && i < (Program.NII - 2) && (j < Program.NJJ - 2)) // low pass filter the 3D concentration
+                                // {
+                                //     if (Program.ConzSsum[i][j][k] > 0) // concentration != 0?
+                                //     {
+                                //         double weighting_factor = 0;
+                                //         val = 0;
 
-                                        LowPass(ref val, ref weighting_factor, k, i, j, 1.0);
-                                        if (k > 1)
-                                        {
-                                            LowPass(ref val, ref weighting_factor, k - 1, i, j, 0.3);
-                                        }
-                                        if (k < Program.NKK_Transient - 2)
-                                        {
-                                            LowPass(ref val, ref weighting_factor, k + 1, i, j, 0.3);
-                                        }
+                                //         LowPass(ref val, ref weighting_factor, k, i, j, 1.0);
+                                //         if (k > 1)
+                                //         {
+                                //             LowPass(ref val, ref weighting_factor, k - 1, i, j, 0.3);
+                                //         }
+                                //         if (k < Program.NKK_Transient - 2)
+                                //         {
+                                //             LowPass(ref val, ref weighting_factor, k + 1, i, j, 0.3);
+                                //         }
 
-                                        val = val / weighting_factor / Program.ConzSumCounter;
-                                    }
-                                    else // concentration == 0
-                                    {
-                                        val = 0;
-                                    }
-                                }
-                                else // border cells
-                                {
-                                    val = Program.ConzSsum[i][j][k] / Program.ConzSumCounter;
-                                }
+                                //         val = val / weighting_factor / Program.ConzSumCounter;
+                                //     }
+                                //     else // concentration == 0
+                                //     {
+                                //         val = 0;
+                                //     }
+                                // }
+                                // else // border cells
+                                // {
+                                val = Program.ConzSsum[i][j][k] / Program.ConzSumCounter;
+                                //}
 
                                 SB.Append(val.ToString("e2", ic));
                                 SB.Append("\t");

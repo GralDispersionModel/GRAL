@@ -89,6 +89,7 @@ namespace GRAL_2001
             float upHurley = 0;
             float DeltaZHurley = 0;
             float SigmaUpHurley = 0;
+            float minVDI3782 = 0; //Minimum plume rise height for cold stacks depending on VDI 3782-3 Equation 18
             //float DeltaZHurleySumme = 0;
 
             //Grid variables
@@ -118,8 +119,8 @@ namespace GRAL_2001
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
-            Span<int> kko = stackalloc int[Program.NS];
-            Span<double> ReceptorConcentration = stackalloc double[Program.ReceptorNumber + 1];
+            Span<int> kko = new int[Program.NS];
+            Span<double> ReceptorConcentration = new double[Program.ReceptorNumber + 1];
 
             int reflexion_flag = Consts.ParticleNotReflected;
             int ISTATISTIK = Program.IStatistics;
@@ -137,8 +138,6 @@ namespace GRAL_2001
             int timestep_number = 0;         // counter for the time-steps LOG-output
 
             double decay_rate = Program.DecayRate[Program.ParticleSG[nteil]]; // decay rate for real source group number of this source
-
-            TransientConcentration trans_conz = new TransientConcentration();
 
             //for transient simulations dispersion time needs to be equally distributed from zero to TAUS
             float tgesamt = Program.DispTimeSum;
@@ -234,6 +233,7 @@ namespace GRAL_2001
             }
             else
             {
+                AHint = 0;  
                 //flat terrain
                 PartHeightAboveTerrain = zcoord_nteil;
                 PartHeightAboveBuilding = PartHeightAboveTerrain;
@@ -346,6 +346,7 @@ namespace GRAL_2001
                 upHurley = MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(wpHurley));
                 MeanHurley = 0;
                 DeltaZHurley = 0;
+                minVDI3782 = 3 * ExitVelocity * Program.PS_D[Kenn_NTeil] / windge; //Minimum plume rise height for cold stacks depending on VDI 3782-3
             }
 
             //initial properties for particles stemming from tunnel portals
@@ -758,13 +759,16 @@ namespace GRAL_2001
                         
                         if (auszeit < 0.6F) // fix plume rise algorithm problems at the start of the plume rise
                         {
-                            wpold *= MathF.Exp(-auszeit);
-                            if (wpHurley < wpold)
+                            wpold *= MathF.Exp(-(auszeit + idt));
+                            if (wpHurley < wpold) // [m/s] for "cold" stack sources at the start; wpold = exitVelocity  
                             {
-                                wpHurley = wpold;
-                                wpmittel = wpHurley;
+                                if (MeanHurley < minVDI3782) // [m] plume rise height still below minimum plume rise height acc. to VDI 3782 equation 18
+                                {
+                                    wpHurley = MathF.Min(wpold, (minVDI3782 - MeanHurley) / idt); //[m/s] increase the plume rise height, until minimum plume rise height is reached
+                                    wpmittel = wpHurley;
+                                }
                             }
-                            DeltaZHurley = Math.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
+                            DeltaZHurley = MathF.Max(0, (wpmittel + sigmawpHurley * zahl1) * idt); // [m/s] * [s] = [m]
                         }
                         else
                         {
@@ -808,7 +812,7 @@ namespace GRAL_2001
                         {
                             if (wpHurley < 0.01)
                             {
-                                trans_conz.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
+                                TransientConcentration.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
                                 goto REMOVE_PARTICLE;
                             }
                         }
@@ -817,13 +821,13 @@ namespace GRAL_2001
                         {
                             if (tunfak == Consts.ParticleIsNotAPortal)
                             {
-                                trans_conz.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
+                                TransientConcentration.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
                                 goto REMOVE_PARTICLE;
                             }
                         }
                         else
                         {
-                            trans_conz.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
+                            TransientConcentration.Conz5dZeitschleife(reflexion_flag, zcoord_nteil, AHint, masse, Area_cart, idt, xsi, eta, SG_nteil);
                             goto REMOVE_PARTICLE;
                         }
                     }
@@ -1396,7 +1400,7 @@ namespace GRAL_2001
                     goto MOVE_TO_CONCENTRATIONCALCULATION;
 
                 } //END OF TUNNEL MODUL
-
+                
                 //in case that particle was reflected, flag is set to 1 and subsequently concentrations are not computed
                 reflexion_flag = Consts.ParticleNotReflected;
                 int back = 1;
@@ -1419,7 +1423,13 @@ namespace GRAL_2001
                         FFCellYPrev = FFCellY;
                         FFCellX = (int)(xsi * FFGridXRez) + 1;
                         FFCellY = (int)(eta * FFGridYRez) + 1;
+                        GrammCellX = Math.Clamp((int)(xsi1 * GrammGridXRez) + 1, 1, Program.NX);
+                        GrammCellY = Math.Clamp((int)(eta1 * GrammGridYRez) + 1, 1, Program.NY);
 
+                        if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
+                        {
+                            goto REMOVE_PARTICLE;
+                        }
                         //19.05.25 Ku: allow a relative step along the terrain near the start point one times
                         if (auszeit < 20 && TerrainStepAllowed && SourceType > 1) // Near the source, terrain correction 1 times, line and area sources only
                         {
@@ -1468,14 +1478,6 @@ namespace GRAL_2001
                                     }
                                 }
                             }
-                        }
-
-                        GrammCellX = Math.Clamp((int)(xsi1 * GrammGridXRez) + 1, 1, Program.NX);
-                        GrammCellY = Math.Clamp((int)(eta1 * GrammGridYRez) + 1, 1, Program.NY);
-
-                        if ((FFCellX > Program.NII) || (FFCellY > Program.NJJ) || (FFCellX < 1) || (FFCellY < 1))
-                        {
-                            goto REMOVE_PARTICLE;
                         }
                     }
                     else
@@ -1661,14 +1663,16 @@ namespace GRAL_2001
                                         {
                                             zcoord_nteil = 2 * newTerrainHeight - zcoord_nteil;
                                         }
-
-                                        AHintold = AHint;
-                                        AHint = newTerrainHeight;
-                                        PartHeightAboveTerrain = zcoord_nteil - AHint;
                                         if (topo == Consts.TerrainAvailable)
                                         {
+                                            PartHeightAboveTerrain = zcoord_nteil - newTerrainHeight;
                                             PartHeightAboveBuilding = PartHeightAboveTerrain;
                                         }
+                                        else
+                                        {
+                                            PartHeightAboveTerrain = zcoord_nteil;
+                                            PartHeightAboveBuilding = zcoord_nteil;
+                                        }                                  
                                     }
                                 }
 
@@ -1749,7 +1753,6 @@ namespace GRAL_2001
                 depo_reflection_counter = 0;
 
                 //interpolation of orography
-                AHintold = AHint;
                 if (topo == Consts.TerrainAvailable)
                 {
                     if ((FFCellX < 1) || (FFCellX > Program.NII) || (FFCellY < 1) || (FFCellY > Program.NJJ))
@@ -1768,7 +1771,7 @@ namespace GRAL_2001
                     {
                         goto REMOVE_PARTICLE;
                     }
-
+                    AHint = 0;
                     PartHeightAboveTerrain = zcoord_nteil;
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                 }
