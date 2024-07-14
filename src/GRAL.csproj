@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <VersionPrefix>24.04.1</VersionPrefix>
+    <VersionPrefix>24.11.1</VersionPrefix>
     <Authors>Dietmar Oettl;Markus Kuntner</Authors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
