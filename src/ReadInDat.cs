@@ -267,6 +267,25 @@ namespace GRAL_2001
                                 { }
                             }
 
+                            // Use fixed random seed value
+                            if (sr.EndOfStream == false)
+                            {
+                                try
+                                {
+                                    _line++;
+                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (text.Length > 0 && int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r))
+                                    {
+                                        if (r == 1) //1: Use fixed random seed value
+                                        {
+                                            Program.UseFixedRndSeedVal = true;
+                                        }
+                                    }
+                                }
+                                catch
+                                { }
+                            }
+
                         }
                     }
                 }

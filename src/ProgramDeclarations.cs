@@ -1262,6 +1262,11 @@ namespace GRAL_2001
         public static bool UseVector512Class = false;
 
         ///<summary>
+        /// Use Fixed Random Seed Value?
+        ///</summary>
+        public static bool UseFixedRndSeedVal = false;
+
+        ///<summary>
         /// Deposition velocity factor within vegetation areas
         ///</summary>
         public readonly struct VegetationDepoVel
