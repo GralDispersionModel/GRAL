@@ -254,7 +254,7 @@ namespace GRAL_2001
             {
                 try
                 {
-                    Info = "  Slice height above ground [m]: " + HorSlices[i].ToString();
+                    Info = "Slice height above ground [m]: " + HorSlices[i].ToString();
                     Console.WriteLine(Info);
                 }
                 catch

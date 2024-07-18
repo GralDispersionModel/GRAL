@@ -66,7 +66,7 @@ namespace GRAL_2001
             {
                 try
                 {
-                    err = "    Slice height above ground [m]: " + Program.HorSlices[i].ToString();
+                    err = "  Slice height above ground [m]: " + Program.HorSlices[i].ToString();
                     LogfileGralCoreWrite(err);
                 }
                 catch
