@@ -946,6 +946,10 @@ namespace GRAL_2001
         ///</summary>
         public static float[] ParticleVdep = new float[1];
         ///<summary>
+        ///Particle random seeds
+        ///</summary>
+        public static ParticleRndSeeds[] ParticleRnd = new ParticleRndSeeds [1];
+        ///<summary>
         ///Deposition type 0 = no deposition, 1 = deposition+concentration, 2 = only deposition
         ///</summary>
         public static byte[] ParticleMode = new byte[1];
@@ -1294,6 +1298,29 @@ namespace GRAL_2001
             {
                 return (VelGasFact + 1).ToString(CultureInfo.InvariantCulture) + ", " + (VelPMxxFact + 1).ToString(CultureInfo.InvariantCulture);
             } 
+        }
+        
+        ///<summary>
+        /// Random generator seeds for each particle
+        ///</summary>
+        /// <param name="Situation">Recent situation</param>
+        /// <param name="Number">Recent particle number</param>
+        public readonly struct ParticleRndSeeds
+        {
+            public ParticleRndSeeds(uint Situation, uint Number)
+            {
+                Seed1 = 23445 + Number + (Situation << 2);
+                Seed2 = 129983 + (Number << 1) + (Situation << 1);
+            }
+            ///<summary>
+            /// Seed 1
+            ///</summary>
+            public uint Seed1 { get; }
+
+            ///<summary>
+            /// Seed 2
+            ///</summary>
+            public uint Seed2 { get; }
         }
     }
 }
