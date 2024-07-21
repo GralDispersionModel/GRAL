@@ -626,6 +626,8 @@ namespace GRAL_2001
                         ProgramWriters.LogfileGralCoreWrite(Info);
                     }
 
+                    RnGSeed = new RandomGeneratorSeed(IWET, WindVelGral, WindDirGral);
+
                     //calculating momentum and bouyancy forces for point sources
                     PointSourceHeight.CalculatePointSourceHeight();
 
