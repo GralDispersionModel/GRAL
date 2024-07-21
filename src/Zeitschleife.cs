@@ -47,7 +47,12 @@ namespace GRAL_2001
             int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
             uint m_w = (uint)(rnd + 521288629);
             uint m_z = (uint)(rnd + 2232121);
-            
+            if (Program.UseFixedRndSeedVal)
+            {
+                m_w = Program.RnGSeed.Seed1 + (uint)nteil;
+                m_z = Program.RnGSeed.Seed2 + (uint)nteil * 2;
+            }
+
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
