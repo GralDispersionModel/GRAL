@@ -1250,18 +1250,5 @@ namespace GRAL_2001
             // }
             // SB = null;
         }
-        
-        /// <summary>
-        /// Generate the vertical Grid for GRAL calculations for flat terrain
-        /// </summary>
-        /// /// <param name="Situations">Recent situation</param>
-        public static void GenerateRandomSeeds(int Situations)
-        {
-            uint sit = (uint) Situations;
-            for (uint i = (uint) Program.ParticleRnd.Length - 1; i >= 0; i--)
-            {
-                Program.ParticleRnd[i] = new Program.ParticleRndSeeds(sit, i);
-            }
-        }
     }
 }
