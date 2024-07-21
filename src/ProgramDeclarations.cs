@@ -948,7 +948,7 @@ namespace GRAL_2001
         ///<summary>
         ///Particle random seeds
         ///</summary>
-        public static ParticleRndSeeds[] ParticleRnd = new ParticleRndSeeds [1];
+        public static RandomGeneratorSeed RnGSeed = new RandomGeneratorSeed(1, 180, 2);
         ///<summary>
         ///Deposition type 0 = no deposition, 1 = deposition+concentration, 2 = only deposition
         ///</summary>
@@ -1304,13 +1304,25 @@ namespace GRAL_2001
         /// Random generator seeds for each particle
         ///</summary>
         /// <param name="Situation">Recent situation</param>
-        /// <param name="Number">Recent particle number</param>
-        public readonly struct ParticleRndSeeds
+        /// <param name="WindDirection">Recent wind direction</param>
+        /// <param name="WindSpeed">Recent wind speed</param>
+        public readonly struct RandomGeneratorSeed
         {
-            public ParticleRndSeeds(uint Situation, uint Number)
+            ///<summary>ParticleRndSeeds
+            /// Set initial values
+            ///</summary>
+            public RandomGeneratorSeed(int Situation, float WindDirection, float WindSpeed)
             {
-                Seed1 = 23445 + Number + (Situation << 2);
-                Seed2 = 129983 + (Number << 1) + (Situation << 1);
+                Seed1 = 521288629 + Convert.ToUInt32(WindDirection + WindSpeed * 100) + (uint) (Situation << 2);
+                Seed2 = 2232121 + Convert.ToUInt32(WindDirection * 2) + (uint) (Situation << 1);
+                if (Seed1 == 0)
+                {
+                    Seed1 = 521288629;
+                }
+                if (Seed2 == 0)
+                {
+                    Seed2 = 2232121;
+                }
             }
             ///<summary>
             /// Seed 1
