@@ -1311,10 +1311,10 @@ namespace GRAL_2001
             ///<summary>ParticleRndSeeds
             /// Set initial values
             ///</summary>
-            public RandomGeneratorSeed(uint Situation, float WindDirection, float WindSpeed)
+            public RandomGeneratorSeed(int Situation, float WindDirection, float WindSpeed)
             {
-                Seed1 = 521288629 + Convert.ToUInt32(WindDirection + WindSpeed * 100) + (Situation << 2);
-                Seed2 = 2232121 + Convert.ToUInt32(WindDirection * 2) + (Situation << 1);
+                Seed1 = 521288629 + Convert.ToUInt32(WindDirection + WindSpeed * 100) + (uint) (Situation << 2);
+                Seed2 = 2232121 + Convert.ToUInt32(WindDirection * 2) + (uint) (Situation << 1);
                 if (Seed1 == 0)
                 {
                     Seed1 = 521288629;
