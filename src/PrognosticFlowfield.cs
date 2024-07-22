@@ -1044,25 +1044,40 @@ namespace GRAL_2001
                 //algebraic mixing length model
                 if (TurbulenceModel == 1)
                 {
-                    Program.pOptions.MaxDegreeOfParallelism += 2;
-
                     if (Program.UseVector512Class)
                     {
-                        Parallel.Invoke(Program.pOptions,
+                        if (!Program.UseFixedRndSeedVal)
+                        {
+                            Program.pOptions.MaxDegreeOfParallelism += 2;
+                            Parallel.Invoke(Program.pOptions,
                             () => U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                             () => V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                            Program.pOptions.MaxDegreeOfParallelism -= 2;
+                        }
+                        else
+                        {
+                            U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
+                            V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                        }
                         W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
                     }
                     else
                     {
-                        Parallel.Invoke(Program.pOptions,
+                        if (!Program.UseFixedRndSeedVal)
+                        {
+                            Program.pOptions.MaxDegreeOfParallelism += 2;
+                            Parallel.Invoke(Program.pOptions,
                             () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                             () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
-                        // U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
-                        // V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                            Program.pOptions.MaxDegreeOfParallelism -= 2;
+                        }
+                        else
+                        {
+                            U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
+                            V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                        }
                         W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
                     }
-                    Program.pOptions.MaxDegreeOfParallelism -= 2;
                 }
 
                 //k-eps model
