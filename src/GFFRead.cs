@@ -243,7 +243,7 @@ namespace GRAL_2001
 
                             readData = reader.ReadBytes((Program.NJJ + 1) * 6); // read one vertical column 
                             int offset = (Program.NJJ + 1) * 2;
-                            Parallel.For(1, Program.NJJ + 1, Program.pOptions, j =>
+                            Parallel.For(1, Program.NJJ + 2, Program.pOptions, j =>
                             {
                                 int index = (j - 1) * 2;
                                 UK_L[j][k - 1] = (float)((Int16)(readData[index] | (readData[index + 1] << 8))) * 0.01F; // 19.06.03 Ku: use Bitshift instead of Bitconverter 2 Bytes  = word integer value
