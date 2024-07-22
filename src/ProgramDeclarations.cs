@@ -948,7 +948,7 @@ namespace GRAL_2001
         ///<summary>
         ///Particle random seeds
         ///</summary>
-        public static RandomGeneratorSeed RnGSeed = new RandomGeneratorSeed(1, 180, 2);
+        public static RandomGeneratorSeed RnGSeed = new RandomGeneratorSeed(1, 2, 180); //I switched these since I thought they were accidentially flipped.
         ///<summary>
         ///Deposition type 0 = no deposition, 1 = deposition+concentration, 2 = only deposition
         ///</summary>
@@ -1299,7 +1299,7 @@ namespace GRAL_2001
                 return (VelGasFact + 1).ToString(CultureInfo.InvariantCulture) + ", " + (VelPMxxFact + 1).ToString(CultureInfo.InvariantCulture);
             } 
         }
-        
+
         ///<summary>
         /// Random generator seeds for each particle
         ///</summary>
@@ -1311,10 +1311,11 @@ namespace GRAL_2001
             ///<summary>ParticleRndSeeds
             /// Set initial values
             ///</summary>
-            public RandomGeneratorSeed(int Situation, float WindDirection, float WindSpeed)
+            public RandomGeneratorSeed(int Situation, float WindSpeed, float WindDirection) //I flipped wind speed/direction
             {
-                Seed1 = 521288629 + Convert.ToUInt32(WindDirection + WindSpeed * 100) + (uint) (Situation << 2);
-                Seed2 = 2232121 + Convert.ToUInt32(WindDirection * 2) + (uint) (Situation << 1);
+                //Absolute value because wind direction was negative for a 270 degree wind for example
+                Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + WindSpeed * 100) + (uint)(Situation << 2);
+                Seed2 = 2232121 + Convert.ToUInt32(Math.Abs(WindDirection) * 2) + (uint)(Situation << 1);
                 if (Seed1 == 0)
                 {
                     Seed1 = 521288629;
