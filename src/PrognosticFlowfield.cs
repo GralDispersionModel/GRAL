@@ -578,6 +578,7 @@ namespace GRAL_2001
                 }
             });
 
+            
         //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
         CONTINUE_SIMULATION:
             while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
@@ -801,11 +802,12 @@ namespace GRAL_2001
                 }
 
                 DeltaUMax = 0;
-                Parallel.For(2, NJJ, Program.pOptions, j1 =>
+                for (int j1 = 2; j1 < NJJ; j1 ++)
+                //Parallel.For(2, NJJ, Program.pOptions, j1 =>
                 {
                     float DeltaUMaxIntern = 0;
-                    Span<float> PIMP = stackalloc float[NKK + 2];
-                    Span<float> QIMP = stackalloc float[NKK + 2];
+                    Span<float> PIMP = new float[NKK + 2];
+                    Span<float> QIMP = new float[NKK + 2];
                     float APP;
                     float ABP;
                     float ATP;
@@ -878,15 +880,15 @@ namespace GRAL_2001
                             }
                         }
                     }
-                    lock (obj)
+                    //lock (obj)
                     {
                         if (DeltaUMaxIntern > DeltaUMax)
                         {
                             Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
                         }
                     }
-                });
-
+                }/*)*/;
+                
                 //pressure-correction of u-component
                 Parallel.For(2, NII, Program.pOptions, i =>
                 {
@@ -1052,14 +1054,18 @@ namespace GRAL_2001
                             Parallel.Invoke(Program.pOptions,
                             () => U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                             () => V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                            W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
                             Program.pOptions.MaxDegreeOfParallelism -= 2;
                         }
                         else
                         {
+                            int cores = Program.pOptions.MaxDegreeOfParallelism;
+                            Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
                             V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                            W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            Program.pOptions.MaxDegreeOfParallelism = cores;
                         }
-                        W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
                     }
                     else
                     {
@@ -1069,14 +1075,18 @@ namespace GRAL_2001
                             Parallel.Invoke(Program.pOptions,
                             () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                             () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                            W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
                             Program.pOptions.MaxDegreeOfParallelism -= 2;
                         }
                         else
                         {
+                            int cores = Program.pOptions.MaxDegreeOfParallelism;
+                            Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
                             V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
-                        }
-                        W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            Program.pOptions.MaxDegreeOfParallelism = cores;
+                        }                   
                     }
                 }
 
@@ -1134,6 +1144,8 @@ namespace GRAL_2001
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Total time: " + TIME_dispersion.ToString("0.000"));
             }
+
+            
 
             //OUTPUT OF ENCOUNTERED PROBLEMS DURING THE SIMULATION
             if (DeltaFinish > DeltaFirst)
