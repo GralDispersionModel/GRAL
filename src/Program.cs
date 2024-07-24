@@ -297,6 +297,13 @@ namespace GRAL_2001
                 AdaptiveRoughnessMax = 0;
             }
 
+            if (Program.UseFixedRndSeedVal)
+            {
+                Info = "GRAL Deterministic Mode";
+                Console.WriteLine(Info);
+                ProgramWriters.LogfileGralCoreWrite(Info);
+            }
+
             //setting the lateral borders of the domain -> Attention: changes the GRAL borders from absolute to relative values!
             InitGralBorders();
 
