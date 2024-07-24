@@ -76,7 +76,7 @@ namespace GRAL_2001
                         float rngVal = (float) Random.Shared.NextDouble();
                         if (Program.UseFixedRndSeedVal)
                         {
-                            Program.RandomGeneratorSeed rnGSeed = new Program.RandomGeneratorSeed(Program.IWET, Program.WindDirGral, Program.WindVelGral);
+                            Program.DeterministicRandomGenerator rnGSeed = new Program.DeterministicRandomGenerator(Program.IWET, Program.WindVelGral, Program.WindDirGral);
                             uint m_w = Program.RnGSeed.Seed1;
                             uint m_z = Program.RnGSeed.Seed2;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);

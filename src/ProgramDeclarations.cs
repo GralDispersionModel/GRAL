@@ -948,7 +948,7 @@ namespace GRAL_2001
         ///<summary>
         ///Particle random seeds
         ///</summary>
-        public static RandomGeneratorSeed RnGSeed = new RandomGeneratorSeed(1, 2, 180); //I switched these since I thought they were accidentially flipped.
+        public static DeterministicRandomGenerator RnGSeed = new DeterministicRandomGenerator(1, 2, 180);
         ///<summary>
         ///Deposition type 0 = no deposition, 1 = deposition+concentration, 2 = only deposition
         ///</summary>
@@ -1301,19 +1301,19 @@ namespace GRAL_2001
         }
 
         ///<summary>
-        /// Random generator seeds for each particle
+        /// Deterministic random generator seeds for each particle
         ///</summary>
-        /// <param name="Situation">Recent situation</param>
-        /// <param name="WindDirection">Recent wind direction</param>
-        /// <param name="WindSpeed">Recent wind speed</param>
-        public readonly struct RandomGeneratorSeed
+        public readonly struct DeterministicRandomGenerator
         {
-            ///<summary>ParticleRndSeeds
+            ///<summary>
             /// Set initial values
             ///</summary>
-            public RandomGeneratorSeed(int Situation, float WindSpeed, float WindDirection) //I flipped wind speed/direction
+            /// <param name="Situation">Actual computed weather situation</param>
+            /// <param name="WindSpeed">Wind speed at anemometer height</param>
+            /// <param name="WindDirection">Wind direction at anemometer height</param>
+            public DeterministicRandomGenerator(int Situation, float WindSpeed, float WindDirection)
             {
-                //Absolute value because wind direction was negative for a 270 degree wind for example
+                // Absolute value because wind direction can be negative (i.e., a 270-degree wind direction)
                 Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + WindSpeed * 100) + (uint)(Situation << 2);
                 Seed2 = 2232121 + Convert.ToUInt32(Math.Abs(WindDirection) * 2) + (uint)(Situation << 1);
                 if (Seed1 == 0)
