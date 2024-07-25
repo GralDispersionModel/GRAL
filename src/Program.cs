@@ -628,9 +628,6 @@ namespace GRAL_2001
                         WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
                         //optional: write sub Domains as utilized in GRAL
                         WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
-
-                        Console.WriteLine(Info);
-                        ProgramWriters.LogfileGralCoreWrite(Info);
                     }
 
                     RnGSeed = new DeterministicRandomGenerator(IWET, WindVelGral, WindDirGral);

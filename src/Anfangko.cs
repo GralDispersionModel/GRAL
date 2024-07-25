@@ -48,14 +48,20 @@ namespace GRAL_2001
             Parallel.For(1, Program.NTEILMAX + 1, Program.pOptions, nteil =>
             {
                 //random number generator seeds
-                int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
-                uint m_w = (uint)(rnd + 521288629);
-                uint m_z = (uint)(rnd + 2232121);
+                uint m_w;
+                uint m_z;
                 if (Program.UseFixedRndSeedVal)
                 {
                     m_w = Program.RnGSeed.Seed1 + (uint)nteil;
                     m_z = Program.RnGSeed.Seed2 + (uint)nteil * 2;
                 }
+                else
+                {
+                    int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
+                    m_w = (uint)(rnd + 521288629);
+                    m_z = (uint)(rnd + 2232121);
+                }
+
                 float zuff1 = DeterministicRng(ref m_z, ref m_w);
                 
                 float AHint = 0;
