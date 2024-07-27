@@ -578,6 +578,7 @@ namespace GRAL_2001
                 }
             });
 
+            
         //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
         CONTINUE_SIMULATION:
             while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
@@ -801,91 +802,103 @@ namespace GRAL_2001
                 }
 
                 DeltaUMax = 0;
-                Parallel.For(2, NJJ, Program.pOptions, j1 =>
                 {
-                    float DeltaUMaxIntern = 0;
-                    Span<float> PIMP = stackalloc float[NKK + 2];
-                    Span<float> QIMP = stackalloc float[NKK + 2];
-                    float APP;
-                    float ABP;
-                    float ATP;
-                    float DIM;
-                    float TERMP;
-
-                    int j = j1;
-                    if (JS == -1)
+                    int coresOriginal = 1;
+                    if (Program.UseFixedRndSeedVal)
                     {
-                        j = NJJ - j1 + 1;
+                        coresOriginal = Program.pOptions.MaxDegreeOfParallelism;
+                        Program.pOptions.MaxDegreeOfParallelism = 1;
                     }
-
-                    for (int i1 = 2; i1 <= NII - 1; ++i1)
+                    Parallel.For(2, NJJ, Program.pOptions, j1 =>
                     {
-                        int i = i1;
-                        if (IS == -1)
+                        float DeltaUMaxIntern = 0;
+                        Span<float> PIMP = new float[NKK + 2];
+                        Span<float> QIMP = new float[NKK + 2];
+                        float APP;
+                        float ABP;
+                        float ATP;
+                        float DIM;
+                        float TERMP;
+
+                        int j = j1;
+                        if (JS == -1)
                         {
-                            i = NII - i1 + 1;
+                            j = NJJ - j1 + 1;
                         }
 
-                        if (Program.ADVDOM[i][j] == 1)
+                        for (int i1 = 2; i1 <= NII - 1; ++i1)
                         {
-                            float[] DIV_L = Program.DIV[i][j];
-                            float[] DPM_L = Program.DPM[i][j];
-                            float[] DPMim_L = Program.DPM[i - 1][j];
-                            float[] DPMip_L = Program.DPM[i + 1][j];
-                            float[] DPMjm_L = Program.DPM[i][j - 1];
-                            float[] DPMjp_L = Program.DPM[i][j + 1];
-                            float[] DPMNEW_L = Program.DPMNEW[i][j];
-                            int KKART_LL = Program.KKART[i][j];
-                            int Vert_index = Program.VerticalIndex[i][j];
-
-                            for (int k = Vert_index; k > KKART_LL; --k)
+                            int i = i1;
+                            if (IS == -1)
                             {
-                                //if (KKART_LL < k)
-                                //{
-                                DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                              (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
-                                APP = 2F * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + AREAxy / Program.DZK[k]);
-
-                                if (k > 1)
-                                {
-                                    ABP = AREAxy / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
-                                }
-                                else
-                                {
-                                    ABP = AREAxy / Program.DZK[k];
-                                }
-
-                                ATP = AREAxy / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
-                                TERMP = 1 / (APP - ATP * PIMP[k + 1]);
-                                PIMP[k] = ABP * TERMP;
-                                QIMP[k] = (ATP * QIMP[k + 1] + DIM) * TERMP;
-                                //}
+                                i = NII - i1 + 1;
                             }
 
-                            //Obtain new P-components
-                            //DPM_L[0] = 0;
-                            for (int k = KKART_LL + 1; k <= Vert_index; ++k)
+                            if (Program.ADVDOM[i][j] == 1)
                             {
-                                //if (KKART_LL < k)
-                                //{
-                                float temp = PIMP[k] * DPM_L[k - 1] + QIMP[k];
-                                DeltaUMaxIntern = (float)Math.Max(DeltaUMaxIntern, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
-                                DPM_L[k] = temp;
+                                float[] DIV_L = Program.DIV[i][j];
+                                float[] DPM_L = Program.DPM[i][j];
+                                float[] DPMim_L = Program.DPM[i - 1][j];
+                                float[] DPMip_L = Program.DPM[i + 1][j];
+                                float[] DPMjm_L = Program.DPM[i][j - 1];
+                                float[] DPMjp_L = Program.DPM[i][j + 1];
+                                float[] DPMNEW_L = Program.DPMNEW[i][j];
+                                int KKART_LL = Program.KKART[i][j];
+                                int Vert_index = Program.VerticalIndex[i][j];
 
-                                //Pressure field to compute pressure gradients in the momentum equations
-                                DPMNEW_L[k] += relaxp * DPM_L[k];
-                                //}
+                                for (int k = Vert_index; k > KKART_LL; --k)
+                                {
+                                    //if (KKART_LL < k)
+                                    //{
+                                    DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
+                                                  (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                    APP = 2F * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + AREAxy / Program.DZK[k]);
+
+                                    if (k > 1)
+                                    {
+                                        ABP = AREAxy / (0.5F * (Program.DZK[k - 1] + Program.DZK[k]));
+                                    }
+                                    else
+                                    {
+                                        ABP = AREAxy / Program.DZK[k];
+                                    }
+
+                                    ATP = AREAxy / (0.5F * (Program.DZK[k + 1] + Program.DZK[k]));
+                                    TERMP = 1 / (APP - ATP * PIMP[k + 1]);
+                                    PIMP[k] = ABP * TERMP;
+                                    QIMP[k] = (ATP * QIMP[k + 1] + DIM) * TERMP;
+                                    //}
+                                }
+
+                                //Obtain new P-components
+                                //DPM_L[0] = 0;
+                                for (int k = KKART_LL + 1; k <= Vert_index; ++k)
+                                {
+                                    //if (KKART_LL < k)
+                                    //{
+                                    float temp = PIMP[k] * DPM_L[k - 1] + QIMP[k];
+                                    DeltaUMaxIntern = (float)Math.Max(DeltaUMaxIntern, Math.Abs(DPM_L[k] - Program.ConvToInt(temp * Frund) / Frund));
+                                    DPM_L[k] = temp;
+
+                                    //Pressure field to compute pressure gradients in the momentum equations
+                                    DPMNEW_L[k] += relaxp * DPM_L[k];
+                                    //}
+                                }
                             }
                         }
-                    }
-                    lock (obj)
-                    {
-                        if (DeltaUMaxIntern > DeltaUMax)
+                        lock (obj)
                         {
-                            Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
+                            if (DeltaUMaxIntern > DeltaUMax)
+                            {
+                                Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
+                            }
                         }
+                    });
+                    if (Program.UseFixedRndSeedVal)
+                    {
+                        Program.pOptions.MaxDegreeOfParallelism = coresOriginal;
                     }
-                });
+                }
 
                 //pressure-correction of u-component
                 Parallel.For(2, NII, Program.pOptions, i =>
@@ -1035,44 +1048,92 @@ namespace GRAL_2001
                 //no-diffusion
                 if (TurbulenceModel == 0)
                 {
-                    Parallel.Invoke(Program.pOptions,
-                        () => U_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
-                        () => V_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));
-                    W_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
+                    if (!Program.UseFixedRndSeedVal)
+                    {
+                        Parallel.Invoke(Program.pOptions,
+                            () => U_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
+                            () => V_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));
+                        W_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
+                    }
+                    else
+                    {
+                        int cores = Program.pOptions.MaxDegreeOfParallelism;
+                        Program.pOptions.MaxDegreeOfParallelism = 1;
+                        U_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax);
+                        V_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax);
+                        W_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
+                        Program.pOptions.MaxDegreeOfParallelism = cores;
+                    }
                 }
 
                 //algebraic mixing length model
                 if (TurbulenceModel == 1)
                 {
-                    Program.pOptions.MaxDegreeOfParallelism += 2;
-
                     if (Program.UseVector512Class)
                     {
-                        Parallel.Invoke(Program.pOptions,
+                        if (!Program.UseFixedRndSeedVal)
+                        {
+                            Program.pOptions.MaxDegreeOfParallelism += 2;
+                            Parallel.Invoke(Program.pOptions,
                             () => U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                             () => V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
-                        W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            Program.pOptions.MaxDegreeOfParallelism -= 2;
+                        }
+                        else
+                        {
+                            int cores = Program.pOptions.MaxDegreeOfParallelism;
+                            Program.pOptions.MaxDegreeOfParallelism = 1;
+                            U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
+                            V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                            W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            Program.pOptions.MaxDegreeOfParallelism = cores;
+                        }
                     }
                     else
                     {
-                        Parallel.Invoke(Program.pOptions,
+                        if (!Program.UseFixedRndSeedVal)
+                        {
+                            Program.pOptions.MaxDegreeOfParallelism += 2;
+                            Parallel.Invoke(Program.pOptions,
                             () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
                             () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
-                        // U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
-                        // V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
-                        W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            Program.pOptions.MaxDegreeOfParallelism -= 2;
+                        }
+                        else
+                        {
+                            int cores = Program.pOptions.MaxDegreeOfParallelism;
+                            Program.pOptions.MaxDegreeOfParallelism = 1;
+                            U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
+                            V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                            W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            Program.pOptions.MaxDegreeOfParallelism = cores;
+                        }                   
                     }
-                    Program.pOptions.MaxDegreeOfParallelism -= 2;
                 }
 
                 //k-eps model
                 if (TurbulenceModel == 2)
                 {
-                    Parallel.Invoke(Program.pOptions,
-                           () => U_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
-                           () => V_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));
-                    W_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
-                    TKE_PrognosticMicroscale.Calculate(IS, JS, Cmueh, Ceps, Ceps1, Ceps2, VISHMIN, VISVMIN, AREAxy, building_Z0, relax, Ustern_factorX);
+                    if (!Program.UseFixedRndSeedVal)
+                    {
+                        Parallel.Invoke(Program.pOptions,
+                               () => U_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax),
+                               () => V_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax));
+                        W_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
+                        TKE_PrognosticMicroscale.Calculate(IS, JS, Cmueh, Ceps, Ceps1, Ceps2, VISHMIN, VISVMIN, AREAxy, building_Z0, relax, Ustern_factorX);
+                    }
+                    else
+                    {
+                        int cores = Program.pOptions.MaxDegreeOfParallelism;
+                        Program.pOptions.MaxDegreeOfParallelism = 1;
+                        U_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax);
+                        V_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, VG, building_Z0, relax);
+                        W_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, building_Z0, relax);
+                        TKE_PrognosticMicroscale.Calculate(IS, JS, Cmueh, Ceps, Ceps1, Ceps2, VISHMIN, VISVMIN, AREAxy, building_Z0, relax, Ustern_factorX);
+                        Program.pOptions.MaxDegreeOfParallelism = cores;
+                    }
                 }
 
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
@@ -1119,6 +1180,8 @@ namespace GRAL_2001
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Total time: " + TIME_dispersion.ToString("0.000"));
             }
+
+            
 
             //OUTPUT OF ENCOUNTERED PROBLEMS DURING THE SIMULATION
             if (DeltaFinish > DeltaFirst)

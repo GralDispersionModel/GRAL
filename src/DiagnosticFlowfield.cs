@@ -86,9 +86,15 @@ namespace GRAL_2001
 
                 //switch the loop to improve convergence
                 int maxTasks = 1;
+                int cores = 1;
+                if (Program.UseFixedRndSeedVal)
+                {
+                    cores = Program.pOptions.MaxDegreeOfParallelism;
+                    Program.pOptions.MaxDegreeOfParallelism = 1;
+                }
                 if (IterationLoops % 4 == 0)
-                { 
-                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                {
+                    maxTasks = Math.Max(1, Program.IPROC);
                     Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
@@ -153,7 +159,7 @@ namespace GRAL_2001
                 }
                 else if (IterationLoops % 4 == 1)
                 {
-                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    maxTasks = Math.Max(1, Program.IPROC);
                     Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
@@ -220,7 +226,7 @@ namespace GRAL_2001
                 }
                 else if (IterationLoops % 4 == 2)
                 {
-                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    maxTasks = Math.Max(1, Program.IPROC);
                     Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j1 =>
                     {
@@ -286,7 +292,7 @@ namespace GRAL_2001
                 }
                 else 
                 {
-                    maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                    maxTasks = Math.Max(1, Program.IPROC);
                     Parallel.ForEach(Partitioner.Create(2, Program.NJJ, Math.Max(4, (int)(Program.NJJ / maxTasks))), Program.pOptions, range =>
                     //Parallel.For(2, Program.NJJ, Program.pOptions, j =>
                     {
@@ -349,9 +355,13 @@ namespace GRAL_2001
                         }
                     });
                 }
+                if (Program.UseFixedRndSeedVal)
+                {
+                    Program.pOptions.MaxDegreeOfParallelism = cores;
+                }
 
                 //correcting velocities
-                maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 4));
+                maxTasks = Math.Max(1, Program.IPROC);
                 Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Max(4, (int)(Program.NII / maxTasks))), Program.pOptions, range =>
                 //Parallel.For(2, Program.NII, Program.pOptions, i =>
                 {
@@ -416,7 +426,7 @@ namespace GRAL_2001
 
                 IterationLoops++;
             }
-
+            
             //online output of simulated GRAL flow fields
             if (Program.GRALOnlineFunctions)
             {

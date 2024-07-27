@@ -17,6 +17,8 @@ namespace GRAL_2001
 {
     class StartCoordinates
     {
+        private const float RNG_Const = 2.328306435454494e-10F;
+        
         /// <summary>
         /// Calculate the start coordinates of all particles at a random point within the source geometries.
         /// Calculates the "mass" of each particle, depending on the emission rate of the source and the number of particles per source.
@@ -45,10 +47,23 @@ namespace GRAL_2001
 
             Parallel.For(1, Program.NTEILMAX + 1, Program.pOptions, nteil =>
             {
-                
                 //random number generator seeds
-                double zuff1 = Random.Shared.NextDouble();
+                uint m_w;
+                uint m_z;
+                if (Program.UseFixedRndSeedVal)
+                {
+                    m_w = Program.RnGSeed.Seed1 + (uint)nteil;
+                    m_z = Program.RnGSeed.Seed2 + (uint)nteil * 2;
+                }
+                else
+                {
+                    int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
+                    m_w = (uint)(rnd + 521288629);
+                    m_z = (uint)(rnd + 2232121);
+                }
 
+                float zuff1 = DeterministicRng(ref m_z, ref m_w);
+                
                 float AHint = 0;
 
                 double sumanz = 0;
@@ -89,11 +104,11 @@ namespace GRAL_2001
 
                             if (i > 0)
                             {
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                 double radius = Program.PS_D[i] * 0.5 * zuff1;
 
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                 double theta = 6.28 * zuff1;
                                 Program.Xcoord[nteil] = Program.PS_X[i] + radius * Math.Cos(theta);
@@ -182,11 +197,11 @@ namespace GRAL_2001
                             }
                             if (i > 0)
                             {
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                 double zahl1 = Program.TS_Height[i] * zuff1;
 
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                 double zahl2 = Program.TS_Width[i] * zuff1;
 
@@ -331,29 +346,29 @@ namespace GRAL_2001
                                 if (lang > 0.1)
                                 {
                                     // default case: horizontal line source 
-                                    zuff1 = Random.Shared.NextDouble();
+                                    zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                     double zahl0 = lang * zuff1;
                                     //noise abatement wall +1m
                                     if (Program.LS_Laerm[i] > 0)
                                     {
-                                        zuff1 = Random.Shared.NextDouble();
+                                        zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                         zahl1 = Program.LS_Laerm[i] + zuff1;
                                     }
                                     //user defined volume for initial mixing of particles (traffic induced turbulence)
                                     else if (Program.LS_Laerm[i] < 0)
                                     {
-                                        zuff1 = Random.Shared.NextDouble();
+                                        zuff1 = DeterministicRng(ref m_z, ref m_w);
                                         zahl1 = zuff1 * Math.Abs(Program.LS_Laerm[i]);
                                     }
                                     //standard initial mixing is up to 3m
                                     else if (Program.LS_Laerm[i] == 0)
                                     {
-                                        zuff1 = Random.Shared.NextDouble();
+                                        zuff1 = DeterministicRng(ref m_z, ref m_w);
                                         zahl1 = 3 * zuff1;
                                     }
-                                    zuff1 = Random.Shared.NextDouble();
+                                    zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                     double zahl2 = Program.LS_Width[i] * zuff1;
 
@@ -379,8 +394,8 @@ namespace GRAL_2001
                                     if (_vertExt < 0)
                                     {
                                         // use vertical extension as radius
-                                        Program.Xcoord[nteil] = Program.LS_X1[i] + (1 - Random.Shared.NextDouble() * 2) * _vertExt; // (-1 to 1) * VertExt
-                                        Program.YCoord[nteil] = Program.LS_Y1[i] + (1 - Random.Shared.NextDouble() * 2) * _vertExt; // (-1 to 1) * VertExt
+                                        Program.Xcoord[nteil] = Program.LS_X1[i] + (1 - DeterministicRng(ref m_z, ref m_w) * 2) * _vertExt; // (-1 to 1) * VertExt
+                                        Program.YCoord[nteil] = Program.LS_Y1[i] + (1 - DeterministicRng(ref m_z, ref m_w) * 2) * _vertExt; // (-1 to 1) * VertExt
                                     }
                                     else
                                     {
@@ -388,7 +403,7 @@ namespace GRAL_2001
                                         Program.Xcoord[nteil] = Program.LS_X1[i];
                                         Program.YCoord[nteil] = Program.LS_Y1[i];
                                     }
-                                    zuff1 = Random.Shared.NextDouble();
+                                    zuff1 = DeterministicRng(ref m_z, ref m_w);
                                     zzz = Program.LS_Z1[i] + (Program.LS_Z2[i] - Program.LS_Z1[i]) * zuff1;
                                 }
 
@@ -485,15 +500,15 @@ namespace GRAL_2001
                                     Program.ParticleVsed[nteil] = Program.AS_V_sed[i];
                                 }
 
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                 double zahl0 = Program.AS_dX[i] * zuff1;
 
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
 
                                 double zahl1 = Program.AS_dZ[i] * zuff1;
 
-                                zuff1 = Random.Shared.NextDouble();
+                                zuff1 = DeterministicRng(ref m_z, ref m_w);
                                 double zahl2 = Program.AS_dY[i] * zuff1;
 
                                 Program.Xcoord[nteil] = Program.AS_X[i] - Program.AS_dX[i] * 0.5F + zahl0;
@@ -597,6 +612,13 @@ namespace GRAL_2001
                 }
             } // Transient Mode: average depo settings
 
+        }
+
+        public static float DeterministicRng(ref uint m_z, ref uint m_w)
+        {
+            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+            return(((m_z << 16) + m_w + 1) * RNG_Const);
         }
     }
 }
