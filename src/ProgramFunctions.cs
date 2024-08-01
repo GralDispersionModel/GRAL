@@ -1073,6 +1073,104 @@ namespace GRAL_2001
             Console.WriteLine();
         }
 
+        /// <summary>
+        /// Custom leigthweight parallel loop for the release of particles from all sources
+        /// </summary>
+        /// <param name="inclusiveLowerBound">Start index of the loop</param>
+        /// <param name="exclusiveUpperBound">Final index of the loop + 1</param>
+        public static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
+        {
+            int degParallel = Program.pOptions.MaxDegreeOfParallelism;
+            int remainingWorkItems = degParallel;
+            int nextIteration = inclusiveLowerBound;
+            int percent10 = (int)(Program.NTEILMAX * 0.1F);
+
+            using (ManualResetEvent manResetEvent = new ManualResetEvent(false))
+            {
+                // Create each of the work items.
+                for (int p = 0; p < degParallel; p++)
+                {
+                    ThreadPool.UnsafeQueueUserWorkItem(delegate
+                    {
+                        int index;
+                        while ((index = Interlocked.Increment(ref nextIteration) - 1) < exclusiveUpperBound)
+                        {
+                            Zeitschleife.Calculate(index);
+                            if (index % percent10 == 0 && index > 0)
+                            {
+                                Console.Write("I");
+                            }
+                        }
+                        if (Interlocked.Decrement(ref remainingWorkItems) == 0)
+                        {
+                            manResetEvent.Set();
+                        }
+                    }, false);
+                }
+                // Wait for all threads to complete.
+                manResetEvent.WaitOne();
+            }
+        }
+
+        /// <summary>
+        /// Custom leigthweight parallel loop for the release of particles from all transient cells
+        /// </summary>
+        /// <param name="inclusiveLowerBound">Start index of the loop</param>
+        /// <param name="exclusiveUpperBound">Final index of the loop + 1</param>
+        public static void ParallelTransientParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
+        {
+            const int batchSize = 16;
+            int degParallel = Program.pOptions.MaxDegreeOfParallelism;
+            int remainingWorkItems = degParallel;
+            int nextIteration = inclusiveLowerBound;
+            int percent10 = (int)(exclusiveUpperBound * 0.1F);
+
+            using (ManualResetEvent manResetEvent = new ManualResetEvent(false))
+            {
+                // Create each of the work items.
+                for (int p = 0; p < degParallel; p++)
+                {
+                    ThreadPool.UnsafeQueueUserWorkItem(delegate 
+                    {
+                        int indexbatch;
+                        while ((indexbatch = Interlocked.Add(ref nextIteration, batchSize) - batchSize) < exclusiveUpperBound)
+                        {
+                            int end = indexbatch + batchSize;
+                            if (end >= exclusiveUpperBound)
+                            {
+                                end = exclusiveUpperBound;
+                            }
+                            for (int index = indexbatch; index < end; index++)
+                            {
+                                // indices of recent cellNr
+                                int i = 1 + (index % Program.NII);
+                                int j = 1 + (int)(index / Program.NII);
+                                for (int k = Program.NKK_Transient; k > 0; k--)
+                                {
+                                    for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                                    {
+                                        if (Program.Conz4d[i][j][k][IQ] >= Program.TransConcThreshold)
+                                        {
+                                            ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Program.Conz4d[i][j][k][IQ]);
+                                        }
+                                    }
+                                }
+                                if (index % percent10 == 0)
+                                {
+                                    Console.Write("X");
+                                }
+                            }
+                        }
+                        if (Interlocked.Decrement(ref remainingWorkItems) == 0)
+                        {
+                            manResetEvent.Set();
+                        }
+                    }, false);
+                }
+                // Wait for all threads to complete.
+                manResetEvent.WaitOne();
+            }
+        }
     }
 
     /// <summary>
