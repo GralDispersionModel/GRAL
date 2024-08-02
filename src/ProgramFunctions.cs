@@ -22,7 +22,7 @@ namespace GRAL_2001
     partial class Program
     {
         /// <summary>
-        /// Generate the vertical Grid for GRAL calculations for flat terrain
+        /// Generate the vertical grid for GRAL calculations for flat terrain
         /// </summary>
         private static int GenerateVerticalGridFlat()
         {
@@ -77,7 +77,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Generate the vertical Grid for GRAL calculations with terrain
+        /// Generate the vertical grid for GRAL calculations with terrain
         /// </summary>
         private static int GenerateVerticalGridTerrain()
         {
@@ -135,7 +135,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Delete temporary files
+        /// Delete temporary files for transient calculations
         /// </summary>
         private static void Delete_Temp_Files()
         {
@@ -161,7 +161,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Output of Logging Level 01
+        /// Output for logging level 01
         /// </summary>
         private static void LOG01_Output()
         {
@@ -182,7 +182,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Output of meteo data of the recent situation to the console
+        /// Console output of meteo data for the recent situation
         /// </summary>
         private static void OutputOfMeteoData()
         {
@@ -382,7 +382,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Find internal Source Group Index by external SG Number -> just sources with source groups defined in Program.SourceGroups are used in the simulation
+        /// Find internal source group index by external SG number -> just sources with source groups defined in Program.SourceGroups are used in the simulation
         /// </summary>
         /// <param name="Real_SG_Number">Source group number as used in the GUI and input/output files</param>
         /// <returns>Internal contiguous source group number, starting with 0</returns>
@@ -771,7 +771,6 @@ namespace GRAL_2001
             {
                 return val1;
             }
-
             return val2;
         }
 
@@ -850,7 +849,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Counts the number of lines in a text file
+        /// Count the number of lines in a text file
         /// </summary>
         /// <param name="filename">Full path and name of a text file</param> 
         public static int CountLinesInFile(string filename)
@@ -873,7 +872,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Get a Hash code of the running app
+        /// Get a hash code of the running app
         /// </summary>
         public static string GetAppHashCode()
         {
@@ -905,7 +904,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Tranfer non-steady-state concentration fields and start writing of conz4d array
+        /// Transfer non-steady-state concentration fields and start writing of conz4d array
         /// </summary>
         private static void TransferNonSteadyStateConcentrations(ProgramWriters WriteClass, ref Thread TreadWriteConz4dFile)
         {
@@ -922,10 +921,7 @@ namespace GRAL_2001
                     float[][] conz5d_L = Conz5d[i][j];
                     for (int k = 1; k <= NKK_Transient; k++)
                     {
-                        for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
-                        {
-                            conz5d_L[k][IQ] = 0;
-                        }
+                        Array.Clear(conz5d_L[k]);
                     }
                 }
             });
@@ -1074,28 +1070,30 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Custom leigthweight parallel loop for the release of particles from all sources
+        /// Custom ligthweight parallel loop for the release of particles from all sources
         /// </summary>
         /// <param name="inclusiveLowerBound">Start index of the loop</param>
         /// <param name="exclusiveUpperBound">Final index of the loop + 1</param>
-        public static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
         {
-            int degParallel = Program.pOptions.MaxDegreeOfParallelism;
-            int remainingWorkItems = degParallel;
-            int nextIteration = inclusiveLowerBound;
-            int percent10 = (int)(Program.NTEILMAX * 0.1F);
-
             using (ManualResetEvent manResetEvent = new ManualResetEvent(false))
             {
-                // Create each of the work items.
-                for (int p = 0; p < degParallel; p++)
+                int remainingWorkItems = Program.pOptions.MaxDegreeOfParallelism;
+                int nextIteration = inclusiveLowerBound;
+                int percent10 = (int)(Program.NTEILMAX * 0.1F);
+
+                // Create each of the work items up to MaxDegreeOfParallelism
+                for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
                 {
-                    ThreadPool.UnsafeQueueUserWorkItem(delegate
+                    ThreadPool.QueueUserWorkItem(delegate
                     {
                         int index;
                         while ((index = Interlocked.Increment(ref nextIteration) - 1) < exclusiveUpperBound)
                         {
+                            // start the particle driver for the particle No. index
                             Zeitschleife.Calculate(index);
+                            // show progress bar
                             if (index % percent10 == 0 && index > 0)
                             {
                                 Console.Write("I");
@@ -1105,36 +1103,37 @@ namespace GRAL_2001
                         {
                             manResetEvent.Set();
                         }
-                    }, false);
+                    });
                 }
-                // Wait for all threads to complete.
+                // Wait for all threads to complete
                 manResetEvent.WaitOne();
             }
         }
 
         /// <summary>
-        /// Custom leigthweight parallel loop for the release of particles from all transient cells
+        /// Custom ligthweight parallel loop for the release of particles from all transient cells
         /// </summary>
         /// <param name="inclusiveLowerBound">Start index of the loop</param>
         /// <param name="exclusiveUpperBound">Final index of the loop + 1</param>
-        public static void ParallelTransientParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private static void ParallelTransientParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
         {
-            const int batchSize = 16;
-            int degParallel = Program.pOptions.MaxDegreeOfParallelism;
-            int remainingWorkItems = degParallel;
-            int nextIteration = inclusiveLowerBound;
-            int percent10 = (int)(exclusiveUpperBound * 0.1F);
-
             using (ManualResetEvent manResetEvent = new ManualResetEvent(false))
             {
-                // Create each of the work items.
-                for (int p = 0; p < degParallel; p++)
+                const int batchSize = 16;
+                int remainingWorkItems = Program.pOptions.MaxDegreeOfParallelism;
+                int nextIteration = inclusiveLowerBound;
+                int percent10 = (int)(exclusiveUpperBound * 0.1F);
+
+                // Create each of the work items up to MaxDegreeOfParallelism
+                for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
                 {
-                    ThreadPool.UnsafeQueueUserWorkItem(delegate 
+                    ThreadPool.QueueUserWorkItem(delegate 
                     {
                         int indexbatch;
                         while ((indexbatch = Interlocked.Add(ref nextIteration, batchSize) - batchSize) < exclusiveUpperBound)
                         {
+                            //internal loop batchSize end
                             int end = indexbatch + batchSize;
                             if (end >= exclusiveUpperBound)
                             {
@@ -1151,10 +1150,12 @@ namespace GRAL_2001
                                     {
                                         if (Program.Conz4d[i][j][k][IQ] >= Program.TransConcThreshold)
                                         {
+                                            // start the particle driver for the cell [i,j], height k, source group IQ
                                             ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Program.Conz4d[i][j][k][IQ]);
                                         }
                                     }
                                 }
+                                // show progress bar
                                 if (index % percent10 == 0)
                                 {
                                     Console.Write("X");
@@ -1165,9 +1166,9 @@ namespace GRAL_2001
                         {
                             manResetEvent.Set();
                         }
-                    }, false);
+                    });
                 }
-                // Wait for all threads to complete.
+                // Wait for all threads to complete
                 manResetEvent.WaitOne();
             }
         }
