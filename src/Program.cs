@@ -665,93 +665,17 @@ namespace GRAL_2001
 
                         //set lower concentration threshold for memory effect
                         TransConcThreshold = ReaderClass.ReadTransientThreshold();
-                        int IPERCnss = 0;
-                        int advancenss = 0;
                         int cellNr = NII * NJJ;
-                        int percent10nss = (int)(cellNr * 0.1F);
                         DispTimeSum = TAUS;
-                        // loop over all cells
-                        Parallel.For(0, cellNr, Program.pOptions, cell =>
-                        {
-                            Interlocked.Increment(ref advancenss);
-                            if (advancenss > percent10nss)
-                            {
-                                Interlocked.Exchange(ref advancenss, 0); // set advance to 0
-                                Interlocked.Add(ref IPERCnss, 10);
-                                if (IPERCnss < 100)
-                                {
-                                    Console.Write("X");
-                                    if (IPERCnss % 20 == 0)
-                                    {
-                                        try
-                                        {
-                                            using (StreamWriter sr = new StreamWriter("Percent.txt", false))
-                                            {
-                                                sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
-                                            }
-                                        }
-                                        catch { }
-                                    }
-                                }
-                            }
-
-                            // indices of recent cellNr
-                            int i = 1 + (cell % NII);
-                            int j = 1 + (int)(cell / NII);
-                            for (int k = 1; k <= NKK_Transient; k++)
-                            {
-                                for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
-                                {
-                                    if (Conz4d[i][j][k][IQ] >= TransConcThreshold)
-                                    {
-                                        ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Conz4d[i][j][k][IQ]);
-                                    }
-                                }
-                            }
-                        });
-                        Console.Write("X");
+                        // start the calculation for transient particle from all cells
+                        ParallelTransientParticleDriver(0, cellNr);
                     } // non-steady-state particles
 
                     Console.WriteLine();
                     Console.Write("Dispersion computation.....");
-                    //new released particles
-                    int IPERC = 0;
-                    int advance = 0;
-                    int percent10 = (int)(NTEILMAX * 0.1F);
+                    //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    Parallel.For(1, NTEILMAX + 1, Program.pOptions, nteil =>
-                    {
-                        Interlocked.Increment(ref advance);
-                        if (advance > percent10)
-                        {
-                            if (Interlocked.Exchange(ref advance, 0) > 0) // set advance to 0
-                            {
-                                Interlocked.Add(ref IPERC, 10);
-                                Console.Write("I");
-                                if (IPERC % 20 == 0)
-                                {
-                                    try
-                                    {
-                                        using (StreamWriter sr = new StreamWriter("Percent.txt", false))
-                                        {
-                                            if (ISTATIONAER == Consts.TransientMode)
-                                            {
-                                                sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
-                                            }
-                                            else
-                                            {
-                                                sr.Write(IPERC.ToString());
-                                            }
-                                        }
-                                    }
-                                    catch { }
-                                }
-                            }
-                        }
-                        Zeitschleife.Calculate(nteil);
-                    });
-
-                    Console.Write("I");
+                    ParallelParticleDriver(0, NTEILMAX + 1);
                     Console.WriteLine();
 
                     // Wait until conz4d file is written
