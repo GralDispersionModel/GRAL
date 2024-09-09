@@ -946,6 +946,10 @@ namespace GRAL_2001
         ///</summary>
         public static float[] ParticleVdep = new float[1];
         ///<summary>
+        ///Particle random seeds
+        ///</summary>
+        public static DeterministicRandomGenerator RnGSeed = new DeterministicRandomGenerator(1, 2, 180);
+        ///<summary>
         ///Deposition type 0 = no deposition, 1 = deposition+concentration, 2 = only deposition
         ///</summary>
         public static byte[] ParticleMode = new byte[1];
@@ -1262,6 +1266,11 @@ namespace GRAL_2001
         public static bool UseVector512Class = false;
 
         ///<summary>
+        /// Use Fixed Random Seed Value?
+        ///</summary>
+        public static bool UseFixedRndSeedVal = false;
+
+        ///<summary>
         /// Deposition velocity factor within vegetation areas
         ///</summary>
         public readonly struct VegetationDepoVel
@@ -1289,6 +1298,42 @@ namespace GRAL_2001
             {
                 return (VelGasFact + 1).ToString(CultureInfo.InvariantCulture) + ", " + (VelPMxxFact + 1).ToString(CultureInfo.InvariantCulture);
             } 
+        }
+
+        ///<summary>
+        /// Deterministic random generator seeds for each particle
+        ///</summary>
+        public readonly struct DeterministicRandomGenerator
+        {
+            ///<summary>
+            /// Set initial values
+            ///</summary>
+            /// <param name="Situation">Actual computed weather situation</param>
+            /// <param name="WindSpeed">Wind speed at anemometer height</param>
+            /// <param name="WindDirection">Wind direction at anemometer height</param>
+            public DeterministicRandomGenerator(int Situation, float WindSpeed, float WindDirection)
+            {
+                // Absolute value because wind direction can be negative (i.e., a 270-degree wind direction)
+                Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + WindSpeed * 100) + (uint)(Situation << 2);
+                Seed2 = 2232121 + Convert.ToUInt32(Math.Abs(WindDirection) * 2) + (uint)(Situation << 1);
+                if (Seed1 == 0)
+                {
+                    Seed1 = 521288629;
+                }
+                if (Seed2 == 0)
+                {
+                    Seed2 = 2232121;
+                }
+            }
+            ///<summary>
+            /// Seed 1
+            ///</summary>
+            public uint Seed1 { get; }
+
+            ///<summary>
+            /// Seed 2
+            ///</summary>
+            public uint Seed2 { get; }
         }
     }
 }

@@ -73,8 +73,17 @@ namespace GRAL_2001
                     //random wind direction taken from the defined sector width
                     if ((TIMESERIES == "0") && (Program.Topo != Consts.TerrainAvailable))
                     {
-                        Random rnd = new Random();
-                        Program.WindDirGral = Program.WindDirGral - (float)(SECTORWIDTH / 20) + (float)(rnd.NextDouble() * SECTORWIDTH / 10);
+                        float rngVal = (float) Random.Shared.NextDouble();
+                        if (Program.UseFixedRndSeedVal)
+                        {
+                            Program.DeterministicRandomGenerator rnGSeed = new Program.DeterministicRandomGenerator(Program.IWET, Program.WindVelGral, Program.WindDirGral);
+                            uint m_w = Program.RnGSeed.Seed1;
+                            uint m_z = Program.RnGSeed.Seed2;
+                            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                            rngVal = ((m_z << 16) + m_w + 1) * 2.328306435454494e-10F;
+                        }
+                        Program.WindDirGral = Program.WindDirGral - (float)(SECTORWIDTH / 20) + (float)(rngVal * SECTORWIDTH / 10);
                     }
 
                     //horizontal wind components
