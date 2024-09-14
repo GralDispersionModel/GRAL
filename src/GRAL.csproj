@@ -18,6 +18,7 @@
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+    <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
     <!-- 
     <PublishAot>true</PublishAot>
     -->
