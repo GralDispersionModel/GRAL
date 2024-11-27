@@ -75,9 +75,14 @@ namespace GRAL_2001
         private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration)
         {
             //random number generator seeds
-            int rnd = (Environment.TickCount + i + j) & Int32.MaxValue ;
+            int rnd = (Environment.TickCount + i + j) & Int32.MaxValue;
             uint m_w = (uint)(rnd + 521288629);
-            uint m_z = (uint)(rnd + 2232121);            
+            uint m_z = (uint)(rnd + 2232121);
+            if (Program.UseFixedRndSeedVal)
+            {
+                m_w = Program.RnGSeed.Seed1 + (uint)(i + j);
+                m_z = Program.RnGSeed.Seed2 + (uint)(i * 2);
+            }
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;

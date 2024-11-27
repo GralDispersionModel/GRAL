@@ -22,7 +22,7 @@ namespace GRAL_2001
     partial class Program
     {
         /// <summary>
-        /// Generate the vertical Grid for GRAL calculations for flat terrain
+        /// Generate the vertical grid for GRAL calculations for flat terrain
         /// </summary>
         private static int GenerateVerticalGridFlat()
         {
@@ -77,7 +77,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Generate the vertical Grid for GRAL calculations with terrain
+        /// Generate the vertical grid for GRAL calculations with terrain
         /// </summary>
         private static int GenerateVerticalGridTerrain()
         {
@@ -135,7 +135,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Delete temporary files
+        /// Delete temporary files for transient calculations
         /// </summary>
         private static void Delete_Temp_Files()
         {
@@ -161,7 +161,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Output of Logging Level 01
+        /// Output for logging level 01
         /// </summary>
         private static void LOG01_Output()
         {
@@ -182,7 +182,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Output of meteo data of the recent situation to the console
+        /// Console output of meteo data for the recent situation
         /// </summary>
         private static void OutputOfMeteoData()
         {
@@ -202,7 +202,7 @@ namespace GRAL_2001
 
                     if (dir > 360)
                     {
-                        
+
                         int k = (int)(dir / 360); // Ku: 10.5.2020 avoid dir >> 360°
                         dir -= 360 * k;
                     }
@@ -312,11 +312,11 @@ namespace GRAL_2001
             int SIMD = Vector<float>.Count;
             if (Program.UseVector512Class && Vector512.IsHardwareAccelerated)
             {
-                SIMD = Vector512<float>.Count;   
-                Console.WriteLine("SIMD - support: " + SIMD.ToString() + " float values  Using Vector512 extension"); 
+                SIMD = Vector512<float>.Count;
+                Console.WriteLine("SIMD - support: " + SIMD.ToString() + " float values  Using Vector512 extension");
             }
             else
-            {   
+            {
                 SIMD = Vector<float>.Count;
                 Console.WriteLine("SIMD - support: " + SIMD.ToString() + " float values  IsHardwareAccelerated: " + Vector.IsHardwareAccelerated.ToString());
             }
@@ -382,7 +382,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Find internal Source Group Index by external SG Number -> just sources with source groups defined in Program.SourceGroups are used in the simulation
+        /// Find internal source group index by external SG number -> just sources with source groups defined in Program.SourceGroups are used in the simulation
         /// </summary>
         /// <param name="Real_SG_Number">Source group number as used in the GUI and input/output files</param>
         /// <returns>Internal contiguous source group number, starting with 0</returns>
@@ -532,7 +532,7 @@ namespace GRAL_2001
             for (int i = 0; i < NII + 2; ++i)
             {
                 KKART[i] = GC.AllocateArray<short>(NJJ + 2);
-            }         
+            }
             Console.Write(".");
             BUI_HEIGHT = CreateArray<float[]>(NII + 2, () => new float[NJJ + 2]);
             Console.Write(".");
@@ -699,10 +699,10 @@ namespace GRAL_2001
                             {
                                 path = sr.ReadLine();  // read path
                             }
-                        }       
+                        }
                     }
                 }
-                catch 
+                catch
                 {
                     path = string.Empty;
                 }
@@ -771,7 +771,6 @@ namespace GRAL_2001
             {
                 return val1;
             }
-
             return val2;
         }
 
@@ -850,7 +849,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Counts the number of lines in a text file
+        /// Count the number of lines in a text file
         /// </summary>
         /// <param name="filename">Full path and name of a text file</param> 
         public static int CountLinesInFile(string filename)
@@ -873,7 +872,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Get a Hash code of the running app
+        /// Get a hash code of the running app
         /// </summary>
         public static string GetAppHashCode()
         {
@@ -905,7 +904,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Tranfer non-steady-state concentration fields and start writing of conz4d array
+        /// Transfer non-steady-state concentration fields and start writing of conz4d array
         /// </summary>
         private static void TransferNonSteadyStateConcentrations(ProgramWriters WriteClass, ref Thread TreadWriteConz4dFile)
         {
@@ -922,10 +921,7 @@ namespace GRAL_2001
                     float[][] conz5d_L = Conz5d[i][j];
                     for (int k = 1; k <= NKK_Transient; k++)
                     {
-                        for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
-                        {
-                            conz5d_L[k][IQ] = 0;
-                        }
+                        Array.Clear(conz5d_L[k]);
                     }
                 }
             });
@@ -1073,8 +1069,212 @@ namespace GRAL_2001
             Console.WriteLine();
         }
 
-    }
+        /// <summary>
+        /// Parallel loop for the release of particles from all sources
+        /// </summary>
+        /// <param name="inclusiveLowerBound">Start index of the loop</param>
+        /// <param name="exclusiveUpperBound">Final index of the loop + 1</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
+        {
+            if (Program.UseFixedRndSeedVal)
+            {
+                // Custom ligthweight parallel loop for the release of particles from all sources
+                using (ManualResetEvent manResetEvent = new ManualResetEvent(false))
+                {
+                    int remainingWorkItems = Program.pOptions.MaxDegreeOfParallelism;
+                    int nextIteration = inclusiveLowerBound;
+                    int percent10 = (int)(Program.NTEILMAX * 0.1F);
 
+                    // Create each of the work items up to MaxDegreeOfParallelism
+                    for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
+                    {
+                        ThreadPool.QueueUserWorkItem(delegate
+                        {
+                            int index;
+                            while ((index = Interlocked.Increment(ref nextIteration) - 1) < exclusiveUpperBound)
+                            {
+                                // start the particle driver for the particle No. index
+                                Zeitschleife.Calculate(index);
+                                // show progress bar
+                                if (index % percent10 == 0 && index > 0)
+                                {
+                                    Console.Write("I");
+                                }
+                            }
+                            if (Interlocked.Decrement(ref remainingWorkItems) == 0)
+                            {
+                                manResetEvent.Set();
+                            }
+                        });
+                    }
+                    // Wait for all threads to complete
+                    manResetEvent.WaitOne();
+                }
+            }
+            else
+            {
+                // default parallel loop
+                int IPERC = 0;
+                int advance = 0;
+                int percent10 = (int)(NTEILMAX * 0.1F);
+                ParallelOptions pOpt = Program.pOptions;
+                int locker = 0;
+                Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, nteil =>
+                {
+                    Interlocked.Increment(ref advance);
+                    if (advance > percent10)
+                    {
+                        Interlocked.Exchange(ref advance, 0); // set advance to 0
+                        Interlocked.Add(ref IPERC, 10);
+                        Console.Write("I");
+                        if (IPERC % 20 == 0 && locker == 0)
+                        {
+                            Interlocked.Increment(ref locker);
+                            try
+                            {
+                                using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                {
+                                    if (ISTATIONAER == Consts.TransientMode)
+                                    {
+                                        sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
+                                    }
+                                    else
+                                    {
+                                        sr.Write(IPERC.ToString());
+                                    }
+                                }
+                            }
+                            catch { }
+                            Interlocked.Decrement(ref locker);
+                        }
+                    }
+                    Zeitschleife.Calculate(nteil);
+                });
+
+                Console.Write("I");
+                Console.WriteLine();
+            }
+        }
+
+        /// <summary>
+        /// Parallel loop for the release of particles from all transient cells
+        /// </summary>
+        /// <param name="inclusiveLowerBound">Start index of the loop</param>
+        /// <param name="exclusiveUpperBound">Final index of the loop + 1</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private static void ParallelTransientParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
+        {
+            if (Program.UseFixedRndSeedVal)
+            {
+                // Custom ligthweight parallel loop for the release of particles from all sources
+                using (ManualResetEvent manResetEvent = new ManualResetEvent(false))
+                {
+                    const int batchSize = 16;
+                    int remainingWorkItems = Program.pOptions.MaxDegreeOfParallelism;
+                    int nextIteration = inclusiveLowerBound;
+                    int percent10 = (int)(exclusiveUpperBound * 0.1F);
+
+                    // Create each of the work items up to MaxDegreeOfParallelism
+                    for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
+                    {
+                        ThreadPool.QueueUserWorkItem(delegate
+                        {
+                            int indexbatch;
+                            while ((indexbatch = Interlocked.Add(ref nextIteration, batchSize) - batchSize) < exclusiveUpperBound)
+                            {
+                                //internal loop batchSize end
+                                int end = indexbatch + batchSize;
+                                if (end >= exclusiveUpperBound)
+                                {
+                                    end = exclusiveUpperBound;
+                                }
+                                for (int index = indexbatch; index < end; index++)
+                                {
+                                    // indices of recent cellNr
+                                    int i = 1 + (index % Program.NII);
+                                    int j = 1 + (int)(index / Program.NII);
+                                    for (int k = Program.NKK_Transient; k > 0; k--)
+                                    {
+                                        for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                                        {
+                                            if (Program.Conz4d[i][j][k][IQ] >= Program.TransConcThreshold)
+                                            {
+                                                // start the particle driver for the cell [i,j], height k, source group IQ
+                                                ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Program.Conz4d[i][j][k][IQ]);
+                                            }
+                                        }
+                                    }
+                                    // show progress bar
+                                    if (index % percent10 == 0)
+                                    {
+                                        Console.Write("X");
+                                    }
+                                }
+                            }
+                            if (Interlocked.Decrement(ref remainingWorkItems) == 0)
+                            {
+                                manResetEvent.Set();
+                            }
+                        });
+                    }
+                    // Wait for all threads to complete
+                    manResetEvent.WaitOne();
+                }
+            }
+            else
+            {
+                // default parallel loop
+                int IPERCnss = 0;
+                int advancenss = 0;
+                int cellNr = NII * NJJ;
+                int percent10nss = (int)(cellNr * 0.1F);
+                ParallelOptions pOpt = Program.pOptions;
+                int locker = 0;
+                Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, cell =>
+                {
+                    Interlocked.Increment(ref advancenss);
+                    if (advancenss > percent10nss)
+                    {
+                        Interlocked.Exchange(ref advancenss, 0); // set advance to 0
+                        Interlocked.Add(ref IPERCnss, 10);
+                        if (IPERCnss < 100)
+                        {
+                            Console.Write("X");
+                            if (IPERCnss % 20 == 0 && locker == 0)
+                            {
+                                Interlocked.Increment(ref locker);
+                                try
+                                {
+                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                    {
+                                        sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                    }
+                                }
+                                catch { }
+                                Interlocked.Decrement(ref locker);
+                            }
+                        }
+                    }
+
+                    // indices of recent cellNr
+                    int i = 1 + (cell % NII);
+                    int j = 1 + (int)(cell / NII);
+                    for (int k = 1; k <= NKK_Transient; k++)
+                    {
+                        for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                        {
+                            if (Conz4d[i][j][k][IQ] >= TransConcThreshold)
+                            {
+                                ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Conz4d[i][j][k][IQ]);
+                            }
+                        }
+                    }
+                });
+                Console.Write("X");
+            }
+        }
+    }
     /// <summary>
     /// Some helper functions for Program
     /// </summary>
@@ -1250,6 +1450,5 @@ namespace GRAL_2001
             // }
             // SB = null;
         }
-
     }
 }
