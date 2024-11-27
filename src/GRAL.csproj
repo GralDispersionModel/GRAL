@@ -18,10 +18,13 @@
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
-    <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
+    <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
+    <DebugType>embedded</DebugType>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
     <!-- 
     <PublishAot>true</PublishAot>
     -->
   </PropertyGroup>
 
 </Project>
+ 

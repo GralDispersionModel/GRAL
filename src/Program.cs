@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 24.11RepoResBeta2< <   +";
+            string Info =     "+  > >         G R A L VERSION: 24.11            < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -675,7 +675,7 @@ namespace GRAL_2001
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    ParallelParticleDriver(0, NTEILMAX + 1);
+                    ParallelParticleDriver(1, NTEILMAX + 1);
                     Console.WriteLine();
 
                     // Wait until conz4d file is written
