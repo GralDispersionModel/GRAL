@@ -1125,28 +1125,30 @@ namespace GRAL_2001
                     Interlocked.Increment(ref advance);
                     if (advance > percent10)
                     {
-                        Interlocked.Exchange(ref advance, 0); // set advance to 0
-                        Interlocked.Add(ref IPERC, 10);
-                        Console.Write("I");
-                        if (IPERC % 20 == 0 && locker == 0)
+                        if (Interlocked.Exchange(ref advance, 0) > advance)  // set advance to 0
                         {
-                            Interlocked.Increment(ref locker);
-                            try
+                            Interlocked.Add(ref IPERC, 10);
+                            Console.Write("I");
+                            if (IPERC % 20 == 0 && locker == 0)
                             {
-                                using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                Interlocked.Increment(ref locker);
+                                try
                                 {
-                                    if (ISTATIONAER == Consts.TransientMode)
+                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
                                     {
-                                        sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
-                                    }
-                                    else
-                                    {
-                                        sr.Write(IPERC.ToString());
+                                        if (ISTATIONAER == Consts.TransientMode)
+                                        {
+                                            sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
+                                        }
+                                        else
+                                        {
+                                            sr.Write(IPERC.ToString());
+                                        }
                                     }
                                 }
+                                catch { }
+                                Interlocked.Decrement(ref locker);
                             }
-                            catch { }
-                            Interlocked.Decrement(ref locker);
                         }
                     }
                     Zeitschleife.Calculate(nteil);
@@ -1236,23 +1238,25 @@ namespace GRAL_2001
                     Interlocked.Increment(ref advancenss);
                     if (advancenss > percent10nss)
                     {
-                        Interlocked.Exchange(ref advancenss, 0); // set advance to 0
-                        Interlocked.Add(ref IPERCnss, 10);
-                        if (IPERCnss < 100)
+                        if (Interlocked.Exchange(ref advancenss, 0) > advancenss) // set advance to 0
                         {
-                            Console.Write("X");
-                            if (IPERCnss % 20 == 0 && locker == 0)
+                            Interlocked.Add(ref IPERCnss, 10);
+                            if (IPERCnss < 100)
                             {
-                                Interlocked.Increment(ref locker);
-                                try
+                                Console.Write("X");
+                                if (IPERCnss % 20 == 0 && locker == 0)
                                 {
-                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                    Interlocked.Increment(ref locker);
+                                    try
                                     {
-                                        sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                        using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                        {
+                                            sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                        }
                                     }
+                                    catch { }
+                                    Interlocked.Decrement(ref locker);
                                 }
-                                catch { }
-                                Interlocked.Decrement(ref locker);
                             }
                         }
                     }
