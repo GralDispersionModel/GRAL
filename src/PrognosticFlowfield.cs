@@ -201,10 +201,11 @@ namespace GRAL_2001
                 for (int j = 1; j <= NJJ; ++j)
                 {
                     float[] DPM_L = Program.DPM[i][j];
-                    for (int k = 1; k <= NKK + 1; ++k)
-                    {
-                        DPM_L[k] = 0;
-                    }
+                    Array.Clear(DPM_L);
+                    // for (int k = 1; k <= NKK + 1; ++k)
+                    // {
+                    //     DPM_L[k] = 0;
+                    // }
                 }
             });
 
@@ -218,11 +219,13 @@ namespace GRAL_2001
                         float[] TDISS_L;
                         TURB_L = Program.TURB[i][j];
                         TDISS_L = Program.TDISS[i][j];
-                        for (int k = 1; k <= NKK + 1; ++k)
-                        {
-                            TURB_L[k] = 0.001F;
-                            TDISS_L[k] = 0.0000001F;
-                        }
+                        Array.Fill(TURB_L, 0.001F);
+                        Array.Fill(TDISS_L, 0.0000001F);
+                        // for (int k = 1; k <= NKK + 1; ++k)
+                        // {
+                        //     TURB_L[k] = 0.001F;
+                        //     TDISS_L[k] = 0.0000001F;
+                        // }
                     }
                 });
             }
