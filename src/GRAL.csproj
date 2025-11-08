@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <VersionPrefix>24.11.2</VersionPrefix>
+    <TargetFramework>net10.0</TargetFramework>
+    <VersionPrefix>25.11.1</VersionPrefix>
     <Authors>Dietmar Oettl;Markus Kuntner</Authors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
@@ -18,7 +18,7 @@
     <DOTNET_EnableDiagnostics>false</DOTNET_EnableDiagnostics>
     <DOTNET_ENABLE_PROFILING>false</DOTNET_ENABLE_PROFILING>
     <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
-    <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
+    <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
     <DebugType>embedded</DebugType>
     <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
     <!-- 
