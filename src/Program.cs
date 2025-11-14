@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 25.11Beta1       < <   +";
+            string Info =     "+  > >         G R A L VERSION: 24.11            < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -76,10 +76,8 @@ namespace GRAL_2001
             Console.WriteLine("|                   .NET6 Version                      |");
 #elif NET7_0
             Console.WriteLine("|                   .NET7 Version                      |");
-#elif NET8_0
+#elif NET8_0_OR_GREATER
             Console.WriteLine("|                   .NET8 Version                      |");
-#elif NET10_0_OR_GREATER
-            Console.WriteLine("|                  .NET10 Version                      |");
 #else
             Console.WriteLine("|                 .Net Core Version                    |");
 #endif
@@ -160,6 +158,13 @@ namespace GRAL_2001
 
             //reading main control file in.dat
             ReaderClass.ReadInDat();
+            //override first weather situation when using a command line argument for the 1st and last weather situation
+            if (IWETstartstop.Start > 0)
+            {
+                IWETstart = IWETstartstop.Start;
+                ProgramWriters.LogfileGralCoreWrite("Performing calculation between weather situations " + IWETstartstop.Start + " to " + IWETstartstop.End);
+            }
+
             //total number of particles released for each weather situation
             NTEILMAX = (int)(TAUS * TPS);
             //Volume of the GRAL concentration grid
@@ -473,10 +478,13 @@ namespace GRAL_2001
                 {
                     break; // reached last line in mettimeseries -> exit loop				
                 }
-
                 if (IEND == Consts.CalculationFinished)
                 {
                     break; // reached last line in meteopgt.all ->  exit loop
+                }
+                if (IWET > IWETstartstop.End)
+                {
+                    break; // reached last weather situation from console command line input
                 }
 
                 String WindfieldPath = ReadWindfeldTXT();
