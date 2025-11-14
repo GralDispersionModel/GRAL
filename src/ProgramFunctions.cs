@@ -347,7 +347,7 @@ namespace GRAL_2001
                     Directory.SetCurrentDirectory(args[0]);
                     _off = 1;
                 }
-                else if (!args[0].Contains("LOGLEVEL"))
+                else if (!args[0].Contains("LOGLEVEL") || !args[0].Contains("SimSpan"))
                 {
                     string err = "! The command line argument is not a valid directory: " + args[0];
                     Console.WriteLine(err);
@@ -356,26 +356,40 @@ namespace GRAL_2001
                     Console.WriteLine(err);
                     ProgramWriters.LogfileGralCoreWrite(err);
                 }
-                if (args.Length > _off) // additional arguments
+
+                while (args.Length > _off) // additional arguments
                 {
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL01") == true) // Loglevel 1
+                    if (args[_off].ToUpper().Contains("LOGLEVEL01") == true) // Loglevel 1
                     {
                         LogLevel = 1;
                         Console.WriteLine("LOGLEVEL01");
                         Console.WriteLine("");
                     }
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL02") == true) // Loglevel 2
+                    if (args[_off].ToUpper().Contains("LOGLEVEL02") == true) // Loglevel 2
                     {
                         LogLevel = 2;
                         Console.WriteLine("LOGLEVEL02");
                         Console.WriteLine("");
                     }
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL03") == true) // Loglevel 3
+                    if (args[_off].ToUpper().Contains("LOGLEVEL03") == true) // Loglevel 3
                     {
                         LogLevel = 3;
                         Console.WriteLine("LOGLEVEL03");
                         Console.WriteLine("");
                     }
+                    if (args[_off].ToUpper().Contains("SIMSPAN") == true) // Start and end directory
+                    {
+                        string[] parameters = args[_off].Split(':');
+                        if (int.TryParse(parameters[1], out int start) && int.TryParse(parameters[2], out int end))
+                        {
+                            if (end >= start && start > 0)
+                            {
+                                IWETstartstop = new IWetSpan(start, end);
+                                Console.WriteLine("First and final weather situation from command line: " + start + " / " + end);
+                            }
+                        }
+                    }
+                    _off++;
                 }
             }
             return LogLevel;
@@ -927,7 +941,7 @@ namespace GRAL_2001
             });
 
             ConzSumCounter++; // increase number of SumCounter;
-            if (IWET % TransientTempFileInterval == 0) // each TransientTempFileInterval (default 24) situations -> store arrays temporarily
+            if (IWET % TransientTempFileInterval == 0 && IWETstartstop.Start != 0) // each TransientTempFileInterval (default 24) situations but not if there are multiple instances -> store arrays temporarily 
             {
                 if (WriteVerticalConcentration) // write concentration array
                 {
@@ -1129,7 +1143,7 @@ namespace GRAL_2001
                         {
                             Interlocked.Add(ref IPERC, 10);
                             Console.Write("I");
-                            if (IPERC % 20 == 0 && locker == 0)
+                            if (IPERC % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
                             {
                                 Interlocked.Increment(ref locker);
                                 try
@@ -1244,7 +1258,7 @@ namespace GRAL_2001
                             if (IPERCnss < 100)
                             {
                                 Console.Write("X");
-                                if (IPERCnss % 20 == 0 && locker == 0)
+                                if (IPERCnss % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
                                 {
                                     Interlocked.Increment(ref locker);
                                     try
