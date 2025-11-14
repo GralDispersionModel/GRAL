@@ -11,6 +11,7 @@
 #endregion
 
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -326,7 +327,12 @@ namespace GRAL_2001
         {
             try
             {
-                using (StreamWriter sw = new StreamWriter("Logfile_GRALCore.txt", true))
+                String filename = "Logfile_GRALCore.txt";
+                if (Program.IWETstartstop.Start > 1) // use a new file for each simultaneously running instance of GRAL
+                {
+                    filename = "Logfile_GRALCore" + Program.IWETstartstop.ToString() + ".txt";
+                }
+                using (StreamWriter sw = new StreamWriter(filename, true))
                 {
                     sw.WriteLine(a);
                     sw.Flush();
