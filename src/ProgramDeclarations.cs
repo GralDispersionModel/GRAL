@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Globalization;
+using static GRAL_2001.Program.DeterministicRandomGenerator;
 
 namespace GRAL_2001
 {
@@ -238,6 +239,10 @@ namespace GRAL_2001
         ///Number of dispersion situation from which onward the simulation will be launched
         ///</summary>
         public static int IWETstart = 1;
+        //<summary>
+        ///Number of first and last dispersion situation for the calculation from the command line input
+        ///</summary>
+        public static IWetSpan IWETstartstop = new IWetSpan();
         ///<summary>
         ///Number of cells near the walls of obstacles for which a boundary layer is computed in the diagnostic flow-field approach
         ///</summary>
@@ -1334,6 +1339,35 @@ namespace GRAL_2001
             /// Seed 2
             ///</summary>
             public uint Seed2 { get; }
+        }
+        
+        ///<summary>
+        ///Number of dispersion situation at which the simulation is started and terminated from the console input
+        ///</summary>
+        public readonly struct IWetSpan
+        {
+            /// <summary>
+            /// Start and Stop values for an instance
+            /// </summary>
+            /// <param name="start">firts situation to be calculated</param>
+            /// <param name="end">final situation to be calculated</param>
+            public IWetSpan(int start, int end)
+            {
+                Start = start;
+                End = end;
+            }
+            /// <summary>
+            /// Default values for 1 instance
+            /// </summary>
+            public IWetSpan()
+            {
+                Start = 0;
+                End = int.MaxValue;
+            }
+            public int Start { get; init; }
+            public int End { get; init; }
+
+            public override string ToString() => $"({Start}_{End})";
         }
     }
 }
