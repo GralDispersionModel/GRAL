@@ -14,7 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Globalization;
-using static GRAL_2001.Program.DeterministicRandomGenerator;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -1264,7 +1264,12 @@ namespace GRAL_2001
         /// Deposition velocity factors within vegetation areas
         ///</summary>
         public static VegetationDepoVel VegetationDepoVelFactors = new VegetationDepoVel(1.5F, 3);
-
+#nullable enable
+        ///<summary>
+        /// Nullable Mutex variable for the syncronization of multiple GRAL instances 
+        ///</summary>
+        public static Mutex? SyncWithMutex; // define nullable mutex variable
+#nullable disable
         ///<summary>
         /// Use Vector512 class?
         ///</summary>

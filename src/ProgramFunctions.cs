@@ -15,6 +15,7 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 namespace GRAL_2001
@@ -155,6 +156,29 @@ namespace GRAL_2001
                     {
                         File.Delete("Vertical_Concentrations.tmp");
                     }
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>
+        /// Delete receptor concentration files
+        /// </summary>
+        private static void DeleteReceptorConcentrationFiles()
+        {
+            if (File.Exists("ReceptorConcentrations.dat"))
+            {
+                try
+                {
+                    File.Delete("ReceptorConcentrations.dat");
+                }
+                catch { }
+            }
+            if (File.Exists("Receptor_Timeseries_Transient.txt"))
+            {
+                try
+                {
+                    File.Delete("Receptor_Timeseries_Transient.txt");
                 }
                 catch { }
             }
@@ -377,7 +401,7 @@ namespace GRAL_2001
                         Console.WriteLine("LOGLEVEL03");
                         Console.WriteLine("");
                     }
-                    if (args[_off].ToUpper().Contains("SIMSPAN") == true) // Start and end directory
+                    if (args[_off].ToUpper().Contains("SITUATIONS:") == true) // Start and end directory
                     {
                         string[] parameters = args[_off].Split(':');
                         if (int.TryParse(parameters[1], out int start) && int.TryParse(parameters[2], out int end))
@@ -386,6 +410,11 @@ namespace GRAL_2001
                             {
                                 IWETstartstop = new IWetSpan(start, end);
                                 Console.WriteLine("First and final weather situation from command line: " + start + " / " + end);
+
+                                // set the mutex for the syncronization of multiple GRAL instances 
+                                long folder = CalcSumOfChars(Directory.GetCurrentDirectory()); // use the character sum of the project folder as name
+                                string mutexId = string.Format("Global\\GRAL{{{0}}}", folder); // define a global mutex
+                                SyncWithMutex = OpenOrCreateMutex(mutexId);
                             }
                         }
                     }
@@ -393,6 +422,36 @@ namespace GRAL_2001
                 }
             }
             return LogLevel;
+        }
+
+        /// <summary>
+        /// Create or open a Mutex for sync with multiple instances of GRAL
+        /// </summary>
+        /// <param MutexName ="Sting to identify the Mutex"></param>
+        /// <returns>A Mutex</returns>
+        private static Mutex OpenOrCreateMutex(string MutexName)
+        {
+            for (int retry = 0; retry < 10; retry++) // try Mutex creation multpilpe times
+            {
+                if (Mutex.TryOpenExisting(MutexName, out var existingMutex)) //use existing mutex if another instance is already running
+                {
+                    return existingMutex;
+                }
+                else
+                {
+                    try
+                    {
+                        return new Mutex(false, MutexName); //create a new global mutex
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        //possible race condition -> retry
+                        continue;
+                    }
+                }
+            }
+            // no Mutex created
+            return null;
         }
 
         /// <summary>
@@ -941,7 +1000,7 @@ namespace GRAL_2001
             });
 
             ConzSumCounter++; // increase number of SumCounter;
-            if (IWET % TransientTempFileInterval == 0 && IWETstartstop.Start != 0) // each TransientTempFileInterval (default 24) situations but not if there are multiple instances -> store arrays temporarily 
+            if (IWET % TransientTempFileInterval == 0 && IWETstartstop.Start == 0) // each TransientTempFileInterval (default 24) situations but not if there are multiple instances -> store arrays temporarily 
             {
                 if (WriteVerticalConcentration) // write concentration array
                 {
@@ -1291,6 +1350,20 @@ namespace GRAL_2001
                 });
                 Console.Write("X");
             }
+        }
+        /// <summary>
+        /// This function takes a string as input and returns the sum of the ascii values of the string
+        /// </summary>
+        /// <param name="inputString">The input string to be processed</param>
+        /// <returns>sum of the ascii values of the string</returns>
+        private static long CalcSumOfChars(string inputString)
+        {
+            long sum = 0;
+            for (int i = 0; i < inputString.Length; i++)
+            {
+                sum += (long)inputString[i] * i;
+            }
+            return sum + inputString.Length;
         }
     }
     /// <summary>
