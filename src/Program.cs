@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 26.01            < <   +";
+            string Info =     "+  > >         G R A L VERSION: 26.01Beta1       < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -507,16 +507,17 @@ namespace GRAL_2001
                 }
                 else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
                 {
-                    //GUI output
-                    try
+                    if (Program.IWETstartstop.Start < 2) // //GUI status output for the 1st instance only
                     {
-                        using (StreamWriter wr = new StreamWriter("DispNr.txt"))
+                        try
                         {
-                            wr.WriteLine(IWET.ToString());
+                            using (StreamWriter wr = new StreamWriter("DispNr.txt"))
+                            {
+                                wr.WriteLine(IWET.ToString());
+                            }
                         }
+                        catch { }
                     }
-                    catch { }
-
                     //Topography mode -> read GRAMM stability classes
                     if (Topo == Consts.TerrainAvailable)
                     {
@@ -756,7 +757,7 @@ namespace GRAL_2001
                     ThreadWrite2DConcentrationFiles = new Thread(() => WriteClass.Write2DConcentrations(recentWeatherSituation, ZippedFile));
                     ThreadWrite2DConcentrationFiles.Start(); // start writing thread
 
-                    if (SyncWithMutex != null && SyncWithMutex.WaitOne(1000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 1000 ms.
+                    if (SyncWithMutex != null && SyncWithMutex.WaitOne(2000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 2000 ms.
                     {
                         //receptor concentrations
                         if (ISTATIONAER == Consts.TransientMode)
@@ -816,7 +817,7 @@ namespace GRAL_2001
             if (Program.ReceptorsAvailable)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
-                if (SyncWithMutex != null && SyncWithMutex.WaitOne(1000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 1000 ms.
+                if (SyncWithMutex != null && SyncWithMutex.WaitOne(2000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 2000 ms.
                 {
                     WriteClass.WriteReceptorTimeseries(1);
                     SyncWithMutex.ReleaseMutex(); // release the mutex
