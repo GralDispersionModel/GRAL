@@ -691,6 +691,14 @@ namespace GRAL_2001
         ///</summary>
         public static int[] PS_TimeSeriesVelocity = new int[1];
         ///<summary>
+        ///Horizontal exit velocity
+        ///</summary>
+        public static float[] PS_HorExitVel = new float[1];
+        ///<summary>
+        ///Horizontal exit direction
+        ///</summary>
+        public static float[] PS_HorExitDir = new float[1];
+        ///<summary>
         ///All Columns for the Exit Temperature Time Series
         ///</summary>
         public static List<TimeSeriesColumn> PS_TimeSerTempValues;
