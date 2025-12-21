@@ -388,6 +388,10 @@ namespace GRAL_2001
                     zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                     horPSExitVertical = 2 * 8 * exrnd * Math.Sign(zahl1); // vertical spread in %, keep center particles in the center, border particles on the border
                     horPSExitDistance = 0.1F; // start value
+                    // new start corrdinates for the particles
+                    xcoord_nteil += Program.PS_D[Kenn_NTeil] * 0.5 * Math.Cos(Program.PS_HorExitDir[Kenn_NTeil] * MathF.PI / 180) * exrnd;
+                    ycoord_nteil += Program.PS_D[Kenn_NTeil] * 0.5 * Math.Sin(Program.PS_HorExitDir[Kenn_NTeil] * MathF.PI / 180) * exrnd;
+                    zcoord_nteil = MathF.Max(0.1F, zcoord_nteil + Program.PS_D[Kenn_NTeil] * 0.5F * zahl1 * 0.7F);
                 }
             }
 
@@ -898,7 +902,7 @@ namespace GRAL_2001
                     float plumevelocity;
                     if (horPSExitDistance <= psDiameter * 10) //core and transition zone
                     {
-                        plumevelocity = horPSExitVelocity * 0.48F / (0.25F * horPSExitDistance / psDiameter + 0.145F); // high turbulence factor of 0.25
+                        plumevelocity = horPSExitVelocity * 0.48F / (0.2F * horPSExitDistance / psDiameter + 0.145F); // high turbulence factor of 0.2
                         if (plumevelocity < horPSExitVelocity)
                         {
                             plumevelocity *= horPSExitRnd; //gaussian pdf 
@@ -910,7 +914,7 @@ namespace GRAL_2001
                     }
                     else // decrease horizontal flow when leaving the transition zone
                     {
-                        plumevelocity = horPSExitVelocity * 0.48F / (0.25F * horPSExitDistance / psDiameter + 0.145F) * psDiameter * psDiameter * 100 / (horPSExitDistance * horPSExitDistance) ; //additional decay by the square of the distance
+                        plumevelocity = horPSExitVelocity * 0.48F / (0.2F * horPSExitDistance / psDiameter + 0.145F) * psDiameter * psDiameter * 100 / (horPSExitDistance * horPSExitDistance) ; //additional decay by the square of the distance
                     }
                     horPSExitDistance += plumevelocity * idt;
                     if (plumevelocity > 0.3F) // otherwise terminate horizontal flow
