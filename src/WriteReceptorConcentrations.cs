@@ -51,7 +51,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        //header.Add("0"); // add 0 in the case of an error
+                                        //header.Add(" "); // add space in the case of an error
                                     }
                                 }
 
@@ -63,7 +63,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        content.Add("0");
+                                        content.Add(" ");
                                     }
                                 }                                
                             }
@@ -83,7 +83,7 @@ namespace GRAL_2001
                         int i = content.Count;
                         for (; i < Program.IWET; i++)
                         {
-                            content.Add("0");
+                            content.Add(" ");
                         }
                     }
                     // new line
@@ -167,7 +167,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        inhalt.Add("0");
+                                        inhalt.Add(" ");
                                     }
                                 }
                             }
@@ -181,7 +181,7 @@ namespace GRAL_2001
                         int i = inhalt.Count;
                         for (; i < Program.IWET; i++)
                         {
-                            inhalt.Add("0");
+                            inhalt.Add(" ");
                         }
                     }
 
@@ -445,7 +445,7 @@ namespace GRAL_2001
                                 }
                                 catch
                                 {
-                                    //content.Add("0");
+                                    //content.Add(" ");
                                 }
 
                                 for (int ianz = 1; ianz <= Program.IWET; ianz++)
@@ -456,7 +456,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        content.Add("0"); // add 0 if a user continues with a later weather situations
+                                        content.Add(" "); // add 0 if a user continues with a later weather situations
                                     }
                                 }
                             }
