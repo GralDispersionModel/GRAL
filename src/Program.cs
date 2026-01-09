@@ -66,7 +66,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 26.01Beta1       < <   +";
+            string Info =     "+  > >         G R A L Version 26.01             < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -76,8 +76,10 @@ namespace GRAL_2001
             Console.WriteLine("|                   .NET6 Version                      |");
 #elif NET7_0
             Console.WriteLine("|                   .NET7 Version                      |");
-#elif NET8_0_OR_GREATER
+#elif NET8_0
             Console.WriteLine("|                   .NET8 Version                      |");
+#elif NET10_0_OR_GREATER
+            Console.WriteLine("|                  .NET10 Version                      |");
 #else
             Console.WriteLine("|                 .Net Core Version                    |");
 #endif
