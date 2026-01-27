@@ -28,6 +28,7 @@ namespace GRAL_2001
         /// <param name="ycoord">Particle y position</param>
         /// <param name="zcoord">Particle z position</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [SkipLocalsInit]
         public static (float, float, float, int) IntWindCalculate(int IndexI, int IndexJ, float AHint, double xcoord, double ycoord, float zcoord)
         {
             float DXK = Program.DXK;
@@ -158,6 +159,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="Height">Height to compare with HOKART[]</param> 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [SkipLocalsInit]
         public static int BinarySearch(float Height)
         {
             int nkk = Program.NKK;
