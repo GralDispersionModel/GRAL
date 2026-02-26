@@ -265,15 +265,16 @@ namespace GRAL_2001
                             data = myReader.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
                             for (int i = 0; i < nx; i++)
                             {
-                                BuildingHeights[i][j] = Convert.ToSingle(data[i], ic);
-                                if (BuildingHeights[i][j] > 0)
+                                float val = Convert.ToSingle(data[i], ic);
+                                if (val < 0) val = 0;                       // clamp negatives as before
+
+                                BuildingHeights[i + 1][j + 1] = val;        // <<< minimal, critical change (+1,+1)
+
+                                if (val > 0)
                                 {
                                     block++;
                                 }
-                                else if (BuildingHeights[i][j] < 0)
-                                {
-                                    BuildingHeights[i][j] = 0;
-                                }
+
                             }
                         }
                     }
@@ -285,6 +286,7 @@ namespace GRAL_2001
 
                     if (block > 0)
                     {
+                        Program.BuildingsExist = true;                       // <<< I added this
                         CalculateSubDomainsForPrognosticWindSimulation();
                         return true;
                     }
