@@ -12,8 +12,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -238,6 +239,10 @@ namespace GRAL_2001
         ///Number of dispersion situation from which onward the simulation will be launched
         ///</summary>
         public static int IWETstart = 1;
+        //<summary>
+        ///Number of first and last dispersion situation for the calculation from the command line input
+        ///</summary>
+        public static IWetSpan IWETstartstop = new IWetSpan();
         ///<summary>
         ///Number of cells near the walls of obstacles for which a boundary layer is computed in the diagnostic flow-field approach
         ///</summary>
@@ -685,6 +690,14 @@ namespace GRAL_2001
         ///Index to time series file column
         ///</summary>
         public static int[] PS_TimeSeriesVelocity = new int[1];
+        ///<summary>
+        ///Horizontal exit velocity
+        ///</summary>
+        public static float[] PS_HorExitVel = new float[1];
+        ///<summary>
+        ///Horizontal exit direction
+        ///</summary>
+        public static float[] PS_HorExitDir = new float[1];
         ///<summary>
         ///All Columns for the Exit Temperature Time Series
         ///</summary>
@@ -1259,7 +1272,12 @@ namespace GRAL_2001
         /// Deposition velocity factors within vegetation areas
         ///</summary>
         public static VegetationDepoVel VegetationDepoVelFactors = new VegetationDepoVel(1.5F, 3);
-
+#nullable enable
+        ///<summary>
+        /// Nullable Mutex variable for the syncronization of multiple GRAL instances 
+        ///</summary>
+        public static Mutex? SyncWithMutex; // define nullable mutex variable
+#nullable disable
         ///<summary>
         /// Use Vector512 class?
         ///</summary>
@@ -1334,6 +1352,35 @@ namespace GRAL_2001
             /// Seed 2
             ///</summary>
             public uint Seed2 { get; }
+        }
+        
+        ///<summary>
+        ///Number of dispersion situation at which the simulation is started and terminated from the console input
+        ///</summary>
+        public readonly struct IWetSpan
+        {
+            /// <summary>
+            /// Start and Stop values for an instance
+            /// </summary>
+            /// <param name="start">firts situation to be calculated</param>
+            /// <param name="end">final situation to be calculated</param>
+            public IWetSpan(int start, int end)
+            {
+                Start = start;
+                End = end;
+            }
+            /// <summary>
+            /// Default values for 1 instance
+            /// </summary>
+            public IWetSpan()
+            {
+                Start = 0;
+                End = int.MaxValue;
+            }
+            public int Start { get; init; }
+            public int End { get; init; }
+
+            public override string ToString() => $"({Start}_{End})";
         }
     }
 }

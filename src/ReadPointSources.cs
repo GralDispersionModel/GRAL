@@ -68,7 +68,20 @@ namespace GRAL_2001
                                     sd.Y1 = Convert.ToDouble(text[1].Replace(".", Program.Decsep));
                                     sd.Z1 = Convert.ToSingle(text[2].Replace(".", Program.Decsep));
                                     sd.ER = Convert.ToDouble(text[3].Replace(".", Program.Decsep));
-                                    sd.V = Convert.ToSingle(text[7].Replace(".", Program.Decsep));
+                                    string[] subText = text[7].Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (subText.Length > 0) // horizontal point source
+                                    {
+                                        sd.V = Convert.ToSingle(subText[0].Replace(".", Program.Decsep));
+                                        if (subText.Length > 2) // horizontal point source
+                                        {
+                                            sd.HorizontalExitVel = Convert.ToSingle(subText[1].Replace(".", Program.Decsep));
+                                            sd.HorizontalExitDir = Convert.ToSingle(subText[2].Replace(".", Program.Decsep));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        sd.V = Convert.ToSingle(text[7].Replace(".", Program.Decsep));
+                                    }
                                     sd.D = Convert.ToSingle(text[8].Replace(".", Program.Decsep));
                                     sd.T = Convert.ToSingle(text[9].Replace(".", Program.Decsep));
                                     sd.SG = Convert.ToInt16(text[10]);
@@ -141,6 +154,8 @@ namespace GRAL_2001
             Program.PS_Absolute_Height = GC.AllocateUninitializedArray<bool>(counter);
             Program.PS_TimeSeriesTemperature = GC.AllocateUninitializedArray<int>(counter);
             Program.PS_TimeSeriesVelocity = GC.AllocateUninitializedArray<int>(counter);
+            Program.PS_HorExitVel = GC.AllocateUninitializedArray<float>(counter);
+            Program.PS_HorExitDir = GC.AllocateUninitializedArray<float>(counter);
 
             for (int i = 1; i < PQ.Count; i++)
             {
@@ -184,6 +199,8 @@ namespace GRAL_2001
                 Program.PS_ER_Dep[i] = (float)(PQ[i].ER_dep);
                 Program.PS_TimeSeriesTemperature[i] = PQ[i].TimeSeriesTemperature;
                 Program.PS_TimeSeriesVelocity[i] = PQ[i].TimeSeriesVelocity;
+                Program.PS_HorExitVel[i] = PQ[i].HorizontalExitVel;
+                Program.PS_HorExitDir[i] = PQ[i].HorizontalExitDir;
             }
 
             string info = "Total number of point sources: " + countrealsources.ToString();

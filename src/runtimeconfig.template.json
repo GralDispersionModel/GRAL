@@ -2,7 +2,9 @@
     "runtimeOptions": {
         "configProperties": 
         {
-            "Thread_UseAllCpuGroups enabled": true
+            "Thread_UseAllCpuGroups enabled": true,
+            "System.GC.CpuGroup": true,
+            "System.GC.DynamicAdaptationMode": false
         }
      }    
 }

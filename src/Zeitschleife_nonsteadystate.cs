@@ -11,10 +11,8 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Linq;
 
 namespace GRAL_2001
 {
@@ -92,17 +90,17 @@ namespace GRAL_2001
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
             u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
-            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.25 + u1_rg * 0.5) * Program.DXK;
+            double xcoord_nteil = Program.IKOOAGRAL + i * Program.DXK - (0.5 + u1_rg * 0.5) * Program.DXK;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
             u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
-            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.25 + u1_rg * 0.5) * Program.DYK;
+            double ycoord_nteil = Program.JKOOAGRAL + j * Program.DYK - (0.5 + u1_rg * 0.5) * Program.DYK;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
             u1_rg = -1 + (u_rg + 1) * RNG_Const * 2; // -1 to +1
-            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.3 + u1_rg * 0.5) * Program.DZK_Trans[k]);
+            float zcoord_nteil = (float)(Program.AHK[i][j] + Program.HoKartTrans[k] - (0.5 + u1_rg * 0.4) * Program.DZK_Trans[k]);
 
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
             double Vol_cart = Program.DXK * Program.DYK * Program.DZK_Trans[k];

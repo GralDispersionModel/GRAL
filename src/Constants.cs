@@ -10,9 +10,6 @@
 ///</remarks>
 #endregion
 
-using System;
-using System.Runtime.CompilerServices;
-
 namespace GRAL_2001
 {
     class Consts

@@ -92,4 +92,12 @@ public class SourceData
     /// Reference index to a column in a velocity time series file 
     /// </summary>
     public int TimeSeriesVelocity { get; set; }          // Reference index to a column in a velocity time series file 
+    /// <summary>
+    /// Horizontal exit velocities of point sources
+    /// </summary>
+    public float HorizontalExitVel { get; set; }
+    /// <summary>
+    /// Direction of horizontal exit of point sources
+    /// </summary>
+    public float HorizontalExitDir { get; set; }
 }

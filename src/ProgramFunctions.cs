@@ -161,6 +161,29 @@ namespace GRAL_2001
         }
 
         /// <summary>
+        /// Delete receptor concentration files
+        /// </summary>
+        private static void DeleteReceptorConcentrationFiles()
+        {
+            if (File.Exists("ReceptorConcentrations.dat"))
+            {
+                try
+                {
+                    File.Delete("ReceptorConcentrations.dat");
+                }
+                catch { }
+            }
+            if (File.Exists("Receptor_Timeseries_Transient.txt"))
+            {
+                try
+                {
+                    File.Delete("Receptor_Timeseries_Transient.txt");
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>
         /// Output for logging level 01
         /// </summary>
         private static void LOG01_Output()
@@ -347,7 +370,7 @@ namespace GRAL_2001
                     Directory.SetCurrentDirectory(args[0]);
                     _off = 1;
                 }
-                else if (!args[0].Contains("LOGLEVEL"))
+                else if (!args[0].Contains("LOGLEVEL") || !args[0].Contains("SimSpan"))
                 {
                     string err = "! The command line argument is not a valid directory: " + args[0];
                     Console.WriteLine(err);
@@ -356,29 +379,78 @@ namespace GRAL_2001
                     Console.WriteLine(err);
                     ProgramWriters.LogfileGralCoreWrite(err);
                 }
-                if (args.Length > _off) // additional arguments
+
+                while (args.Length > _off) // additional arguments
                 {
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL01") == true) // Loglevel 1
+                    if (args[_off].ToUpper().Contains("LOGLEVEL01") == true) // Loglevel 1
                     {
                         LogLevel = 1;
                         Console.WriteLine("LOGLEVEL01");
                         Console.WriteLine("");
                     }
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL02") == true) // Loglevel 2
+                    if (args[_off].ToUpper().Contains("LOGLEVEL02") == true) // Loglevel 2
                     {
                         LogLevel = 2;
                         Console.WriteLine("LOGLEVEL02");
                         Console.WriteLine("");
                     }
-                    if (args[0 + _off].ToUpper().Contains("LOGLEVEL03") == true) // Loglevel 3
+                    if (args[_off].ToUpper().Contains("LOGLEVEL03") == true) // Loglevel 3
                     {
                         LogLevel = 3;
                         Console.WriteLine("LOGLEVEL03");
                         Console.WriteLine("");
                     }
+                    if (args[_off].ToUpper().Contains("SITUATIONS:") == true) // Start and end directory
+                    {
+                        string[] parameters = args[_off].Split(':');
+                        if (int.TryParse(parameters[1], out int start) && int.TryParse(parameters[2], out int end))
+                        {
+                            if (end >= start && start > 0)
+                            {
+                                IWETstartstop = new IWetSpan(start, end);
+                                Console.WriteLine("First and final weather situation from command line: " + start + " / " + end);
+
+                                // set the mutex for the syncronization of multiple GRAL instances 
+                                long folder = CalcSumOfChars(Directory.GetCurrentDirectory()); // use the character sum of the project folder as name
+                                string mutexId = string.Format("Global\\GRAL{{{0}}}", folder); // define a global mutex
+                                SyncWithMutex = OpenOrCreateMutex(mutexId);
+                            }
+                        }
+                    }
+                    _off++;
                 }
             }
             return LogLevel;
+        }
+
+        /// <summary>
+        /// Create or open a Mutex for sync with multiple instances of GRAL
+        /// </summary>
+        /// <param MutexName ="Sting to identify the Mutex"></param>
+        /// <returns>A Mutex</returns>
+        private static Mutex OpenOrCreateMutex(string MutexName)
+        {
+            for (int retry = 0; retry < 10; retry++) // try Mutex creation multpilpe times
+            {
+                if (Mutex.TryOpenExisting(MutexName, out var existingMutex)) //use existing mutex if another instance is already running
+                {
+                    return existingMutex;
+                }
+                else
+                {
+                    try
+                    {
+                        return new Mutex(false, MutexName); //create a new global mutex
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        //possible race condition -> retry
+                        continue;
+                    }
+                }
+            }
+            // no Mutex created
+            return null;
         }
 
         /// <summary>
@@ -927,7 +999,7 @@ namespace GRAL_2001
             });
 
             ConzSumCounter++; // increase number of SumCounter;
-            if (IWET % TransientTempFileInterval == 0) // each TransientTempFileInterval (default 24) situations -> store arrays temporarily
+            if (IWET % TransientTempFileInterval == 0 && IWETstartstop.Start == 0) // each TransientTempFileInterval (default 24) situations but not if there are multiple instances -> store arrays temporarily 
             {
                 if (WriteVerticalConcentration) // write concentration array
                 {
@@ -1125,28 +1197,30 @@ namespace GRAL_2001
                     Interlocked.Increment(ref advance);
                     if (advance > percent10)
                     {
-                        Interlocked.Exchange(ref advance, 0); // set advance to 0
-                        Interlocked.Add(ref IPERC, 10);
-                        Console.Write("I");
-                        if (IPERC % 20 == 0 && locker == 0)
+                        if (Interlocked.Exchange(ref advance, 0) > advance)  // set advance to 0
                         {
-                            Interlocked.Increment(ref locker);
-                            try
+                            Interlocked.Add(ref IPERC, 10);
+                            Console.Write("I");
+                            if (IPERC % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
                             {
-                                using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                Interlocked.Increment(ref locker);
+                                try
                                 {
-                                    if (ISTATIONAER == Consts.TransientMode)
+                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
                                     {
-                                        sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
-                                    }
-                                    else
-                                    {
-                                        sr.Write(IPERC.ToString());
+                                        if (ISTATIONAER == Consts.TransientMode)
+                                        {
+                                            sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
+                                        }
+                                        else
+                                        {
+                                            sr.Write(IPERC.ToString());
+                                        }
                                     }
                                 }
+                                catch { }
+                                Interlocked.Decrement(ref locker);
                             }
-                            catch { }
-                            Interlocked.Decrement(ref locker);
                         }
                     }
                     Zeitschleife.Calculate(nteil);
@@ -1236,23 +1310,25 @@ namespace GRAL_2001
                     Interlocked.Increment(ref advancenss);
                     if (advancenss > percent10nss)
                     {
-                        Interlocked.Exchange(ref advancenss, 0); // set advance to 0
-                        Interlocked.Add(ref IPERCnss, 10);
-                        if (IPERCnss < 100)
+                        if (Interlocked.Exchange(ref advancenss, 0) > advancenss) // set advance to 0
                         {
-                            Console.Write("X");
-                            if (IPERCnss % 20 == 0 && locker == 0)
+                            Interlocked.Add(ref IPERCnss, 10);
+                            if (IPERCnss < 100)
                             {
-                                Interlocked.Increment(ref locker);
-                                try
+                                Console.Write("X");
+                                if (IPERCnss % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
                                 {
-                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                    Interlocked.Increment(ref locker);
+                                    try
                                     {
-                                        sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                        using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                        {
+                                            sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                        }
                                     }
+                                    catch { }
+                                    Interlocked.Decrement(ref locker);
                                 }
-                                catch { }
-                                Interlocked.Decrement(ref locker);
                             }
                         }
                     }
@@ -1273,6 +1349,20 @@ namespace GRAL_2001
                 });
                 Console.Write("X");
             }
+        }
+        /// <summary>
+        /// This function takes a string as input and returns the sum of the ascii values of the string
+        /// </summary>
+        /// <param name="inputString">The input string to be processed</param>
+        /// <returns>sum of the ascii values of the string</returns>
+        private static long CalcSumOfChars(string inputString)
+        {
+            long sum = 0;
+            for (int i = 0; i < inputString.Length; i++)
+            {
+                sum += (long)inputString[i] * i;
+            }
+            return sum + inputString.Length;
         }
     }
     /// <summary>

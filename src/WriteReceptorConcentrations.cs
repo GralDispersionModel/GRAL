@@ -32,16 +32,30 @@ namespace GRAL_2001
                 {
                     CultureInfo ic = CultureInfo.InvariantCulture;
                     List<string> content = new List<string>();
+                    List<string> header = new List<string>();
 
                     // read existing header and concentration data
-                    if (Program.IWET > 1 && File.Exists("ReceptorConcentrations.dat"))
+                    if (File.Exists("ReceptorConcentrations.dat" /*&& Program.IWET > 1*/))
                     {
                         using (FileStream wr = new FileStream("ReceptorConcentrations.dat", FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
                             using (StreamReader read = new StreamReader(wr))
                             {
                                 // Read header
-                                for (int ianz = 1; ianz < 6; ianz++)
+                                for (int ianz = 0; ianz < 6; ianz++)
+                                {
+                                    try
+                                    {
+                                        //header.Add(read.ReadLine()); // add existing data
+                                        read.ReadLine();
+                                    }
+                                    catch
+                                    {
+                                        //header.Add(" "); // add space in the case of an error
+                                    }
+                                }
+
+                                while (!read.EndOfStream)
                                 {
                                     try
                                     {
@@ -49,56 +63,52 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        content.Add("0"); // add 0 in the case of an error
+                                        content.Add(" ");
                                     }
-                                }
-
-                                for (int ianz = 1; ianz <= Program.IWET; ianz++)
-                                {
-                                    try
-                                    {
-                                        if (read.EndOfStream)
-                                        {
-                                            content.Add("0"); // IWET > than data lines in the existing file -> fill with 0 values
-                                        }
-                                        else
-                                        {
-                                            content.Add(read.ReadLine()); // add existing data
-                                        }
-                                    }
-                                    catch
-                                    {
-                                        content.Add("0");
-                                    }
-                                }
+                                }                                
                             }
                         }
                     }
-                    else
+
+
+                    // create a new header
+                    string[] headerLine = ReceptorConcentrationCreateMeteoHeader();
+                    for (int i = 0; i < 6; i++)
                     {
-                        // create a new header
-                        string[] headerLine = ReceptorConcentrationCreateMeteoHeader();
-                        for (int i = 0; i < 6; i++)
+                        header.Add(headerLine[i]);
+                    }
+
+                    // Fill missing lines in the file
+                    {
+                        int i = content.Count;
+                        for (; i < Program.IWET; i++)
                         {
-                            content.Add(headerLine[i]);
+                            content.Add(" ");
                         }
                     }
+                    // new line
+                    string newLine = string.Empty;
+                    for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
+                    {
+                        //write.Write("NQI " + NQi[iq].ToString(ic) + " ");
+                        for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
+                        {
+                            newLine += Program.ReceptorConc[ianz][iq].ToString(ic) + "\t";
+                        }
+                    }
+                    content[Program.IWET - 1] = newLine;
 
                     using (StreamWriter write = new StreamWriter("ReceptorConcentrations.dat", false))
                     {
+                        for (int i = 0; i < 6; i++)
+                        {
+                            write.WriteLine(header[i]);
+                        }
+
                         for (int ianz = 0; ianz < content.Count; ianz++)
                         {
                             write.WriteLine(content[ianz]);
-                        }
-
-                        for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
-                        {
-                            //write.Write("NQI " + NQi[iq].ToString(ic) + " ");
-                            for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
-                            {
-                                write.Write(Program.ReceptorConc[ianz][iq].ToString(ic) + "\t");
-                            }
-                        }
+                        }                
                     }
 
                 }
@@ -132,9 +142,9 @@ namespace GRAL_2001
                 {
                     CultureInfo ic = CultureInfo.InvariantCulture;
                     string[] header = new string[5];
-
-                    // Read the file except at the 1st weather situation up to the recent weather situation (if a calculation has been restarted)
-                    if (File.Exists("Receptor_Timeseries_Transient.txt") && Program.IWET > 1)
+                    
+                    // Read the entire file (if a calculation has been restarted)
+                    if (File.Exists("Receptor_Timeseries_Transient.txt") /*&& Program.IWET > 1*/)
                     {
                         try
                         {
@@ -144,21 +154,35 @@ namespace GRAL_2001
                                 {
                                     header[i] = read.ReadLine(); // read header
                                 }
-
-                                for (int ianz = 1; ianz <= Program.IWET; ianz++)
+                                //read the entire file
+                                while(!read.EndOfStream)
                                 {
                                     try
                                     {
-                                        inhalt.Add(read.ReadLine());
+                                        string lineString = read.ReadLine();
+                                        if (!lineString.StartsWith("Est. statistical error"))
+                                        {
+                                            inhalt.Add(lineString);
+                                        }
                                     }
                                     catch
                                     {
-                                        inhalt.Add("0");
+                                        inhalt.Add(" ");
                                     }
                                 }
                             }
                         }
-                        catch { }
+                        catch
+                        {
+                        }
+                    }
+                    // Fill missing lines in the file
+                    {
+                        int i = inhalt.Count;
+                        for (; i < Program.IWET; i++)
+                        {
+                            inhalt.Add(" ");
+                        }
                     }
 
                     // write the new time series 
@@ -222,15 +246,6 @@ namespace GRAL_2001
                         for (int i = 0; i < header.Length; i++)
                         {
                             write.WriteLine(header[i]);
-                        }
-
-                        // restore file
-                        for (int ianz = 1; ianz <= Program.IWET - 1; ianz++)
-                        {
-                            if (ianz <= inhalt.Count())
-                            {
-                                write.WriteLine(inhalt[ianz - 1]);
-                            }
                         }
 
                         // write new line
@@ -327,15 +342,33 @@ namespace GRAL_2001
                                 }
                                 catch { }
                             }
+                            // new line
+                            inhalt[Program.IWET - 1] = StB.ToString();
+
+                            // restore file
+                            for (int ianz = 0; ianz < inhalt.Count; ianz++)
+                            {
+                                write.WriteLine(inhalt[ianz]);
+                            }
                         }
                         else if (mode == 1) // write statistical error
                         {
+                            // restore file
+                            for (int ianz = 0; ianz < inhalt.Count; ianz++)
+                            {
+                                write.WriteLine(inhalt[ianz]);
+                            }
+
                             // write empty line 
                             write.WriteLine("");
 
                             StB.Clear();
                             // write new line with statistical error
                             StB.Append("Est. statistical error [%]");
+                            if (Program.IWETstartstop.Start > 0)
+                            {
+                                StB.Append(" SimulationSpan:" + Program.IWETstartstop.ToString());
+                            }
                             StB.Append("\t");
 
                             for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
@@ -355,9 +388,9 @@ namespace GRAL_2001
                                     StB.Append("\t");
                                 }
                             }
+                            write.WriteLine(StB.ToString());
                         }
-
-                        write.WriteLine(StB.ToString());
+                        
                     }
                 }
                 catch (Exception exc)
@@ -412,7 +445,7 @@ namespace GRAL_2001
                                 }
                                 catch
                                 {
-                                    //content.Add("0");
+                                    //content.Add(" ");
                                 }
 
                                 for (int ianz = 1; ianz <= Program.IWET; ianz++)
@@ -423,7 +456,7 @@ namespace GRAL_2001
                                     }
                                     catch
                                     {
-                                        content.Add("0"); // add 0 if a user continues with a later weather situations
+                                        content.Add(" "); // add 0 if a user continues with a later weather situations
                                     }
                                 }
                             }

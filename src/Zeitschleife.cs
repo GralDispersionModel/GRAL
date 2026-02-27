@@ -11,8 +11,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -95,8 +93,16 @@ namespace GRAL_2001
             float DeltaZHurley = 0;
             float SigmaUpHurley = 0;
             float minVDI3782 = 0; //Minimum plume rise height for cold stacks depending on VDI 3782-3 Equation 18
-            //float DeltaZHurleySumme = 0;
-
+            
+            float horPSExitDistance = 0;  // distance from source for horizontal flow exit
+            float horPSExitDirection = 0; // Direction for horizontal plume exit
+            float horPSExitRnd = 1;       //gaussian pdf for the direction/velocity of the horizontal flow
+            float horPSExitVertical = 0;  // vertical spread for horizontal exit
+            float horPSExitDeltaX = 0;    // deltax forced by the flow of a horizontal point Source
+            float horPSExitDeltaY = 0;    // deltay forced by the flow of a horizontal point Source
+            float horPSExitVelocity = 0;  // exit velocity for horizontal point sources
+            float horPSPlumeVelocity = 0;  // recent velocity for horizontal point sources plume
+                        
             //Grid variables
             int GrammCellX = 1, GrammCellY = 1; // default value for flat terrain
             int FFCellX, FFCellY;               // Flow field cells
@@ -304,34 +310,80 @@ namespace GRAL_2001
             //initial properties for particles stemming from point sources
             if (SourceType == Consts.SourceTypePoint)
             {
-                float ExitVelocity = Program.PS_V[Kenn_NTeil];
+                horPSExitVelocity = Program.PS_HorExitVel[Kenn_NTeil];
+                float exitVelocity = Program.PS_V[Kenn_NTeil];
                 int velTimeSeriesIndex = Program.PS_TimeSeriesVelocity[Kenn_NTeil];
+                float exitDiameter = Program.PS_D[Kenn_NTeil];
+
                 if (velTimeSeriesIndex != -1) // Time series for exit velocity
                 {
                     if ((Program.IWET - 1) < Program.PS_TimeSerVelValues[velTimeSeriesIndex].Value.Length)
                     {
-                        ExitVelocity = Program.PS_TimeSerVelValues[velTimeSeriesIndex].Value[Program.IWET - 1];
+                        if (Program.PS_HorExitVel[Kenn_NTeil] > 0.1)
+                        {
+                            horPSExitVelocity = Program.PS_TimeSerVelValues[velTimeSeriesIndex].Value[Program.IWET - 1];
+                        }
+                        else
+                        {
+                            exitVelocity = Program.PS_TimeSerVelValues[velTimeSeriesIndex].Value[Program.IWET - 1];
+                        }
                     }
                 }
-                ExitVelocity = MathF.Max(0, ExitVelocity);
-                
-                float ExitTemperature = Program.PS_T[Kenn_NTeil];
+                exitVelocity = MathF.Max(0, exitVelocity);
+                horPSExitVelocity = MathF.Max(0, horPSExitVelocity);
+                float exitTemperature = Program.PS_T[Kenn_NTeil];
                 int tempTimeSeriesIndex = Program.PS_TimeSeriesTemperature[Kenn_NTeil];
                 if (tempTimeSeriesIndex != -1) // Time series for exit temperature
                 {
                     if ((Program.IWET - 1) < Program.PS_TimeSerTempValues[tempTimeSeriesIndex].Value.Length)
                     {
-                        ExitTemperature = Program.PS_TimeSerTempValues[tempTimeSeriesIndex].Value[Program.IWET - 1] + 273;
+                        exitTemperature = Program.PS_TimeSerTempValues[tempTimeSeriesIndex].Value[Program.IWET - 1] + 273;
                     }
                 }
+
+                if(Program.PS_HorExitVel[Kenn_NTeil] > 0.1) //horizontal point source
+                {
+                    float exrnd = Math.Clamp(zahl1 * 0.7F, -1, 1);
+                    horPSExitDirection = Program.PS_HorExitDir[Kenn_NTeil] + 8 * exrnd; //+- 8 degree
+                    if (horPSExitDirection < 0) horPSExitDirection += 360;
+                    if (horPSExitDirection > 360) horPSExitDirection -= 360;
+                    horPSExitRnd = Math.Clamp(1 - MathF.Abs(exrnd), 0.01F, 1); // scaling factor for the horizontal exit flow
+                    horPSExitDirection *= MathF.PI / 180;
+                    if (exitTemperature < 275) // cold source?
+                    {
+                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        u_rg = (m_z << 16) + m_w;
+                        u1_rg = (u_rg + 1) * RNG_Const;
+                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                        u_rg = (m_z << 16) + m_w;
+                        zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
+                        horPSExitVertical = 8 * exrnd * Math.Sign(zahl1); // vertical spread in %, keep center particles in the center, border particles on the border
+                    }
+                    else
+                    {
+                        horPSExitVertical = 0;
+                        exitTemperature = 273 + (exitTemperature - 273) * MathF.Min(1, 0.2F + horPSExitRnd); // lower temperatures due to high mixing on the border of the plume dep. on a gaussian pdf
+                    }
+                    horPSExitDistance = 0.1F; // start value
+                    // new start corrdinates for the particles
+                    xcoord_nteil += Program.PS_D[Kenn_NTeil] * 0.5 * Math.Cos(Program.PS_HorExitDir[Kenn_NTeil] * MathF.PI / 180) * exrnd;
+                    ycoord_nteil += Program.PS_D[Kenn_NTeil] * 0.5 * Math.Sin(Program.PS_HorExitDir[Kenn_NTeil] * MathF.PI / 180) * exrnd;
+                    zcoord_nteil = MathF.Max(AHint + 0.1F + Math.Abs(Program.PS_D[Kenn_NTeil] * 0.5F * zahl1), zcoord_nteil + Program.PS_D[Kenn_NTeil] * 0.5F * zahl1);
+                    exitVelocity = horPSExitVelocity * 0.019128F; // reduction of the vertical velocity due to the larger area of the core and transition zone
+                    exitDiameter = exitDiameter * 7.2305086F; // increased diameter due to the larger area of the core and transition zone
+                    horPSPlumeVelocity = horPSExitVelocity;   // plume velocity = exit velocity at the start
+                }
+               
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 u1_rg = (u_rg + 1) * RNG_Const;
                 
                 //fluctuation of exit / ambient temperature
-                ExitTemperature = MathF.Max(273, ExitTemperature * (1.05F - u1_rg * 0.2F));
-
+                exitTemperature = MathF.Max(273, exitTemperature * (1.05F - u1_rg * 0.2F));
+                
                 //plume-rise velocity
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -341,17 +393,24 @@ namespace GRAL_2001
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                                                
-                FHurley = (9.81F * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F) *
-                                 (ExitTemperature - 273F) / ExitTemperature);
-                GHurley = (273 / ExitTemperature * ExitVelocity * Program.Pow2(Program.PS_D[Kenn_NTeil] * 0.5F));
-                MHurley = GHurley * ExitVelocity;
-                RHurley = MathF.Sqrt(ExitVelocity / MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(ExitVelocity)));
-                wpHurley = ExitVelocity;
+                                                                
+                FHurley = 9.81F * exitVelocity * Program.Pow2(exitDiameter * 0.5F) *
+                                 (exitTemperature - 273F) / exitTemperature;
+                GHurley = 273 / exitTemperature * exitVelocity * Program.Pow2(exitDiameter * 0.5F);
+                MHurley = GHurley * exitVelocity;
+                RHurley = MathF.Sqrt(exitVelocity / MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(exitVelocity)));
+                wpHurley = exitVelocity;
                 upHurley = MathF.Sqrt(Program.Pow2(windge) + Program.Pow2(wpHurley));
                 MeanHurley = 0;
                 DeltaZHurley = 0;
-                minVDI3782 = 3 * ExitVelocity * Program.PS_D[Kenn_NTeil] / windge; //Minimum plume rise height for cold stacks depending on VDI 3782-3
+                if (horPSExitDistance > 0) //horizontal point source
+                {
+                    minVDI3782 = 0; 
+                }
+                else // vertical point source
+                {
+                    minVDI3782 = 3 * exitVelocity * exitDiameter / windge; //Minimum plume rise height for cold stacks depending on VDI 3782-3           
+                }
             }
 
             //initial properties for particles stemming from tunnel portals
@@ -599,6 +658,10 @@ namespace GRAL_2001
                     if (SourceType == Consts.SourceTypePoint && auszeit < 20)
                     {
                         idt = MathF.Min(0.2F, idt);
+                        if (horPSExitDistance > 0 && auszeit < 3)
+                        {
+                            idt = MathF.Round(MathF.Max(0.01F, MathF.Min(0.2F, 0.5F/(5 + horPSPlumeVelocity))), 3);
+                        }
                     }
 
                     float idtt = 0.5F * Math.Min(Program.GralDx, FFGridX) / (windge + MathF.Sqrt(Program.Pow2(velxold) + Program.Pow2(velyold)));
@@ -848,6 +911,46 @@ namespace GRAL_2001
                 float corx = velxold * idt;
                 float cory = velyold * idt;
 
+                //horizontal point sources
+                horPSExitDeltaX = 0;
+                horPSExitDeltaY = 0;
+                if (horPSExitDistance > 0)
+                {
+                    float psDiameter = Program.PS_D[Kenn_NTeil];
+                    float a = 0.2f + 0.02f * windge; // high turbulence factor of 0.2 + 0.02 * wind speed at the particle position
+                    if (horPSExitDistance <= psDiameter * 6) //core and transition zone
+                    {
+                        horPSPlumeVelocity = horPSExitVelocity * 0.48F / (a * horPSExitDistance / psDiameter + 0.145F); 
+                        if (horPSPlumeVelocity < horPSExitVelocity)
+                        {
+                            horPSPlumeVelocity *= horPSExitRnd; //gaussian pdf 
+                        }
+                        else
+                        {
+                            horPSPlumeVelocity = horPSExitVelocity * horPSExitRnd; // nearby the source
+                        }
+                    }
+                    else // decrease horizontal flow when leaving the transition zone
+                    {
+                        horPSPlumeVelocity = horPSExitVelocity * 0.48F / (a * horPSExitDistance / psDiameter + 0.145F) * psDiameter * psDiameter * 36 / (horPSExitDistance * horPSExitDistance) ; //additional decay by the square of the distance
+                    }
+                    
+                    if (horPSPlumeVelocity > 0.5F) // otherwise terminate the additional horizontal flow
+                    {
+                        horPSExitDeltaX = - horPSPlumeVelocity * idt * MathF.Sin(horPSExitDirection);
+                        horPSExitDeltaY = - horPSPlumeVelocity * idt * MathF.Cos(horPSExitDirection);
+                        if (horPSExitDistance < 6 * psDiameter) // aditional vertical spred nearby the source
+                        {
+                           zcoord_nteil = zcoord_nteil + horPSPlumeVelocity * idt * horPSExitVertical * 0.01F;
+                        }
+                        horPSExitDistance += horPSPlumeVelocity * idt;
+                    }
+                    else
+                    {
+                        horPSExitDistance = 0; // reset initial horizontal flow
+                    }
+                }
+
                 /*
                  *    HORIZONTAL DIFFUSION ACCORDING TO ANFOSSI ET AL. (2006)
                  */
@@ -933,8 +1036,8 @@ namespace GRAL_2001
                 //update coordinates
                 if (tunfak == Consts.ParticleIsNotAPortal)
                 {
-                    xcoord_nteil += idt * UXint + corx;
-                    ycoord_nteil += idt * UYint + cory;
+                    xcoord_nteil += idt * UXint + corx + horPSExitDeltaX;
+                    ycoord_nteil += idt * UYint + cory + horPSExitDeltaY;
                 }
 
                 /*
@@ -2134,7 +2237,6 @@ namespace GRAL_2001
 
                 #endregion log_output
             }
-            //Console.WriteLine("DZSumme " + DeltaZHurleySumme);
             // Add local receptor concentrations to receptor array and store maximum concentration part for each receptor
             if (Program.ReceptorsAvailable)
             {

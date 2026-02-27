@@ -110,9 +110,17 @@ namespace GRAL_2001
 
                                 zuff1 = DeterministicRng(ref m_z, ref m_w);
 
-                                double theta = 6.28 * zuff1;
-                                Program.Xcoord[nteil] = Program.PS_X[i] + radius * Math.Cos(theta);
-                                Program.YCoord[nteil] = Program.PS_Y[i] + radius * Math.Sin(theta);
+                                if (Program.PS_HorExitVel[i] > 0.1) // horizontal point source -> shuffle start position in the particle driver
+                                {
+                                    Program.Xcoord[nteil] = Program.PS_X[i];
+                                    Program.YCoord[nteil] = Program.PS_Y[i];
+                                }
+                                else
+                                {
+                                    double theta = 6.28 * zuff1;
+                                    Program.Xcoord[nteil] = Program.PS_X[i] + radius * Math.Cos(theta);
+                                    Program.YCoord[nteil] = Program.PS_Y[i] + radius * Math.Sin(theta);
+                                }
                                 Program.ZCoord[nteil] = Program.PS_effqu[i];
 
                                 //in complex terrain z-coordinate is placed onto actual model height

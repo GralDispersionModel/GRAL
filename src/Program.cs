@@ -13,7 +13,6 @@
 using System;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -66,7 +65,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L VERSION: 24.11            < <   +";
+            string Info =     "+  > >         G R A L Version 26.01             < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -76,8 +75,10 @@ namespace GRAL_2001
             Console.WriteLine("|                   .NET6 Version                      |");
 #elif NET7_0
             Console.WriteLine("|                   .NET7 Version                      |");
-#elif NET8_0_OR_GREATER
+#elif NET8_0
             Console.WriteLine("|                   .NET8 Version                      |");
+#elif NET10_0_OR_GREATER
+            Console.WriteLine("|                  .NET10 Version                      |");
 #else
             Console.WriteLine("|                 .Net Core Version                    |");
 #endif
@@ -93,7 +94,7 @@ namespace GRAL_2001
             LogLevel = CheckCommandLineArguments(args);
 
             //Delete file Problemreport_GRAL.txt
-            if (File.Exists("Problemreport_GRAL.txt") == true)
+            if (File.Exists("Problemreport_GRAL.txt") == true && IWETstartstop.Start == 0) // delete Problemreport if a single instance has been started
             {
                 try
                 {
@@ -158,6 +159,17 @@ namespace GRAL_2001
 
             //reading main control file in.dat
             ReaderClass.ReadInDat();
+            //override first weather situation when using a command line argument for the 1st and last weather situation
+            if (IWETstartstop.Start > 0)
+            {
+                IWETstart = IWETstartstop.Start;
+                ProgramWriters.LogfileGralCoreWrite("Performing calculation between weather situations " + IWETstartstop.Start + " to " + IWETstartstop.End);
+            }
+            else if (IWETstart == 1)
+            {
+                DeleteReceptorConcentrationFiles(); // delete receptor files if a new single instance has been started with weather situation 1
+            }
+
             //total number of particles released for each weather situation
             NTEILMAX = (int)(TAUS * TPS);
             //Volume of the GRAL concentration grid
@@ -471,10 +483,13 @@ namespace GRAL_2001
                 {
                     break; // reached last line in mettimeseries -> exit loop				
                 }
-
                 if (IEND == Consts.CalculationFinished)
                 {
                     break; // reached last line in meteopgt.all ->  exit loop
+                }
+                if (IWET > IWETstartstop.End)
+                {
+                    break; // reached last weather situation from console command line input
                 }
 
                 String WindfieldPath = ReadWindfeldTXT();
@@ -493,16 +508,17 @@ namespace GRAL_2001
                 }
                 else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
                 {
-                    //GUI output
-                    try
+                    if (Program.IWETstartstop.Start < 2) // //GUI status output for the 1st instance only
                     {
-                        using (StreamWriter wr = new StreamWriter("DispNr.txt"))
+                        try
                         {
-                            wr.WriteLine(IWET.ToString());
+                            using (StreamWriter wr = new StreamWriter("DispNr.txt"))
+                            {
+                                wr.WriteLine(IWET.ToString());
+                            }
                         }
+                        catch { }
                     }
-                    catch { }
-
                     //Topography mode -> read GRAMM stability classes
                     if (Topo == Consts.TerrainAvailable)
                     {
@@ -622,12 +638,26 @@ namespace GRAL_2001
                         {
                             ReadReceptors.ReadReceptor(); // read coordinates of receptors - flow field data needed
                         }
-                        //in case of complex terrain and/or the presence of buildings some data is written for usage in the GUI (visualization of vertical slices)
-                        WriteClass.WriteGRALGeometries();
-                        //optional: write building heights as utilized in GRAL
-                        WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
-                        //optional: write sub Domains as utilized in GRAL
-                        WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
+                        
+                        if (SyncWithMutex != null && SyncWithMutex.WaitOne(4000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 4000 ms.
+                        {
+                            //in case of complex terrain and/or the presence of buildings some data is written for usage in the GUI (visualization of vertical slices)
+                            WriteClass.WriteGRALGeometries();
+                            //optional: write building heights as utilized in GRAL
+                            WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
+                            //optional: write sub Domains as utilized in GRAL
+                            WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
+                            SyncWithMutex.ReleaseMutex(); // release the mutex
+                        }
+                        else
+                        {
+                            //in case of complex terrain and/or the presence of buildings some data is written for usage in the GUI (visualization of vertical slices)
+                            WriteClass.WriteGRALGeometries();
+                            //optional: write building heights as utilized in GRAL
+                            WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
+                            //optional: write sub Domains as utilized in GRAL
+                            WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
+                        }
                     }
 
                     RnGSeed = new DeterministicRandomGenerator(IWET, WindVelGral, WindDirGral);
@@ -727,17 +757,32 @@ namespace GRAL_2001
                     recentWeatherSituation = IWET;
                     ThreadWrite2DConcentrationFiles = new Thread(() => WriteClass.Write2DConcentrations(recentWeatherSituation, ZippedFile));
                     ThreadWrite2DConcentrationFiles.Start(); // start writing thread
-                    
-                    //receptor concentrations
-                    if (ISTATIONAER == Consts.TransientMode)
+
+                    if (SyncWithMutex != null && SyncWithMutex.WaitOne(2000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 2000 ms.
                     {
-                        WriteClass.WriteReceptorTimeseries(0);
+                        //receptor concentrations
+                        if (ISTATIONAER == Consts.TransientMode)
+                        {
+                            WriteClass.WriteReceptorTimeseries(0);
+                        }
+                        WriteClass.WriteReceptorConcentrations();
+
+                        //microscale flow-field at receptors
+                        WriteClass.WriteMicroscaleFlowfieldReceptors();
+                        SyncWithMutex.ReleaseMutex(); // release the mutex
                     }
-                    WriteClass.WriteReceptorConcentrations();
+                    else
+                    {
+                        //receptor concentrations
+                        if (ISTATIONAER == Consts.TransientMode)
+                        {
+                            WriteClass.WriteReceptorTimeseries(0);
+                        }
+                        WriteClass.WriteReceptorConcentrations();
 
-                    //microscale flow-field at receptors
-                    WriteClass.WriteMicroscaleFlowfieldReceptors();
-
+                        //microscale flow-field at receptors
+                        WriteClass.WriteMicroscaleFlowfieldReceptors();
+                    }
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
             } // loop for all meteorological situations
 
@@ -745,9 +790,9 @@ namespace GRAL_2001
             if (ISTATIONAER == Consts.TransientMode)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
-                if (WriteVerticalConcentration)
+                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1) // do not write the files for multiple instances
                 {
-                    WriteClass.Write3DTextConcentrations();
+                       WriteClass.Write3DTextConcentrations();
                 }
                 Console.WriteLine();
                 ProgramWriters.LogfileGralCoreWrite("");
@@ -773,7 +818,21 @@ namespace GRAL_2001
             if (Program.ReceptorsAvailable)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
-                WriteClass.WriteReceptorTimeseries(1);
+                if (SyncWithMutex != null && SyncWithMutex.WaitOne(2000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 2000 ms.
+                {
+                    WriteClass.WriteReceptorTimeseries(1);
+                    SyncWithMutex.ReleaseMutex(); // release the mutex
+                }
+                else
+                {
+                    WriteClass.WriteReceptorTimeseries(1);
+                }
+            }
+
+            if (SyncWithMutex != null)
+            {
+                SyncWithMutex.Close();
+                SyncWithMutex.Dispose();
             }
 
             ProgramWriters.LogfileGralCoreWrite("GRAL simulations finished at: " + DateTime.Now.ToString());

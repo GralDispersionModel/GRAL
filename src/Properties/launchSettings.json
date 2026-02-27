@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GRAL": {
+      "commandName": "Project",
+      "commandLineArgs": "Situations:3:5"
+    }
+  }
+}

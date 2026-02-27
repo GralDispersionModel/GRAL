@@ -11,6 +11,7 @@
 #endregion
 
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -326,7 +327,12 @@ namespace GRAL_2001
         {
             try
             {
-                using (StreamWriter sw = new StreamWriter("Logfile_GRALCore.txt", true))
+                String filename = "Logfile_GRALCore.txt";
+                if (Program.IWETstartstop.Start > 0) // use a new file for each simultaneously running instance of GRAL
+                {
+                    filename = "Logfile_GRALCore" + Program.IWETstartstop.ToString() + ".txt";
+                }
+                using (StreamWriter sw = new StreamWriter(filename, true))
                 {
                     sw.WriteLine(a);
                     sw.Flush();
@@ -340,15 +346,37 @@ namespace GRAL_2001
         /// </summary>
         public async static void LogfileProblemreportWrite(string a)
         {
-            a = "GRAL Error: " + a;
-            try
+            if (Program.SyncWithMutex != null && Program.SyncWithMutex.WaitOne(1000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 1000 ms.
             {
-                using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
+                a = "GRAL Error: " + a;
+                try
                 {
-                    await sw.WriteLineAsync(a);
+                    using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
+                    {
+                        await sw.WriteLineAsync(a);
+                    }
+                }
+                catch { }
+                finally
+                {
+                    if (Program.SyncWithMutex != null)
+                    {
+                        Program.SyncWithMutex.ReleaseMutex(); // release the mutex
+                    }
                 }
             }
-            catch { }
+            else
+            {
+                a = "GRAL Error: " + a;
+                try
+                {
+                    using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
+                    {
+                        await sw.WriteLineAsync(a);
+                    }
+                }
+                catch { }
+            }
             LogfileGralCoreWrite(a); // Write error to LogfileCore
         }
     }
