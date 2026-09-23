@@ -45,6 +45,12 @@ namespace GRAL_2001
             double Volume_Time_Unit = 1000000000 / Program.GridVolume / 3600;
             //SimpleRNG.SetSeed((uint)Environment.TickCount);
 
+            // Inclusive particle endpoints preserve source order, including zero-count sources.
+            int[] pointEnds = ParticleSourceLookup.BuildEnds(Program.PS_PartNumb, Program.PS_Count);
+            int[] portalEnds = ParticleSourceLookup.BuildEnds(Program.TS_PartNumb, Program.TS_Count);
+            int[] lineEnds = ParticleSourceLookup.BuildEnds(Program.LS_PartNumb, Program.LS_Count);
+            int[] areaEnds = ParticleSourceLookup.BuildEnds(Program.AS_PartNumb, Program.AS_Count);
+
             Parallel.For(1, Program.NTEILMAX + 1, Program.pOptions, nteil =>
             {
                 //random number generator seeds
@@ -66,7 +72,6 @@ namespace GRAL_2001
                 
                 float AHint = 0;
 
-                double sumanz = 0;
                 Program.ParticleSource[nteil] = 0; // marker if particle is not used
 
                 int caseswitch = Consts.SourceTypePoint; // Point Sources
@@ -92,15 +97,7 @@ namespace GRAL_2001
                     case Consts.SourceTypePoint:
                         {
                             AHint = 0;
-                            for (int j = 1; j <= Program.PS_Count; j++)
-                            {
-                                sumanz += Program.PS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = ParticleSourceLookup.FindSource(pointEnds, nteil);
 
                             if (i > 0)
                             {
@@ -192,17 +189,8 @@ namespace GRAL_2001
                     //particle coordinates of portal sources
                     case Consts.SourceTypePortal:
                         {
-                            sumanz = Program.PS_PartSum;
                             AHint = 0;
-                            for (int j = 1; j <= Program.TS_Count; j++)
-                            {
-                                sumanz += Program.TS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = ParticleSourceLookup.FindSource(portalEnds, nteil - Program.PS_PartSum);
                             if (i > 0)
                             {
                                 zuff1 = DeterministicRng(ref m_z, ref m_w);
@@ -304,17 +292,8 @@ namespace GRAL_2001
                     //particle coordinates of line sources
                     case Consts.SourceTypeLine:
                         {
-                            sumanz = Program.PS_PartSum + Program.TS_PartSum;
                             AHint = 0;
-                            for (int j = 1; j <= Program.LS_Count; j++)
-                            {
-                                sumanz += Program.LS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = ParticleSourceLookup.FindSource(lineEnds, nteil - Program.PS_PartSum - Program.TS_PartSum);
                             if (i > 0)
                             {
                                 Program.ParticleSource[nteil] = i;
@@ -466,17 +445,8 @@ namespace GRAL_2001
                     //particle coordinates of area sources
                     case Consts.SourceTypeArea:
                         {
-                            sumanz = Program.PS_PartSum + Program.TS_PartSum + Program.LS_PartSum;
                             AHint = 0;
-                            for (int j = 1; j <= Program.AS_Count; j++)
-                            {
-                                sumanz += Program.AS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = ParticleSourceLookup.FindSource(areaEnds, nteil - Program.PS_PartSum - Program.TS_PartSum - Program.LS_PartSum);
                             if (i > 0)
                             {
                                 Program.ParticleSource[nteil] = i;

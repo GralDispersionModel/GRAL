@@ -131,7 +131,11 @@ namespace GRAL_2001
             int JKOOAGRAL = Program.JKOOAGRAL;
 
             Span<int> kko = new int[Program.NS];
-            Span<double> ReceptorConcentration = new double[Program.ReceptorNumber + 1];
+            // Avoid a heap allocation per particle for small receptor sets; bound stack usage.
+            int receptorCount = Program.ReceptorNumber == 0 ? 0 : Program.ReceptorNumber + 1;
+            Span<double> ReceptorConcentration = receptorCount <= 256
+                ? stackalloc double[receptorCount] : new double[receptorCount];
+            ReceptorConcentration.Clear();
 
             int reflexion_flag = Consts.ParticleNotReflected;
             int ISTATISTIK = Program.IStatistics;
