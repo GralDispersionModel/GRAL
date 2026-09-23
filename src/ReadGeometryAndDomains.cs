@@ -154,19 +154,9 @@ namespace GRAL_2001
                         Environment.Exit(0);
                     }
 
-                    // read the used source groups for this simulation
+                    // Positive Int32 IDs; allocations use the selected group count, not the largest ID.
                     _line++;
-                    text = myreader.ReadLine().Split(new char[] { '!', ',', ';' });
-                    for (int i = 0; i < text.Length; i++)
-                    {
-                        try
-                        {
-                            text[i] = text[i].Trim();
-                            text[i] = text[i].Replace(".", decsep);
-                            Program.SourceGroups.Add(Convert.ToInt32(text[i], ic));
-                        }
-                        catch { }
-                    }
+                    Program.ConfigureSourceGroups(myreader.ReadLine());
 
                     _line++;
                     text = myreader.ReadLine().Split(new char[] { '!', ',', ';' });
@@ -217,6 +207,11 @@ namespace GRAL_2001
                     Console.WriteLine(Info);
                     ProgramWriters.LogfileGralCoreWrite(Info);
                 }
+            }
+            catch (InvalidDataException ex)
+            {
+                ProgramWriters.LogfileProblemreportWrite(ex.Message);
+                throw;
             }
             catch
             {

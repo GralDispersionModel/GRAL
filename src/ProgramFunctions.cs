@@ -460,15 +460,7 @@ namespace GRAL_2001
         /// <returns>Internal contiguous source group number, starting with 0</returns>
         public static int Get_Internal_SG_Number(int Real_SG_Number)
         {
-            int SG_Internal = -1; // if SG is not indicated to be computed
-            for (int im = 0; im < Program.SourceGroups.Count; im++)
-            {
-                if (Real_SG_Number == Program.SourceGroups[im])
-                {
-                    SG_Internal = im;
-                }
-            }
-            return SG_Internal;
+            return SourceGroupIndices.TryGetValue(Real_SG_Number, out int index) ? index : -1;
         }
 
         /// <summary>
@@ -496,7 +488,7 @@ namespace GRAL_2001
             NX2 = NX + 2;
             NY2 = NY + 2;
             NZ2 = NZ + 2;
-            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
+            Conz3d = CreateArray<SourceGroupBuffer<float>[][]>(NXL + 2, () => CreateArray<SourceGroupBuffer<float>[]>(NYL + 2, () => CreateArray<SourceGroupBuffer<float>>(NS, () => new SourceGroupBuffer<float>(Program.SourceGroups.Count))));
             XKO = new double[NX2];
             YKO = new double[NY2];
             ZKO = new double[NZ2];
@@ -520,14 +512,14 @@ namespace GRAL_2001
             //create additional concentration arrays for calculating concentration gradients used for odour-hour modelling
             if (Odour == true)
             {
-                Conz3dp = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
-                Conz3dm = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
+                Conz3dp = CreateArray<SourceGroupBuffer<float>[][]>(NXL + 2, () => CreateArray<SourceGroupBuffer<float>[]>(NYL + 2, () => CreateArray<SourceGroupBuffer<float>>(NS, () => new SourceGroupBuffer<float>(Program.SourceGroups.Count))));
+                Conz3dm = CreateArray<SourceGroupBuffer<float>[][]>(NXL + 2, () => CreateArray<SourceGroupBuffer<float>[]>(NYL + 2, () => CreateArray<SourceGroupBuffer<float>>(NS, () => new SourceGroupBuffer<float>(Program.SourceGroups.Count))));
                 Q_cv0 = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count]);
                 DisConcVar = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count]);
             }
 
             //array for computing deposition
-            Depo_conz = CreateArray<double[][]>(NXL + 2, () => CreateArray<double[]>(NYL + 2, () => new double[Program.SourceGroups.Count]));
+            Depo_conz = CreateArray<SourceGroupBuffer<double>[]>(NXL + 2, () => CreateArray<SourceGroupBuffer<double>>(NYL + 2, () => new SourceGroupBuffer<double>(Program.SourceGroups.Count)));
         }
 
         /// <summary>
@@ -980,8 +972,8 @@ namespace GRAL_2001
         /// </summary>
         private static void TransferNonSteadyStateConcentrations(ProgramWriters WriteClass, ref Thread TreadWriteConz4dFile)
         {
-            //Create a shallow copy
-            float[][][][] copytemp = (float[][][][])Conz4d.Clone();
+            //Swap the previous and next transient fields after the checkpoint writer has joined.
+            SourceGroupBuffer<float>[][][] copytemp = Conz4d;
             Conz4d = Conz5d;
             Conz5d = copytemp;
 
@@ -990,10 +982,10 @@ namespace GRAL_2001
             {
                 for (int j = 1; j <= Program.NJJ + 1; j++)
                 {
-                    float[][] conz5d_L = Conz5d[i][j];
+                    SourceGroupBuffer<float>[] conz5d_L = Conz5d[i][j];
                     for (int k = 1; k <= NKK_Transient; k++)
                     {
-                        Array.Clear(conz5d_L[k]);
+                        conz5d_L[k].Clear();
                     }
                 }
             });
@@ -1375,7 +1367,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="Conc">Concentration array</param>
         /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
-        public void VolumeConcCorrection(float[][][][] Conc, float DeltaH)
+        public void VolumeConcCorrection(SourceGroupBuffer<float>[][][] Conc, float DeltaH)
         {
             // double[,] corr = new double[NXL + 1, NYL + 1]; // DEBUG
             // loop over all concentration cells
@@ -1477,7 +1469,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="Conc">Concentration array</param>
         /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
-        public void VolumeConcCorrection2(float[][][][] Conc, float DeltaH)
+        public void VolumeConcCorrection2(SourceGroupBuffer<float>[][][] Conc, float DeltaH)
         {
             //double[,] corr = new double[Program.NXL + 1, Program.NYL + 1]; // DEBUG
 

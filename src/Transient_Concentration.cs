@@ -37,7 +37,7 @@ namespace GRAL_2001
                 int IndexI3d = (int)(xsi / Program.DXK) + 1;
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
-                float[] conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
+                SourceGroupBuffer<float> conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
                 lock (conz5d_L.SyncRoot)
                 {
                     conz5d_L[SG_nteil] += (float)(masse * Program.GridVolume * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
@@ -65,7 +65,7 @@ namespace GRAL_2001
                 int IndexI3d = (int)(xsi / Program.DXK) + 1;
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
-                float[] conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
+                SourceGroupBuffer<float> conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
                 lock (conz5d_L.SyncRoot)
                 {
                     conz5d_L[SG_nteil] += (float)(mass_real * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));

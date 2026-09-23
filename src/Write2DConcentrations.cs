@@ -45,7 +45,7 @@ namespace GRAL_2001
                                     //{
                                     //    Console.Write(".");
                                     //}
-                                    string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                                    string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + SourceGroupFileName.Encode(Program.SourceGroups[IQ]) + ".con";
 
                                     if (Program.WriteASCiiResults) // aditional ASCii Output
                                     {
@@ -73,7 +73,7 @@ namespace GRAL_2001
                                     // Write deposition
                                     if (II == 0 && (Program.DepositionExist || Program.WetDeposition))
                                     {
-                                        fname = weatherSituation.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
+                                        fname = weatherSituation.ToString("00000") + "-" + SourceGroupFileName.Encode(Program.SourceGroups[IQ]) + ".dep";
                                         write_entry = archive.CreateEntry(fname);
 
                                         using (BinaryWriter sw = new BinaryWriter(write_entry.Open()))
@@ -108,7 +108,7 @@ namespace GRAL_2001
                             //    Console.Write(".");
                             //}
 
-                            string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".con";
+                            string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + SourceGroupFileName.Encode(Program.SourceGroups[IQ]) + ".con";
                             if (Program.WriteASCiiResults) // aditional ASCii Output
                             {
                                 writeConDataAscii(fname, IQ, II);
@@ -122,7 +122,7 @@ namespace GRAL_2001
                             // Write deposition
                             if (II == 0 && (Program.DepositionExist || Program.WetDeposition))
                             {
-                                fname = weatherSituation.ToString("00000") + "-" + Program.SourceGroups[IQ].ToString("00") + ".dep";
+                                fname = weatherSituation.ToString("00000") + "-" + SourceGroupFileName.Encode(Program.SourceGroups[IQ]) + ".dep";
                                 using (BinaryWriter sw = new BinaryWriter(File.Open(fname, FileMode.Create)))
                                 {
                                     WriteDepositionData(sw, IQ);
@@ -266,7 +266,7 @@ namespace GRAL_2001
                         Program.DisConcVar[II][IQ] /= (float)Nhor;
 
                         //output of several quantities needed to run the concentration variance model subsequently
-                        string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + Program.SourceGroups[IQ].ToString("00") + ".odr";
+                        string fname = weatherSituation.ToString("00000") + "-" + (II + 1).ToString("0") + SourceGroupFileName.Encode(Program.SourceGroups[IQ]) + ".odr";
                         try
                         {
                             if (Program.ResultFileZipped)
@@ -315,30 +315,29 @@ namespace GRAL_2001
                 }
             }
 
-            //reset concentrations
-            //Console.WriteLine(".");
-            for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
+            // Release sparse blocks after output; the next dispersion step waits for this writer.
+            for (int i = 1; i <= Program.NXL; i++)
             {
-                for (int II = 0; II < Program.NS; II++)
+                for (int j = 1; j <= Program.NYL; j++)
                 {
-                    for (int i = 1; i <= Program.NXL; i++)
+                    Program.Depo_conz[i][j].Clear();
+                    for (int II = 0; II < Program.NS; II++)
                     {
-                        for (int j = 1; j <= Program.NYL; j++)
+                        Program.Conz3d[i][j][II].Clear();
+                        if (Program.Odour)
                         {
-                            Program.Conz3d[i][j][II][iq] = 0;
-                            Program.Depo_conz[i][j][iq] = 0;
-                            if (Program.Odour == true)
-                            {
-                                Program.Conz3dp[i][j][II][iq] = 0;
-                                Program.Conz3dm[i][j][II][iq] = 0;
-                                Program.Q_cv0[II][iq] = 0;
-                                Program.DisConcVar[II][iq] = 0;
-                            }
+                            Program.Conz3dp[i][j][II].Clear();
+                            Program.Conz3dm[i][j][II].Clear();
                         }
                     }
                 }
             }
-            //Console.WriteLine();
+            if (Program.Odour)
+                for (int II = 0; II < Program.NS; II++)
+                {
+                    Array.Clear(Program.Q_cv0[II]);
+                    Array.Clear(Program.DisConcVar[II]);
+                }
         }//output of 2-D concentration files (concentrations, deposition, odour-files)
 
         /// <summary>

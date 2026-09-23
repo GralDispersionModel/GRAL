@@ -29,7 +29,7 @@ namespace GRAL_2001
 
             double totalemission = 0;
             int countrealsources = 0;
-            double[] emission_sourcegroup = new double[101];
+            double[] emission_sourcegroup = new double[Program.SourceGroups.Count];
 
             TQ.Add(new SourceData());
 
@@ -58,7 +58,7 @@ namespace GRAL_2001
                         //excluding all tunnel portals with undesired source groups
                         if (text.Length > 9)
                         {
-                            Int16 SG = Convert.ToInt16(text[10]);
+                            int SG = Convert.ToInt32(text[10]);
                             int SG_index = Program.Get_Internal_SG_Number(SG); // get internal SG number
 
                             if (SG_index >= 0)
@@ -71,7 +71,7 @@ namespace GRAL_2001
                                 sd.Z1 = Convert.ToSingle(text[4], ic);
                                 sd.Z2 = Convert.ToSingle(text[5], ic);
                                 sd.ER = Convert.ToDouble(text[6], ic);
-                                sd.SG = Convert.ToInt16(text[10]);
+                                sd.SG = Convert.ToInt32(text[10]);
                                 sd.Mode = 0; // standard mode
 
                                 totalemission += sd.ER;
@@ -142,7 +142,7 @@ namespace GRAL_2001
             Program.TS_X2 = GC.AllocateUninitializedArray<double>(counter);
             Program.TS_Y2 = GC.AllocateUninitializedArray<double>(counter);
             Program.TS_Z2 = GC.AllocateUninitializedArray<float>(counter);
-            Program.TS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.TS_SG = GC.AllocateUninitializedArray<int>(counter);
             Program.TS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
             Program.TS_Mode = GC.AllocateUninitializedArray<byte>(counter);
             Program.TS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
@@ -189,7 +189,7 @@ namespace GRAL_2001
                 Program.TS_Z1[i] = (float)Math.Abs(TQ[i].Z1);
                 Program.TS_Z2[i] = (float)Math.Abs(TQ[i].Z2);
                 Program.TS_ER[i] = TQ[i].ER;
-                Program.TS_SG[i] = (byte)TQ[i].SG;
+                Program.TS_SG[i] = TQ[i].SG;
                 Program.TS_V_Dep[i] = TQ[i].Vdep;
                 Program.TS_V_sed[i] = TQ[i].Vsed;
                 Program.TS_Mode[i] = TQ[i].Mode;

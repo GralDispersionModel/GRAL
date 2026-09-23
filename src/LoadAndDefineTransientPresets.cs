@@ -80,11 +80,11 @@ namespace GRAL_2001
             }
             Program.NKK_Transient = Math.Min(Program.NKK_Transient, Program.VerticalCellMaxBound - 2);
 
-            Program.Conz4d = Program.CreateArray<float[][][]>(Program.NII + 2, () => Program.CreateArray<float[][]>(Program.NJJ + 2, () =>
-                Program.CreateArray<float[]>(Program.NKK_Transient + 2, () => new float[Program.SourceGroups.Count + 1])));
+            Program.Conz4d = Program.CreateArray<SourceGroupBuffer<float>[][]>(Program.NII + 2, () => Program.CreateArray<SourceGroupBuffer<float>[]>(Program.NJJ + 2, () =>
+                Program.CreateArray<SourceGroupBuffer<float>>(Program.NKK_Transient + 2, () => new SourceGroupBuffer<float>(Program.SourceGroups.Count + 1))));
             Console.Write(".");
-            Program.Conz5d = Program.CreateArray<float[][][]>(Program.NII + 2, () => Program.CreateArray<float[][]>(Program.NJJ + 2, () =>
-                Program.CreateArray<float[]>(Program.NKK_Transient + 2, () => new float[Program.SourceGroups.Count + 1])));
+            Program.Conz5d = Program.CreateArray<SourceGroupBuffer<float>[][]>(Program.NII + 2, () => Program.CreateArray<SourceGroupBuffer<float>[]>(Program.NJJ + 2, () =>
+                Program.CreateArray<SourceGroupBuffer<float>>(Program.NKK_Transient + 2, () => new SourceGroupBuffer<float>(Program.SourceGroups.Count + 1))));
             Console.Write(".");
 
             if (File.Exists("GRAL_Vert_Conc.txt"))

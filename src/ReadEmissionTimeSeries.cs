@@ -39,7 +39,7 @@ namespace GRAL_2001
                     {
                         int lineCount = File.ReadLines("emissions_timeseries.txt").Count();
                         Program.EmFacTimeSeries = new float[lineCount, Program.SourceGroups.Count];
-                        double[] mean = new double[Program.SourceGroups.Count];
+                        // Header columns can include groups not selected for this run.
                         
                         using (StreamReader sr = new StreamReader("emissions_timeseries.txt"))
                         {
@@ -50,11 +50,15 @@ namespace GRAL_2001
                             
                             int SG_Time_Series_Count = Math.Max(text10.Length - 2, 1); // number of Source groups in emissions_timeseries.txt
                             int[] SG_Time_Series = new int[SG_Time_Series_Count];
+                            double[] mean = new double[SG_Time_Series_Count];
+                            var seenGroups = new System.Collections.Generic.HashSet<int>();
  
                             for (int ii = 2; ii < text10.Length; ii++)
                             {
                                 //get the column corresponding with the source group number stored in sg_numbers
-                                int sg_temp = Convert.ToInt16(text10[ii]);
+                                int sg_temp = Convert.ToInt32(text10[ii]);
+                                if (!SourceGroupFileName.IsSupported(sg_temp) || !seenGroups.Add(sg_temp))
+                                    throw new InvalidDataException("Invalid or duplicate source group in emissions_timeseries.txt");
                                 SG_Time_Series[ii - 2] = sg_temp; // remember the real SG Number for each column in emissions_timeseries.txt
                             }
         
@@ -72,6 +76,7 @@ namespace GRAL_2001
                                 for (int n = 0; n < SG_Time_Series_Count; n++) // check each source group defined in emissions_timeseries.txt
                                 {
                                     int SG_internal = Program.Get_Internal_SG_Number(SG_Time_Series[n]); // get the internal SG number
+                                    if (SG_internal < 0) continue; // Unselected groups do not affect this run.
 
                                     if (SG_internal >= 0 && (n + 2) < text10.Length) // otherwise this source group in emissions_timeseries.txt does not exist internal in GRAL
                                     {
@@ -81,6 +86,8 @@ namespace GRAL_2001
                                     {
                                         Program.EmFacTimeSeries[i, SG_internal] = 1;
                                     }
+                                    if (!float.IsFinite(Program.EmFacTimeSeries[i, SG_internal]) || Program.EmFacTimeSeries[i, SG_internal] < 0)
+                                        throw new InvalidDataException("Emission factors must be finite and nonnegative");
                                     mean[n] += Program.EmFacTimeSeries[i, SG_internal];
                                 }
                                 i++;
@@ -101,7 +108,8 @@ namespace GRAL_2001
                     }
                     catch(Exception ex)
                     { 
-                        Console.WriteLine(ex.Message);
+                        ProgramWriters.LogfileProblemreportWrite("Invalid emissions_timeseries.txt: " + ex.Message);
+                        throw new InvalidDataException("Invalid emissions_timeseries.txt; simulation stopped", ex);
                     }
                 }
             }

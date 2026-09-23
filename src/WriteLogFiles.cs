@@ -297,9 +297,9 @@ namespace GRAL_2001
             for (int i = 0; i < Program.SourceGroups.Count; i++)
             {
                 int sg = Program.SourceGroups[i];
-                if (Program.DecayRate[sg] > 0)
+                if (Program.DecayRate[i] > 0)
                 {
-                    err = "  Decay rate " + Program.DecayRate[sg].ToString() + " for source group " + sg.ToString();
+                    err = "  Decay rate " + Program.DecayRate[i].ToString() + " for source group " + sg.ToString();
                     LogfileGralCoreWrite(err);
                 }
             }

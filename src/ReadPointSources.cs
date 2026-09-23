@@ -31,7 +31,7 @@ namespace GRAL_2001
 
             double totalemission = 0;
             int countrealsources = 0;
-            double[] emission_sourcegroup = new double[101];
+            double[] emission_sourcegroup = new double[Program.SourceGroups.Count];
 
             PQ.Add(new SourceData());
 
@@ -58,7 +58,7 @@ namespace GRAL_2001
                         {
                             //excluding all point sources with undesired source groups
                             {
-                                Int16 SG = Convert.ToInt16(text[10]);
+                                int SG = Convert.ToInt32(text[10]);
                                 int SG_index = Program.Get_Internal_SG_Number(SG); // get internal SG number
 
                                 if (SG_index >= 0)
@@ -84,7 +84,7 @@ namespace GRAL_2001
                                     }
                                     sd.D = Convert.ToSingle(text[8].Replace(".", Program.Decsep));
                                     sd.T = Convert.ToSingle(text[9].Replace(".", Program.Decsep));
-                                    sd.SG = Convert.ToInt16(text[10]);
+                                    sd.SG = Convert.ToInt32(text[10]);
                                     sd.Mode = 0; // standard mode = concentration only
                                     totalemission += sd.ER;
                                     emission_sourcegroup[SG_index] += sd.ER;
@@ -145,7 +145,7 @@ namespace GRAL_2001
             Program.PS_V = GC.AllocateUninitializedArray<float>(counter);
             Program.PS_T = GC.AllocateUninitializedArray<float>(counter);
             Program.PS_D = GC.AllocateUninitializedArray<float>(counter);
-            Program.PS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.PS_SG = GC.AllocateUninitializedArray<int>(counter);
             Program.PS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
             Program.PS_Mode = GC.AllocateUninitializedArray<byte>(counter);
             Program.PS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
@@ -192,7 +192,7 @@ namespace GRAL_2001
                 Program.PS_V[i] = PQ[i].V;
                 Program.PS_D[i] = PQ[i].D;
                 Program.PS_T[i] = PQ[i].T;
-                Program.PS_SG[i] = (byte)PQ[i].SG;
+                Program.PS_SG[i] = PQ[i].SG;
                 Program.PS_V_Dep[i] = PQ[i].Vdep;
                 Program.PS_V_sed[i] = PQ[i].Vsed;
                 Program.PS_Mode[i] = PQ[i].Mode;

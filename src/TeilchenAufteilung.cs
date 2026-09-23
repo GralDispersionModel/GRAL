@@ -146,7 +146,7 @@ namespace GRAL_2001
 
             // Resize Arrays 
             Program.ParticleSource = GC.AllocateUninitializedArray<Int32>(Sum_of_Particles + 1);
-            Program.ParticleSG = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+            Program.ParticleSG = GC.AllocateUninitializedArray<int>(Sum_of_Particles + 1);
             Program.Xcoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
             Program.YCoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
             Program.ZCoord = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);

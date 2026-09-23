@@ -95,7 +95,8 @@ namespace GRAL_2001
                                         int sg_number = 0;
                                         if (int.TryParse(_values[0], out sg_number))
                                         {
-                                            if (sg_number > 0 && sg_number < 100)
+                                            int sg_index = Program.Get_Internal_SG_Number(sg_number);
+                                            if (sg_index >= 0)
                                             {
                                                 try
                                                 {
@@ -105,7 +106,7 @@ namespace GRAL_2001
                                                 {
                                                     decay = 0;
                                                 }
-                                                Program.DecayRate[sg_number] = decay;
+                                                Program.DecayRate[sg_index] = decay;
                                             }
                                         }
                                     }

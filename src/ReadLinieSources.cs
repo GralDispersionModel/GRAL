@@ -28,7 +28,7 @@ namespace GRAL_2001
 
             double totalemission = 0;
             int countrealsources = 0;
-            double[] emission_sourcegroup = new double[101];
+            double[] emission_sourcegroup = new double[Program.SourceGroups.Count];
 
             Deposition Dep = new Deposition();
 
@@ -57,14 +57,14 @@ namespace GRAL_2001
                     {
                         //excluding all line sources with undesired source groups
                         {
-                            Int16 SG = Convert.ToInt16(text[2]);
+                            int SG = Convert.ToInt32(text[2]);
                             int SG_index = Program.Get_Internal_SG_Number(SG); // get internal SG number
 
                             if (SG_index >= 0)
                             {
                                 SourceData sd = new SourceData();
 
-                                sd.SG = Convert.ToInt16(text[2]);
+                                sd.SG = Convert.ToInt32(text[2]);
                                 sd.X1 = Convert.ToDouble(text[3].Replace(".", Program.Decsep));
                                 sd.Y1 = Convert.ToDouble(text[4].Replace(".", Program.Decsep));
                                 sd.Z1 = Convert.ToSingle(text[5].Replace(".", Program.Decsep));
@@ -143,7 +143,7 @@ namespace GRAL_2001
             Program.LS_Z2 = GC.AllocateUninitializedArray<float>(counter);
             Program.LS_Width = GC.AllocateUninitializedArray<float>(counter);
             Program.LS_Laerm = GC.AllocateUninitializedArray<float>(counter);
-            Program.LS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.LS_SG = GC.AllocateUninitializedArray<int>(counter);
             Program.LS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
             Program.LS_Mode = GC.AllocateUninitializedArray<byte>(counter);
             Program.LS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
@@ -189,7 +189,7 @@ namespace GRAL_2001
                 Program.LS_Z2[i] = (float)Math.Abs(LQ[i].Z2);
                 Program.LS_Width[i] = LQ[i].Width;
                 Program.LS_Laerm[i] = LQ[i].VertExt;
-                Program.LS_SG[i] = (byte)LQ[i].SG;
+                Program.LS_SG[i] = LQ[i].SG;
                 Program.LS_V_Dep[i] = LQ[i].Vdep;
                 Program.LS_V_sed[i] = LQ[i].Vsed;
                 Program.LS_Mode[i] = LQ[i].Mode;

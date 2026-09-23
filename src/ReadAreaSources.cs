@@ -28,7 +28,7 @@ namespace GRAL_2001
 
             double totalemission = 0;
             int countrealsources = 0;
-            double[] emission_sourcegroup = new double[101];
+            double[] emission_sourcegroup = new double[Program.SourceGroups.Count];
 
             AQ.Add(new SourceData());
 
@@ -58,7 +58,7 @@ namespace GRAL_2001
                     {
                         //excluding all area sources with undesired source groups
                         {
-                            Int16 SG = Convert.ToInt16(text[10]);
+                            int SG = Convert.ToInt32(text[10]);
                             int SG_index = Program.Get_Internal_SG_Number(SG); // get internal SG number
 
                             if (SG_index >= 0)
@@ -71,7 +71,7 @@ namespace GRAL_2001
                                 sd.Y2 = Convert.ToDouble(text[4].Replace(".", Program.Decsep));
                                 sd.Z2 = Convert.ToSingle(text[5].Replace(".", Program.Decsep));
                                 sd.ER = Convert.ToDouble(text[6].Replace(".", Program.Decsep));
-                                sd.SG = Convert.ToInt16(text[10]);
+                                sd.SG = Convert.ToInt32(text[10]);
                                 sd.Mode = 0; // standard mode = concentration only
                                 totalemission += sd.ER;
                                 emission_sourcegroup[SG_index] += sd.ER;
@@ -127,7 +127,7 @@ namespace GRAL_2001
             Program.AS_dX = GC.AllocateUninitializedArray<float>(counter);
             Program.AS_dY = GC.AllocateUninitializedArray<float>(counter);
             Program.AS_dZ = GC.AllocateUninitializedArray<float>(counter);
-            Program.AS_SG = GC.AllocateUninitializedArray<byte>(counter);
+            Program.AS_SG = GC.AllocateUninitializedArray<int>(counter);
             Program.AS_PartNumb = GC.AllocateUninitializedArray<int>(counter);
             Program.AS_Mode = GC.AllocateUninitializedArray<byte>(counter);
             Program.AS_V_Dep = GC.AllocateUninitializedArray<float>(counter);
@@ -171,7 +171,7 @@ namespace GRAL_2001
                 Program.AS_dY[i] = (float) AQ[i].Y2;
                 Program.AS_dZ[i] = AQ[i].Z2;
                 Program.AS_ER[i] = AQ[i].ER;
-                Program.AS_SG[i] = (byte)AQ[i].SG;
+                Program.AS_SG[i] = AQ[i].SG;
                 Program.AS_V_Dep[i] = AQ[i].Vdep;
                 Program.AS_V_sed[i] = AQ[i].Vsed;
                 Program.AS_Mode[i] = AQ[i].Mode;
