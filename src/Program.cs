@@ -65,7 +65,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L Version 26.01             < <   +";
+            string Info =     "+  > >         G R A L Version 27.01Beta1        < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -682,9 +682,10 @@ namespace GRAL_2001
                         // calculate wet deposition parameter
                         if (IWET < WetDepoPrecipLst.Count)
                         {
-                            if (WetDepoPrecipLst[IWET] > 0)
+                            if (WetDepoPrecipLst[IWET - 1] > 0)
                             {
-                                WetDepoRW = Wet_Depo_CW * Math.Pow(WetDepoPrecipLst[IWET], WedDepoAlphaW);
+                                WetDepoPrecipitation = WetDepoPrecipLst[IWET - 1];
+                                WetDepoRW = Wet_Depo_CW * Math.Pow(WetDepoPrecipitation, WedDepoAlphaW);
                                 WetDepoRW = Math.Max(0, Math.Min(1, WetDepoRW));
                             }
                             else
