@@ -1149,6 +1149,10 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
         {
+            if (inclusiveLowerBound >= exclusiveUpperBound)
+            {
+                return;
+            }
             if (Program.UseFixedRndSeedVal)
             {
                 // Custom ligthweight parallel loop for the release of particles from all sources
@@ -1156,7 +1160,7 @@ namespace GRAL_2001
                 {
                     int remainingWorkItems = Program.pOptions.MaxDegreeOfParallelism;
                     int nextIteration = inclusiveLowerBound;
-                    int percent10 = (int)(Program.NTEILMAX * 0.1F);
+                    int percent10 = Math.Max(1, (int)(Program.NTEILMAX * 0.1F));
 
                     // Create each of the work items up to MaxDegreeOfParallelism
                     for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
@@ -1189,7 +1193,7 @@ namespace GRAL_2001
                 // default parallel loop
                 int IPERC = 0;
                 int advance = 0;
-                int percent10 = (int)(NTEILMAX * 0.1F);
+                int percent10 = Math.Max(1, (int)(NTEILMAX * 0.1F));
                 ParallelOptions pOpt = Program.pOptions;
                 int locker = 0;
                 Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, nteil =>

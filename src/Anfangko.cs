@@ -22,7 +22,6 @@ namespace GRAL_2001
         /// <summary>
         /// Calculate the start coordinates of all particles at a random point within the source geometries.
         /// Calculates the "mass" of each particle, depending on the emission rate of the source and the number of particles per source.
-        /// Calculates the average deposition settings for each source group in the transient mode (used for the transient particles).
         /// </summary>
         public static void Calculate()
         {
@@ -578,48 +577,6 @@ namespace GRAL_2001
                         }
                 }
             });
-
-            // Transient Mode: calculate average deposition settings for each source group one times (if Transient_Depo == null)
-            if (Program.ISTATIONAER == Consts.TransientMode && Program.TransientDepo == null)
-            {
-                Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count];
-                for (int i = 0; i < Program.SourceGroups.Count; i++)
-                {
-                    Program.TransientDepo[i] = new TransientDeposition();
-                }
-
-                int[] mode = new int[Program.SourceGroups.Count];
-                int[] counter = new int[Program.SourceGroups.Count];
-                double[] vsed = new double[Program.SourceGroups.Count];
-                double[] vdep = new double[Program.SourceGroups.Count];
-
-                // loop over all particles
-                for (int nteil = 1; nteil < Program.NTEILMAX + 1; nteil++)
-                {
-                    if (Program.ParticleMode[nteil] < Consts.DepoOnly) // no deposition weighting if only deposition should be calculated for a particle
-                    {
-                        int SG = Program.ParticleSG[nteil]; // real SG number of particle
-                        int SG_index = Program.SourceGroups.IndexOf(Program.ParticleSG[nteil]); // internal source group number 
-                        mode[SG_index] = Math.Max(mode[SG_index], Program.ParticleMode[nteil]); // set average mode to 1 if 1 particle has a deposition
-                        vdep[SG_index] += Program.ParticleVdep[nteil];
-                        vsed[SG_index] += Program.ParticleVsed[nteil];
-                        ++counter[SG_index];
-                    }
-                }
-
-                // Set average deposition values for each source group
-                for (int i = 0; i < Program.SourceGroups.Count; i++)
-                {
-                    Program.TransientDepo[i].DepositionMode = 0;
-                    if (counter[i] > 0)
-                    {
-                        Program.TransientDepo[i].Vdep = vdep[i] / counter[i];
-                        Program.TransientDepo[i].Vsed = vsed[i] / counter[i];
-                        Program.TransientDepo[i].DepositionMode = mode[i];
-                    }
-                }
-            } // Transient Mode: average depo settings
-
         }
 
         public static float DeterministicRng(ref uint m_z, ref uint m_w)

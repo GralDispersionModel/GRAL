@@ -354,8 +354,6 @@ namespace GRAL_2001
 
             ReaderClass.RemovePrognosticSubDomainsFarDistanceToSources();
 
-            //distribution of all particles over all sources according to their source strengths (the higher the emission rate the larger the number of particles)
-            NTEILMAX = ParticleManagement.Calculate();
             //Coriolis parameter
             CorolisParam = (float)(2 * 7.29 * 0.00001 * Math.Sin(Math.Abs(LatitudeDomain) * 3.1415 / 180));
 
@@ -664,6 +662,9 @@ namespace GRAL_2001
 
                     //calculating momentum and bouyancy forces for point sources
                     PointSourceHeight.CalculatePointSourceHeight();
+
+                    // Reallocate the configured particle budget to the sources emitting now.
+                    NTEILMAX = ParticleManagement.Calculate();
 
                     //defining the initial positions of particles
                     StartCoordinates.Calculate();
