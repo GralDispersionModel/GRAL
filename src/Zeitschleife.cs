@@ -2022,12 +2022,104 @@ namespace GRAL_2001
                     }
                     masse -= epsilonW_Masse;
 
-                    double[] depo_L = Program.Depo_conz[iko][jko];
-                    double conc = epsilonW_Masse * area_rez_fac;
-                    lock (depo_L)
+                    if (!Program.WetDopoDropDrift) // default deposition on the position of the particle
                     {
-                        depo_L[SG_nteil] += conc;
+                        double[] depo_L = Program.Depo_conz[iko][jko];
+                        double conc = epsilonW_Masse * area_rez_fac;
+                        lock (depo_L)
+                        {
+                            depo_L[SG_nteil] += conc;
+                        }
                     }
+                    else // consider the drop drift 
+                    {
+                        // find the index for the drop data
+                        int dropDataIndex;
+                        for (dropDataIndex = 0; dropDataIndex < Program.WetDepoDropVelocity.GetLength(1); dropDataIndex++)
+                        {
+                            if (Program.WetDepoDropVelocity[dropDataIndex, 0] >= Program.WetDepoPrecipitation)
+                            {
+                                break;
+                            }
+                        }
+                                                
+                        //loop for 4 drop size classes
+                        for (int dropSizeClass = 1; dropSizeClass < 5; dropSizeClass++)
+                        {
+                            // random number from 0.5 to 1 -> create a variation of the drop velocity
+                            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                            u_rg = (m_z << 16) + m_w;
+                            float u_random = (float) (0.5F + u_rg * 1.16415321772724E-10);
+
+                            double depoX = xcoord_nteil, depoY = ycoord_nteil, 
+                                   depoEpsilonW = epsilonW_Masse * Program.WetDepoDropVelocity[dropDataIndex, 4 + dropSizeClass] * 0.01F,
+                                   depoCellH = Program.DZK[IndexK];
+                            int depoIndexK = IndexK, depoFFX = FFCellX, depoFFY = FFCellY;
+
+                            float depo1stCell = Program.DZK[1];
+                            if (Program.BuildingsExist == false) //flat terrain, no buildings
+                            {
+                                depoCellH = 2;
+                                depo1stCell = 2;
+                            }
+
+                            float depoVelVertical = Program.WetDepoDropVelocity[dropDataIndex, dropSizeClass] * u_random, depoTime = (float)depoCellH * 4 / depoVelVertical,
+                                  depoU = UXint, depoV = UYint, depoZ = UZint, depoZcoord = zcoord_nteil, depoAH = AHint;
+                            
+                            //track drops until they reach the ground
+                            while (depoZcoord > depoAH)
+                            {
+                                // new coordinates and flow field grid indices
+                                depoZcoord += depoZ * depoTime - (float) depoCellH * 4; // increase perf by factor 4
+                                if (depoZcoord > depo1stCell)
+                                {
+                                    depoX += depoTime * depoU;
+                                    depoY += depoTime * depoV;
+                                    depoFFX = (int)((depoX - IKOOAGRAL) * FFGridXRez) + 1;
+                                    depoFFY = (int)((depoY - JKOOAGRAL) * FFGridYRez) + 1;
+                                    if ((depoFFX < 1) || (depoFFX > Program.NII) || (depoFFY < 1) || (depoFFY > Program.NJJ))
+                                    {
+                                        depoEpsilonW = 0;
+                                        break;
+                                    }
+                                    depoAH = Program.AHK[depoFFX][depoFFY];
+                                    (depoU, depoV, depoZ, depoIndexK) = IntWindCalculate(depoFFX, depoFFY, depoAH, depoX, depoY, depoZcoord);
+                                    // new values
+                                    if (Program.BuildingsExist == false) //flat terrain, no buildings
+                                    {
+                                        depoCellH = 2;
+                                    }
+                                    else
+                                    {
+                                        depoCellH = Program.DZK[depoIndexK];
+                                    }
+                                    depoTime = (float)depoCellH * 4 / depoVelVertical;
+                                }
+                            }
+                            /*Console.WriteLine("CellH:" + Math.Round(depoCellH,1).ToString() + "DeltaX:" + Math.Round(depoX - xcoord_nteil).ToString() +
+                                "DeltaY:" + Math.Round(depoY - ycoord_nteil).ToString() + "DepoTime:" + depoTime + "Size:" + dropSizeClass.ToString() +"VertVel:" + Math.Round(depoVelVertical,1) +
+                                "Urnd:" + u_random);*/
+                            // concentration grid indices
+                            int depoiko = (int)((depoX - IKOOAGRAL) * ConcGridXRez) + 1;
+                            int depojko = (int)((depoY - JKOOAGRAL) * ConcGridYRez) + 1;
+                            if ((depoiko >= Program.NXL) || (depoiko < 2) || (depojko >= Program.NYL) || (depojko < 2))
+                            {
+                                depoEpsilonW = 0;
+                            }
+                            else //save deposition 
+                            {
+                                //Console.WriteLine("StartCoordinates" + Math.Round(xcoord_nteil,0).ToString() + "/" + Math.Round(ycoord_nteil,0).ToString() + "FinalCoordinates" + Math.Round(depoX,1).ToString() + "/" + Math.Round(depoY,1).ToString());
+                                double[] depo_L = Program.Depo_conz[depoiko][depojko];
+                                double conc = depoEpsilonW * area_rez_fac;
+                                lock (depo_L)
+                                {
+                                    depo_L[SG_nteil] += conc;
+                                }
+                            }
+                        } //loop for 4 drop size classes
+
+                    } // end of considering drop drift
 
                     if (ex)
                     {

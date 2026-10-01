@@ -65,6 +65,13 @@ namespace GRAL_2001
                             if (Program.ISTATIONAER == Consts.TransientMode && Program.Wet_Depo_CW > 0 && Program.WedDepoAlphaW > 0)
                             {
                                 Program.WetDeposition = true;
+                                if (txt.Length > 0) // set deposition drop drift
+                                {
+                                    if (Int32.TryParse(txt[1], out int dropdrift) && dropdrift == 1)
+                                    {
+                                        Program.WetDopoDropDrift = true;
+                                    }
+                                }
                             }
                             else
                             {

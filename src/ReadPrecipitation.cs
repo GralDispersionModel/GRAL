@@ -88,6 +88,17 @@ namespace GRAL_2001
                         Info = "Wet deposition parameters cW = " + Program.Wet_Depo_CW.ToString() + " 1/s    AlphaW = " + Program.WedDepoAlphaW.ToString();
                         Console.WriteLine(Info);
 
+                        if (Program.WetDopoDropDrift)
+                        {
+                            Info = "Wet deposition drop drift considered";
+                            Console.WriteLine(Info);
+                        }
+                        else
+                        {
+                            Info = "Wet deposition drop drift not considered";
+                            Console.WriteLine(Info);
+                        }
+
                         ProgramWriters.LogfileGralCoreWrite(" ");
                         Console.WriteLine("");
 
