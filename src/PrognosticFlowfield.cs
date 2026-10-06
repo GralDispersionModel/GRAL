@@ -1071,15 +1071,23 @@ namespace GRAL_2001
                 //algebraic mixing length model
                 if (TurbulenceModel == 1)
                 {
+                    ParallelOptions canceloption = new ParallelOptions();
+                    canceloption.MaxDegreeOfParallelism = Program.pOptions.MaxDegreeOfParallelism;
+                    canceloption.CancellationToken = Program.CancelToken.Token;
+
                     if (Program.UseVector512Class)
                     {
                         if (!Program.UseFixedRndSeedVal)
                         {
                             Program.pOptions.MaxDegreeOfParallelism += 2;
-                            Parallel.Invoke(Program.pOptions,
-                            () => U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
-                            () => V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
-                            W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            try
+                            {
+                                Parallel.Invoke(canceloption,
+                                () => U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
+                                () => V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                                W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            }
+                            catch{}
                             Program.pOptions.MaxDegreeOfParallelism -= 2;
                         }
                         else
@@ -1089,6 +1097,7 @@ namespace GRAL_2001
                             U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
                             V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
                             W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            if (Program.CancelToken.IsCancellationRequested) return;
                             Program.pOptions.MaxDegreeOfParallelism = cores;
                         }
                     }
@@ -1097,10 +1106,14 @@ namespace GRAL_2001
                         if (!Program.UseFixedRndSeedVal)
                         {
                             Program.pOptions.MaxDegreeOfParallelism += 2;
-                            Parallel.Invoke(Program.pOptions,
-                            () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
-                            () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
-                            W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            try
+                            {
+                                Parallel.Invoke(canceloption,
+                                () => U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax),
+                                () => V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax));
+                                W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            }
+                            catch{}
                             Program.pOptions.MaxDegreeOfParallelism -= 2;
                         }
                         else
@@ -1108,8 +1121,9 @@ namespace GRAL_2001
                             int cores = Program.pOptions.MaxDegreeOfParallelism;
                             Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
-                            V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
+                            V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);                            
                             W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
+                            if (Program.CancelToken.IsCancellationRequested) return;
                             Program.pOptions.MaxDegreeOfParallelism = cores;
                         }                   
                     }

@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.IO.Pipes;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -1121,7 +1122,7 @@ namespace GRAL_2001
             }
         }
 
-        private static void ShowCopyright(string[] args)
+        private static async void ShowCopyright(string[] args)
         {
             Console.WriteLine("[GRAL]  Copyright (C) <2019>  <Dietmar Oettl, Markus Kuntner>");
             Console.WriteLine("This program comes with ABSOLUTELY NO WARRANTY; for details start GRAL with a startup parameter ‘show_w’");
@@ -1139,6 +1140,23 @@ namespace GRAL_2001
                 Console.WriteLine("You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.");
             }
             Console.WriteLine();
+            await WaitForAsyncCommands();
+        }
+
+        private static async Task WaitForAsyncCommands()
+        {
+            using (NamedPipeClientStream client = new NamedPipeClientStream(".", "GRALServerStream", PipeDirection.In))
+            {
+                await client.ConnectAsync(); // Wait to connect
+                using (StreamReader reader = new StreamReader(client))
+                {
+                    string command = await reader.ReadLineAsync();
+                    if (command == "Finish")
+                    {
+                        CancelToken.Cancel();
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1163,22 +1181,30 @@ namespace GRAL_2001
                     {
                         ThreadPool.QueueUserWorkItem(delegate
                         {
-                            int index;
-                            while ((index = Interlocked.Increment(ref nextIteration) - 1) < exclusiveUpperBound)
+                            try
                             {
-                                // start the particle driver for the particle No. index
-                                Zeitschleife.Calculate(index);
-                                // show progress bar
-                                if (index % percent10 == 0 && index > 0)
+                                int index;
+                                while ((index = Interlocked.Increment(ref nextIteration) - 1) < exclusiveUpperBound)
                                 {
-                                    Console.Write("I");
+                                    // start the particle driver for the particle No. index
+                                    Zeitschleife.Calculate(index);
+                                    // show progress bar
+                                    if (index % percent10 == 0 && index > 0)
+                                    {
+                                        Console.Write("I");
+                                        if (Program.CancelToken.IsCancellationRequested)
+                                        {
+                                            throw new Exception();
+                                        }
+                                    }
                                 }
                             }
+                            catch { }
                             if (Interlocked.Decrement(ref remainingWorkItems) == 0)
                             {
                                 manResetEvent.Set();
                             }
-                        });
+                        }, Program.CancelToken.Token);
                     }
                     // Wait for all threads to complete
                     manResetEvent.WaitOne();
@@ -1190,41 +1216,47 @@ namespace GRAL_2001
                 int IPERC = 0;
                 int advance = 0;
                 int percent10 = (int)(NTEILMAX * 0.1F);
-                ParallelOptions pOpt = Program.pOptions;
+                ParallelOptions pOpt = new ParallelOptions();
+                pOpt.MaxDegreeOfParallelism = Program.pOptions.MaxDegreeOfParallelism;
+                pOpt.CancellationToken = Program.CancelToken.Token;
                 int locker = 0;
-                Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, nteil =>
+                try
                 {
-                    Interlocked.Increment(ref advance);
-                    if (advance > percent10)
+                    Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, nteil =>
                     {
-                        if (Interlocked.Exchange(ref advance, 0) > advance)  // set advance to 0
+                        Interlocked.Increment(ref advance);
+                        if (advance > percent10)
                         {
-                            Interlocked.Add(ref IPERC, 10);
-                            Console.Write("I");
-                            if (IPERC % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
+                            if (Interlocked.Exchange(ref advance, 0) > advance)  // set advance to 0
                             {
-                                Interlocked.Increment(ref locker);
-                                try
+                                Interlocked.Add(ref IPERC, 10);
+                                Console.Write("I");
+                                if (IPERC % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
                                 {
-                                    using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                    Interlocked.Increment(ref locker);
+                                    try
                                     {
-                                        if (ISTATIONAER == Consts.TransientMode)
+                                        using (StreamWriter sr = new StreamWriter("Percent.txt", false))
                                         {
-                                            sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
-                                        }
-                                        else
-                                        {
-                                            sr.Write(IPERC.ToString());
+                                            if (ISTATIONAER == Consts.TransientMode)
+                                            {
+                                                sr.Write((50 + MathF.Round(IPERC * 0.5F)).ToString());
+                                            }
+                                            else
+                                            {
+                                                sr.Write(IPERC.ToString());
+                                            }
                                         }
                                     }
+                                    catch { }
+                                    Interlocked.Decrement(ref locker);
                                 }
-                                catch { }
-                                Interlocked.Decrement(ref locker);
                             }
                         }
-                    }
-                    Zeitschleife.Calculate(nteil);
-                });
+                        Zeitschleife.Calculate(nteil);
+                    });
+                }
+                catch{}
 
                 Console.Write("I");
                 Console.WriteLine();
@@ -1254,43 +1286,51 @@ namespace GRAL_2001
                     {
                         ThreadPool.QueueUserWorkItem(delegate
                         {
-                            int indexbatch;
-                            while ((indexbatch = Interlocked.Add(ref nextIteration, batchSize) - batchSize) < exclusiveUpperBound)
+                            try
                             {
-                                //internal loop batchSize end
-                                int end = indexbatch + batchSize;
-                                if (end >= exclusiveUpperBound)
+                                int indexbatch;
+                                while ((indexbatch = Interlocked.Add(ref nextIteration, batchSize) - batchSize) < exclusiveUpperBound)
                                 {
-                                    end = exclusiveUpperBound;
-                                }
-                                for (int index = indexbatch; index < end; index++)
-                                {
-                                    // indices of recent cellNr
-                                    int i = 1 + (index % Program.NII);
-                                    int j = 1 + (int)(index / Program.NII);
-                                    for (int k = Program.NKK_Transient; k > 0; k--)
+                                    //internal loop batchSize end
+                                    int end = indexbatch + batchSize;
+                                    if (end >= exclusiveUpperBound)
                                     {
-                                        for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                                        end = exclusiveUpperBound;
+                                    }
+                                    for (int index = indexbatch; index < end; index++)
+                                    {
+                                        // indices of recent cellNr
+                                        int i = 1 + (index % Program.NII);
+                                        int j = 1 + (int)(index / Program.NII);
+                                        for (int k = Program.NKK_Transient; k > 0; k--)
                                         {
-                                            if (Program.Conz4d[i][j][k][IQ] >= Program.TransConcThreshold)
+                                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                                             {
-                                                // start the particle driver for the cell [i,j], height k, source group IQ
-                                                ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Program.Conz4d[i][j][k][IQ]);
+                                                if (Program.Conz4d[i][j][k][IQ] >= Program.TransConcThreshold)
+                                                {
+                                                    // start the particle driver for the cell [i,j], height k, source group IQ
+                                                    ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Program.Conz4d[i][j][k][IQ]);
+                                                }
+                                            }
+                                        }
+                                        // show progress bar
+                                        if (index % percent10 == 0)
+                                        {
+                                            Console.Write("X");
+                                            if (Program.CancelToken.IsCancellationRequested)
+                                            {
+                                                throw new Exception();
                                             }
                                         }
                                     }
-                                    // show progress bar
-                                    if (index % percent10 == 0)
-                                    {
-                                        Console.Write("X");
-                                    }
                                 }
                             }
+                            catch{}
                             if (Interlocked.Decrement(ref remainingWorkItems) == 0)
                             {
                                 manResetEvent.Set();
                             }
-                        });
+                        }, Program.CancelToken.Token);
                     }
                     // Wait for all threads to complete
                     manResetEvent.WaitOne();
@@ -1303,50 +1343,56 @@ namespace GRAL_2001
                 int advancenss = 0;
                 int cellNr = NII * NJJ;
                 int percent10nss = (int)(cellNr * 0.1F);
-                ParallelOptions pOpt = Program.pOptions;
+                ParallelOptions pOpt = new ParallelOptions();
+                pOpt.MaxDegreeOfParallelism = Program.pOptions.MaxDegreeOfParallelism;
+                pOpt.CancellationToken = Program.CancelToken.Token;
                 int locker = 0;
-                Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, cell =>
+                try
                 {
-                    Interlocked.Increment(ref advancenss);
-                    if (advancenss > percent10nss)
+                    Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, cell =>
                     {
-                        if (Interlocked.Exchange(ref advancenss, 0) > advancenss) // set advance to 0
+                        Interlocked.Increment(ref advancenss);
+                        if (advancenss > percent10nss)
                         {
-                            Interlocked.Add(ref IPERCnss, 10);
-                            if (IPERCnss < 100)
+                            if (Interlocked.Exchange(ref advancenss, 0) > advancenss) // set advance to 0
                             {
-                                Console.Write("X");
-                                if (IPERCnss % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
+                                Interlocked.Add(ref IPERCnss, 10);
+                                if (IPERCnss < 100)
                                 {
-                                    Interlocked.Increment(ref locker);
-                                    try
+                                    Console.Write("X");
+                                    if (IPERCnss % 20 == 0 && locker == 0 && IWETstartstop.Start < 2) //write files only for the 1st instance
                                     {
-                                        using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                        Interlocked.Increment(ref locker);
+                                        try
                                         {
-                                            sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                            using (StreamWriter sr = new StreamWriter("Percent.txt", false))
+                                            {
+                                                sr.Write(MathF.Round(IPERCnss * 0.5F).ToString());
+                                            }
                                         }
+                                        catch { }
+                                        Interlocked.Decrement(ref locker);
                                     }
-                                    catch { }
-                                    Interlocked.Decrement(ref locker);
                                 }
                             }
                         }
-                    }
 
-                    // indices of recent cellNr
-                    int i = 1 + (cell % NII);
-                    int j = 1 + (int)(cell / NII);
-                    for (int k = 1; k <= NKK_Transient; k++)
-                    {
-                        for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                        // indices of recent cellNr
+                        int i = 1 + (cell % NII);
+                        int j = 1 + (int)(cell / NII);
+                        for (int k = 1; k <= NKK_Transient; k++)
                         {
-                            if (Conz4d[i][j][k][IQ] >= TransConcThreshold)
+                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
-                                ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Conz4d[i][j][k][IQ]);
+                                if (Conz4d[i][j][k][IQ] >= TransConcThreshold)
+                                {
+                                    ZeitschleifeNonSteadyState.Calculate(i, j, k, IQ, Conz4d[i][j][k][IQ]);
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
+                catch{}
                 Console.Write("X");
             }
         }
