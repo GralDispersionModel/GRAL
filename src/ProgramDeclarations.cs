@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Frozen;
 
 namespace GRAL_2001
 {
@@ -510,6 +511,10 @@ namespace GRAL_2001
         ///Flag determining if receptor points are included or not
         ///</summary>
         public static bool ReceptorsAvailable = false;
+        ///<summary>
+        ///Directory for spatial stored receptor data
+        ///</summary>
+        public static FrozenDictionary<(int i, int j), List<int>> GridCellReceptors;
         ///<summary>
         ///Default roughness length in [m]
         ///</summary>
@@ -1295,6 +1300,9 @@ namespace GRAL_2001
         /// Use Fixed Random Seed Value?
         ///</summary>
         public static bool UseFixedRndSeedVal = false;
+
+        public static CancellationTokenSource CancelToken = new();
+
 
         ///<summary>
         /// Table for the Drop Drift calculation

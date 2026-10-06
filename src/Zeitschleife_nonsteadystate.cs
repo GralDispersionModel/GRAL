@@ -1175,30 +1175,34 @@ namespace GRAL_2001
                     //receptor concentrations
                     if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
                     {
-                        for (int irec = 1; irec < ReceptorConcentration.Length; irec++)
+                        //search for a receptor within the recent cell
+                        if (Program.GridCellReceptors.TryGetValue((iko, jko), out var receptors))
                         {
-                            // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
-                            if (Program.ReceptorNearbyBuilding[irec])
+                            foreach (int irec in receptors)
                             {
-                                if (iko == Program.ReceptorIInd[irec] &&
-                                    jko == Program.ReceptorJInd[irec])
+                                // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
+                                if (Program.ReceptorNearbyBuilding[irec])
                                 {
-                                    float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if ((int) slice == 0)
+                                    if (iko == Program.ReceptorIInd[irec] &&
+                                        jko == Program.ReceptorJInd[irec])
                                     {
-                                        ReceptorConcentration[irec] += idt * masse;
+                                        float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
+                                        if ((int)slice == 0)
+                                        {
+                                            ReceptorConcentration[irec] += idt * masse;
+                                        }
                                     }
                                 }
-                            }
-                            else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
-                            {
-                                if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < ConcGridXHalf &&
-                                    Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
+                                else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
                                 {
-                                    float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if ((int)(slice) == 0)
+                                    if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < ConcGridXHalf &&
+                                        Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                     {
-                                        ReceptorConcentration[irec] += idt * masse;
+                                        float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
+                                        if ((int)slice == 0)
+                                        {
+                                            ReceptorConcentration[irec] += idt * masse;
+                                        }
                                     }
                                 }
                             }

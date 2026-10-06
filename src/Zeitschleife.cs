@@ -60,7 +60,7 @@ namespace GRAL_2001
             double ycoord_nteil = Program.YCoord[nteil];
             float zcoord_nteil = Program.ZCoord[nteil];
             double masse = Program.ParticleMass[nteil];
-            
+
             //get index of internal source group number
             int SG_nteil = Program.ParticleSG[nteil];
             for (int i = 0; i < Program.SourceGroups.Count; i++)
@@ -93,7 +93,7 @@ namespace GRAL_2001
             float DeltaZHurley = 0;
             float SigmaUpHurley = 0;
             float minVDI3782 = 0; //Minimum plume rise height for cold stacks depending on VDI 3782-3 Equation 18
-            
+
             float horPSExitDistance = 0;  // distance from source for horizontal flow exit
             float horPSExitDirection = 0; // Direction for horizontal plume exit
             float horPSExitRnd = 1;       //gaussian pdf for the direction/velocity of the horizontal flow
@@ -102,7 +102,7 @@ namespace GRAL_2001
             float horPSExitDeltaY = 0;    // deltay forced by the flow of a horizontal point Source
             float horPSExitVelocity = 0;  // exit velocity for horizontal point sources
             float horPSPlumeVelocity = 0;  // recent velocity for horizontal point sources plume
-                        
+
             //Grid variables
             int GrammCellX = 1, GrammCellY = 1; // default value for flat terrain
             int FFCellX, FFCellY;               // Flow field cells
@@ -171,7 +171,7 @@ namespace GRAL_2001
                     {
                         masse *= Program.EmFacTimeSeries[Program.IWET - 1, SG_nteil];
                     }
-                      
+
                     if (masse <= 0)
                     {
                         goto REMOVE_PARTICLE;
@@ -187,7 +187,7 @@ namespace GRAL_2001
                 }
                 //catch{}
             }
-          
+
 
             /*
              *   INITIIALIZING PARTICLE PROPERTIES -> DEPEND ON SOURCE CATEGORY
@@ -223,7 +223,7 @@ namespace GRAL_2001
                 Math.Max(Math.Abs(Program.EtaMaxGral - Program.EtaMinGral), Math.Abs(Program.XsiMaxGral - Program.XsiMinGral)) * 1000)); // max. Loops 1E6 (max. nr. of reflexions) + 2E6 Min + max(x,y)/0.001 
             int Max_Reflections = Math.Min(1000000, Program.NII * Program.NJJ * 10); // max. 10 reflections per cell
             int ConcCellPrevX = -1; int ConcCellPrevY = -1; int ConcCellPrevZ = 0; float ConcCellTimeMax = Math.Max(100, Program.GralDx / 0.04F); float ConcCellTime = 0; float distanceParticle = 50;
-            
+
             //interpolated orography
             float PartHeightAboveTerrain = 0;
             float PartHeightAboveBuilding = 0;
@@ -248,7 +248,7 @@ namespace GRAL_2001
             }
             else
             {
-                AHint = 0;  
+                AHint = 0;
                 //flat terrain
                 PartHeightAboveTerrain = zcoord_nteil;
                 PartHeightAboveBuilding = PartHeightAboveTerrain;
@@ -345,7 +345,7 @@ namespace GRAL_2001
                     }
                 }
 
-                if(Program.PS_HorExitVel[Kenn_NTeil] > 0.1) //horizontal point source
+                if (Program.PS_HorExitVel[Kenn_NTeil] > 0.1) //horizontal point source
                 {
                     float exrnd = Math.Clamp(zahl1 * 0.7F, -1, 1);
                     horPSExitDirection = Program.PS_HorExitDir[Kenn_NTeil] + 8 * exrnd; //+- 8 degree
@@ -379,15 +379,15 @@ namespace GRAL_2001
                     exitDiameter = exitDiameter * 7.2305086F; // increased diameter due to the larger area of the core and transition zone
                     horPSPlumeVelocity = horPSExitVelocity;   // plume velocity = exit velocity at the start
                 }
-               
+
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 u1_rg = (u_rg + 1) * RNG_Const;
-                
+
                 //fluctuation of exit / ambient temperature
                 exitTemperature = MathF.Max(273, exitTemperature * (1.05F - u1_rg * 0.2F));
-                
+
                 //plume-rise velocity
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -397,7 +397,7 @@ namespace GRAL_2001
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                                                                
+
                 FHurley = 9.81F * exitVelocity * Program.Pow2(exitDiameter * 0.5F) *
                                  (exitTemperature - 273F) / exitTemperature;
                 GHurley = 273 / exitTemperature * exitVelocity * Program.Pow2(exitDiameter * 0.5F);
@@ -409,7 +409,7 @@ namespace GRAL_2001
                 DeltaZHurley = 0;
                 if (horPSExitDistance > 0) //horizontal point source
                 {
-                    minVDI3782 = 0; 
+                    minVDI3782 = 0;
                 }
                 else // vertical point source
                 {
@@ -483,7 +483,7 @@ namespace GRAL_2001
                 u_rg = (m_z << 16) + m_w;
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
-                coruri = windge + U0int * (float) zahl1;
+                coruri = windge + U0int * (float)zahl1;
 
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -534,12 +534,12 @@ namespace GRAL_2001
             int depo_reflection_counter = -5; // counter to ensure, a particle moves top to down
             bool TerrainStepAllowed = true;   //19.05.25 Ku: Flag, that one step is allowed
 
-        /*
-        *      LOOP OVER THE TIME-STEPS
-        */
+            /*
+            *      LOOP OVER THE TIME-STEPS
+            */
             float ObLength = 0;
             float Ustern = 0;
- 
+
         MOVE_FORWARD:
             while (timestep_number <= Max_Loops)
             {
@@ -664,7 +664,7 @@ namespace GRAL_2001
                         idt = MathF.Min(0.2F, idt);
                         if (horPSExitDistance > 0 && auszeit < 3)
                         {
-                            idt = MathF.Round(MathF.Max(0.01F, MathF.Min(0.2F, 0.5F/(5 + horPSPlumeVelocity))), 3);
+                            idt = MathF.Round(MathF.Max(0.01F, MathF.Min(0.2F, 0.5F / (5 + horPSPlumeVelocity))), 3);
                         }
                     }
 
@@ -714,7 +714,7 @@ namespace GRAL_2001
                 zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
                 Math.Clamp(zahl1, -2, 2);
                 float velz = acc * idt + MathF.Sqrt(Program.C0z * eps * idt) * zahl1 + velzold;
-                
+
                 //******************************************************************************************************************** OETTL, 31 AUG 2016
                 //in adjecent cells to vertical solid walls, turbulent velocities are only allowed in the direction away from the wall
                 if (velz == 0)
@@ -771,12 +771,12 @@ namespace GRAL_2001
                     else
                     {
                         float stab = 0;
-                      
+
                         if (ObLength >= 0)
                         {
                             stab = 0.04F * MathF.Pow(2.73F, -ObLength * 0.05F);
                         }
-                        
+
                         //plume-rise velocity
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
@@ -789,8 +789,8 @@ namespace GRAL_2001
                         //float standwind = windge * 0.31F + 0.25F;
                         //float fmodul = 1 + standwind * zahl1 * unstablefactor;
                         //fmodul = Math.Clamp(fmodul, 0.1F, 6);
-                        float windSpeedStandDev = 0;  
-                        
+                        float windSpeedStandDev = 0;
+
                         if (auszeit < 3) // reduced wind fluctuation at the start of the plume rise for higher wind speeds
                         {
                             float maxFac = MathF.Max(8 - windge * 0.3F, 1.2F);
@@ -801,7 +801,7 @@ namespace GRAL_2001
                         {
                             windSpeedStandDev = windge * Math.Clamp(1 + (windge * 0.31F + 0.25F) * zahl1, 0.1F, 8);
                         }
-                                                
+
                         //Plume volume
                         GHurley += 2 * RHurley * (aHurley * Program.Pow2(wpHurley) + bHurley * windSpeedStandDev * wpHurley
                                                         + 0.1F * upHurley * MathF.Sqrt(0.5F * (Program.Pow2(velxold) + Program.Pow2(velyold)))) * idt;
@@ -828,7 +828,7 @@ namespace GRAL_2001
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
                         zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                        
+
                         if (auszeit < 0.6F) // fix plume rise algorithm problems at the start of the plume rise
                         {
                             wpold *= MathF.Exp(-(auszeit + idt));
@@ -924,7 +924,7 @@ namespace GRAL_2001
                     float a = 0.2f + 0.02f * windge; // high turbulence factor of 0.2 + 0.02 * wind speed at the particle position
                     if (horPSExitDistance <= psDiameter * 6) //core and transition zone
                     {
-                        horPSPlumeVelocity = horPSExitVelocity * 0.48F / (a * horPSExitDistance / psDiameter + 0.145F); 
+                        horPSPlumeVelocity = horPSExitVelocity * 0.48F / (a * horPSExitDistance / psDiameter + 0.145F);
                         if (horPSPlumeVelocity < horPSExitVelocity)
                         {
                             horPSPlumeVelocity *= horPSExitRnd; //gaussian pdf 
@@ -936,16 +936,16 @@ namespace GRAL_2001
                     }
                     else // decrease horizontal flow when leaving the transition zone
                     {
-                        horPSPlumeVelocity = horPSExitVelocity * 0.48F / (a * horPSExitDistance / psDiameter + 0.145F) * psDiameter * psDiameter * 36 / (horPSExitDistance * horPSExitDistance) ; //additional decay by the square of the distance
+                        horPSPlumeVelocity = horPSExitVelocity * 0.48F / (a * horPSExitDistance / psDiameter + 0.145F) * psDiameter * psDiameter * 36 / (horPSExitDistance * horPSExitDistance); //additional decay by the square of the distance
                     }
-                    
+
                     if (horPSPlumeVelocity > 0.5F) // otherwise terminate the additional horizontal flow
                     {
-                        horPSExitDeltaX = - horPSPlumeVelocity * idt * MathF.Sin(horPSExitDirection);
-                        horPSExitDeltaY = - horPSPlumeVelocity * idt * MathF.Cos(horPSExitDirection);
+                        horPSExitDeltaX = -horPSPlumeVelocity * idt * MathF.Sin(horPSExitDirection);
+                        horPSExitDeltaY = -horPSPlumeVelocity * idt * MathF.Cos(horPSExitDirection);
                         if (horPSExitDistance < 6 * psDiameter) // aditional vertical spred nearby the source
                         {
-                           zcoord_nteil = zcoord_nteil + horPSPlumeVelocity * idt * horPSExitVertical * 0.01F;
+                            zcoord_nteil = zcoord_nteil + horPSPlumeVelocity * idt * horPSExitVertical * 0.01F;
                         }
                         horPSExitDistance += horPSPlumeVelocity * idt;
                     }
@@ -1300,7 +1300,7 @@ namespace GRAL_2001
                     if (topo == Consts.TerrainAvailable)
                     {
                         // no terrain following trajectory, if the recent or the previous cell is a building!
-                        if ((Program.CUTK[FFCellX][FFCellY] + Program.CUTK[FFCellXPrev][FFCellYPrev]) == 0 )
+                        if ((Program.CUTK[FFCellX][FFCellY] + Program.CUTK[FFCellXPrev][FFCellYPrev]) == 0)
                         {
                             zcoord_nteil += (AHint - AHintold);
                         }
@@ -1481,7 +1481,7 @@ namespace GRAL_2001
                         zcoord_nteil = AHint - PartHeightAboveTerrain + 0.01F;
                         PartHeightAboveTerrain = zcoord_nteil - AHint;
                         PartHeightAboveBuilding = PartHeightAboveTerrain;
-                        
+
                         // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                         if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                         {
@@ -1512,7 +1512,7 @@ namespace GRAL_2001
                     goto MOVE_TO_CONCENTRATIONCALCULATION;
 
                 } //END OF TUNNEL MODUL
-                
+
                 //in case that particle was reflected, flag is set to 1 and subsequently concentrations are not computed
                 reflexion_flag = Consts.ParticleNotReflected;
                 int back = 1;
@@ -1611,7 +1611,7 @@ namespace GRAL_2001
                     {
                         int IndexKOld = IndexK;
                         IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
-                        
+
                         // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
                         {
@@ -1670,7 +1670,7 @@ namespace GRAL_2001
                                     PartHeightAboveBuilding = PartHeightAboveTerrain;
                                 }
                                 velzold = -velzold;
-                                
+
                                 // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                                 if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                                 {
@@ -1755,7 +1755,7 @@ namespace GRAL_2001
                                         // reset horizontal coordinates
                                         double deltax = xcoord_nteil - xcoord_nteil_Prev;
                                         double deltay = ycoord_nteil - ycoord_nteil_Prev;
-                                        
+
                                         xcoord_nteil -= deltax * 1.05;
                                         ycoord_nteil -= deltay * 1.05;
                                         //zcoord_nteil -= (idt * (UZint + velz) + DeltaZHurley);
@@ -1784,7 +1784,7 @@ namespace GRAL_2001
                                         {
                                             PartHeightAboveTerrain = zcoord_nteil;
                                             PartHeightAboveBuilding = zcoord_nteil;
-                                        }                                  
+                                        }
                                     }
                                 }
 
@@ -1822,9 +1822,9 @@ namespace GRAL_2001
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
-                            
+
                             velxold = MathF.Abs(zahl1 * U0int * 3) * vorzeichen1;
-                            
+
                             vorzeichen1 = -1;
                             if (velyold < 0)
                             {
@@ -1841,7 +1841,7 @@ namespace GRAL_2001
                             zahl1 = MathF.Sqrt(-2F * MathF.Log(u1_rg)) * MathF.Sin(Pi2F * (u_rg + 1) * RNG_Const);
 
                             velyold = MathF.Abs(zahl1 * V0int * 3) * vorzeichen1;
-                            
+
                             back = 1;
                             idt = Program.FloatMax(idt * 0.5F, 0.05F);
                             if (tunpa > 0)
@@ -1917,7 +1917,7 @@ namespace GRAL_2001
                     velzold = -velzold;
                     PartHeightAboveTerrain = zcoord_nteil - AHint;
                     PartHeightAboveBuilding = PartHeightAboveTerrain;
-                   
+
                     // compute deposition according to VDI 3945 for this particle- add deposition to Depo_conz[][][]
                     if (Deposition_type > Consts.DepoOff && depo_reflection_counter >= 0)
                     {
@@ -2004,7 +2004,7 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
 
-                    kko[II] = (int) slice;
+                    kko[II] = (int)slice;
                 }
 
                 //decay rate
@@ -2046,7 +2046,7 @@ namespace GRAL_2001
                                 break;
                             }
                         }
-                                                
+
                         //loop for 4 drop size classes
                         for (int dropSizeClass = 1; dropSizeClass < 5; dropSizeClass++)
                         {
@@ -2054,9 +2054,9 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            float u_random = (float) (0.5F + u_rg * 1.16415321772724E-10);
+                            float u_random = (float)(0.5F + u_rg * 1.16415321772724E-10);
 
-                            double depoX = xcoord_nteil, depoY = ycoord_nteil, 
+                            double depoX = xcoord_nteil, depoY = ycoord_nteil,
                                    depoEpsilonW = epsilonW_Masse * Program.WetDepoDropVelocity[dropDataIndex, 4 + dropSizeClass] * 0.01F,
                                    depoCellH = Program.DZK[IndexK];
                             int depoIndexK = IndexK, depoFFX = FFCellX, depoFFY = FFCellY;
@@ -2070,12 +2070,12 @@ namespace GRAL_2001
 
                             float depoVelVertical = Program.WetDepoDropVelocity[dropDataIndex, dropSizeClass] * u_random, depoTime = (float)depoCellH * 4 / depoVelVertical,
                                   depoU = UXint, depoV = UYint, depoZ = UZint, depoZcoord = zcoord_nteil, depoAH = AHint;
-                            
+
                             //track drops until they reach the ground
                             while (depoZcoord > depoAH)
                             {
                                 // new coordinates and flow field grid indices
-                                depoZcoord += depoZ * depoTime - (float) depoCellH * 4; // increase perf by factor 4
+                                depoZcoord += depoZ * depoTime - (float)depoCellH * 4; // increase perf by factor 4
                                 if (depoZcoord > depo1stCell)
                                 {
                                     depoX += depoTime * depoU;
@@ -2136,30 +2136,34 @@ namespace GRAL_2001
                     //receptor concentrations
                     if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
                     {
-                        for (int irec = 1; irec < ReceptorConcentration.Length; irec++)
+                        //search for a receptor within the recent cell
+                        if (Program.GridCellReceptors.TryGetValue((iko, jko), out var receptors))
                         {
-                            // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
-                            if (Program.ReceptorNearbyBuilding[irec])
+                            foreach (int irec in receptors)
                             {
-                                if (iko == Program.ReceptorIInd[irec] &&
-                                    jko == Program.ReceptorJInd[irec])
+                                // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
+                                if (Program.ReceptorNearbyBuilding[irec])
                                 {
-                                    float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if ((int) slice == 0)
+                                    if (iko == Program.ReceptorIInd[irec] &&
+                                        jko == Program.ReceptorJInd[irec])
                                     {
-                                        ReceptorConcentration[irec] += idt * masse;
+                                        float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
+                                        if ((int)slice == 0)
+                                        {
+                                            ReceptorConcentration[irec] += idt * masse;
+                                        }
                                     }
                                 }
-                            }
-                            else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
-                            {
-                                if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < ConcGridXHalf &&
-                                    Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
+                                else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
                                 {
-                                    float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if ((int) slice == 0)
+                                    if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < ConcGridXHalf &&
+                                        Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                     {
-                                        ReceptorConcentration[irec] += idt * masse;
+                                        float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
+                                        if ((int)slice == 0)
+                                        {
+                                            ReceptorConcentration[irec] += idt * masse;
+                                        }
                                     }
                                 }
                             }
@@ -2204,7 +2208,7 @@ namespace GRAL_2001
                         for (int II = 0; II < kko.Length; II++)
                         {
                             float slice = (zcoordRelative - (Program.HorSlices[II] + Program.GralDz)) * ConcGridZRez;
-                            kko[II] = (int) (Math.Min(int.MaxValue, slice));
+                            kko[II] = (int)(Math.Min(int.MaxValue, slice));
                         }
                         for (int II = 0; II < kko.Length; II++)
                         {

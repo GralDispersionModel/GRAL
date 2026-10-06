@@ -12,6 +12,8 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Collections.Frozen;
 
 namespace GRAL_2001
 {
@@ -221,6 +223,58 @@ namespace GRAL_2001
                     Console.WriteLine(info);
                 }
 
+                //set spatial receptor data for faster receptor handling; 
+                Dictionary<(int i, int j), List<int>> localGridCellReceptors = new Dictionary<(int i, int j), List<int>>();
+                // create entries for all receptors
+                for (int i = 1; i <= Program.ReceptorNumber; i++)
+                {
+                    if (Program.ReceptorNearbyBuilding[i])
+                    {
+                        //create new entry for the dictionary
+                        var key = (Program.ReceptorIInd[i], Program.ReceptorJInd[i]);
+                        if (!localGridCellReceptors.TryGetValue(key, out var list)) // new entry
+                        {
+                            list = new List<int>();
+                            localGridCellReceptors[key] = list;
+                        }
+                        //save receptor number 
+                        list.Add(i);
+                    }
+                    else // store also all adjacent cells 
+                    {
+                        double xsi = Program.ReceptorX[i] - Program.IKOOAGRAL;
+                        double eta = Program.ReceptorY[i] - Program.JKOOAGRAL;
+                        //receptor indices in the GRAL concentration grid
+                        double midx = (Program.ReceptorIInd[i] - 1) * Program.GralDx + Program.GralDx * 0.5; 
+                        double midy = (Program.ReceptorJInd[i] - 1) * Program.GralDy + Program.GralDy * 0.5;
+                        
+                        //create new needed entries for the dictionary
+                        int dxW = - 1, dxE = 2, dyS = -1, dyN = 2;
+                        if (xsi < midx) dxE = 1;
+                        else dxW = 0;
+                        if (eta < midy) dyN = 1;
+                        else dyS = 0;
+                        
+                        for (int deltax = Program.ReceptorIInd[i] + dxW; deltax < Program.ReceptorIInd[i] + dxE; deltax++)
+                        {
+                            for (int deltay = Program.ReceptorJInd[i] + dyS; deltay < Program.ReceptorJInd[i] + dyN; deltay++)
+                            {
+                                if (deltax >= 0 && deltay >= 0 && deltax <= Program.NXL && deltay <= Program.NYL)
+                                {
+                                    var key = (deltax, deltay);
+                                    if (!localGridCellReceptors.TryGetValue(key, out var list)) // new entry
+                                    {
+                                        list = new List<int>();
+                                        localGridCellReceptors[key] = list;
+                                    }
+                                    //save receptor number 
+                                    list.Add(i);
+                                }
+                            }
+                        }
+                    }
+                }
+                Program.GridCellReceptors = localGridCellReceptors.ToFrozenDictionary(); // create high performance frozen dictionary
                 ReceptorResetConcentration();
             }
         }
