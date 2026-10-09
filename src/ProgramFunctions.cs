@@ -11,6 +11,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Numerics;
@@ -1145,14 +1146,16 @@ namespace GRAL_2001
 
         private static async Task WaitForAsyncCommands()
         {
-            using (NamedPipeClientStream client = new NamedPipeClientStream(".", "GRALServerStream", PipeDirection.In))
+            using (NamedPipeClientStream client = new NamedPipeClientStream(".", "GRALServerStream" + Process.GetCurrentProcess().Id.ToString(), PipeDirection.In))
             {
                 await client.ConnectAsync(); // Wait to connect
                 using (StreamReader reader = new StreamReader(client))
                 {
                     string command = await reader.ReadLineAsync();
-                    if (command == "Finish")
+                    if (command == "StopGRAL")
                     {
+                        Console.WriteLine();
+                        Console.WriteLine(".....shutting down GRAL gracefully, triggered by the GUI......(ID:" + command.ToString() + ")");
                         CancelToken.Cancel();
                     }
                 }
@@ -1256,7 +1259,7 @@ namespace GRAL_2001
                         Zeitschleife.Calculate(nteil);
                     });
                 }
-                catch{}
+                catch { }
 
                 Console.Write("I");
                 Console.WriteLine();
@@ -1325,7 +1328,7 @@ namespace GRAL_2001
                                     }
                                 }
                             }
-                            catch{}
+                            catch { }
                             if (Interlocked.Decrement(ref remainingWorkItems) == 0)
                             {
                                 manResetEvent.Set();
@@ -1392,7 +1395,7 @@ namespace GRAL_2001
                         }
                     });
                 }
-                catch{}
+                catch { }
                 Console.Write("X");
             }
         }
@@ -1409,6 +1412,20 @@ namespace GRAL_2001
                 sum += (long)inputString[i] * i;
             }
             return sum + inputString.Length;
+        }
+        /// <summary>
+        /// Save exit of GRAL using "strg + c" keys
+        /// </summary>
+        private static void cancelApp(object sender, ConsoleCancelEventArgs args)
+        {
+            Console.WriteLine(Environment.NewLine + "....shutting down GRAL gracefully...." + Environment.NewLine);
+            args.Cancel = true;
+            Program.CancelToken.Cancel();
+        }
+        static void OnProcessExit(object sender, EventArgs e)
+        {
+            Console.WriteLine("Process exit called");
+            Program.CancelToken.Cancel();
         }
     }
     /// <summary>

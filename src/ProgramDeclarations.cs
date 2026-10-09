@@ -11,11 +11,12 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Frozen;
 
 namespace GRAL_2001
 {
@@ -1300,10 +1301,11 @@ namespace GRAL_2001
         /// Use Fixed Random Seed Value?
         ///</summary>
         public static bool UseFixedRndSeedVal = false;
-
+        ///<summary>
+        /// Cancel token for the app, sent from the GUI
+        ///</summary>
         public static CancellationTokenSource CancelToken = new();
-
-
+        
         ///<summary>
         /// Table for the Drop Drift calculation
         /// col 0 = Precipitation intensity [mm/h]

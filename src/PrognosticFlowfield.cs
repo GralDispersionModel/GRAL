@@ -1097,7 +1097,6 @@ namespace GRAL_2001
                             U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
                             V_PrognosticMicroscaleV1_Vec512.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);
                             W_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
-                            if (Program.CancelToken.IsCancellationRequested) return;
                             Program.pOptions.MaxDegreeOfParallelism = cores;
                         }
                     }
@@ -1123,7 +1122,6 @@ namespace GRAL_2001
                             U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
                             V_PrognosticMicroscaleV1.Calculate(-IS, -JS, Cmueh, VISHMIN, AREAxy, VG, relax);                            
                             W_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, relax);
-                            if (Program.CancelToken.IsCancellationRequested) return;
                             Program.pOptions.MaxDegreeOfParallelism = cores;
                         }                   
                     }
@@ -1192,7 +1190,7 @@ namespace GRAL_2001
                 }
 
                 IterationLoops++;
-
+                if (Program.CancelToken.IsCancellationRequested) return;
                 //double TIME_dispersion = (Environment.TickCount - Startzeit) * 0.001;
                 //Console.WriteLine("Total time: " + TIME_dispersion.ToString("0.000"));
             }

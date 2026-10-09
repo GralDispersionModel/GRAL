@@ -86,6 +86,9 @@ namespace GRAL_2001
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("");
 
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(cancelApp);
+            
             ShowCopyright(args);
 
             // write zipped files?
