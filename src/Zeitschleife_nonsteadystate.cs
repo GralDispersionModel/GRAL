@@ -373,7 +373,7 @@ namespace GRAL_2001
                 float wstern = Ustern * 2.9F;
                 float vert_blh = PartHeightAboveBuilding / blh;
                 float hterm = (1 - vert_blh);
-                float varwu = 0; float dvarw = 0; float dcurt = 0;
+                float dvarw = 0; float dcurt = 0;
 
                 if (ObLength >= 0)
                 {

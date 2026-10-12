@@ -423,7 +423,7 @@ namespace GRAL_2001
             double yneu = 0; double xneuy = 0; double yneuy = 0; float zturb = 0; double yold = 0;
             float coruri = 0; float corqri = 0; float coswind = 0; float sinwind = 0; float UXneu = 0;
             float UYneu = 0; float xrikor = 0; float yrikor = 0; float buoy = 0; float B = 0;
-            float HydrD = 0; float TLT0 = 0; float constA = 0.35F; float faktzeit = 1; float geschwalt = 0; float geschwneu = 0;
+            float HydrD = 0; float TLT0 = 0; float faktzeit = 1; float geschwalt = 0; float geschwneu = 0;
 
             float TS_ExitTemperature = 0;
             float TS_ExitVelocity = 0;
@@ -604,7 +604,7 @@ namespace GRAL_2001
                 float wstern = Ustern * 2.9F;
                 float vert_blh = PartHeightAboveBuilding / blh;
                 float hterm = (1 - vert_blh);
-                float varwu = 0; float dvarw = 0; float dcurt = 0;
+                float dvarw = 0; float dcurt = 0;
 
                 if (ObLength >= 0)
                 {
