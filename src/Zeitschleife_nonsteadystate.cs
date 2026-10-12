@@ -41,10 +41,9 @@ namespace GRAL_2001
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
             double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
             
-            // how many particles (on average) were summed in this cell?
-            int transConcentrationFactor = (int)(masse / Program.ParticleMassMean);
-            // Split one transient particle into sub-particles if more than 10 average particles have been summed - reduce stat. error
-            int transParticlesSplit = transConcentrationFactor / 10 + 1;
+            // Split summed transient particles; limit the count before converting to Int32.
+            int transParticlesSplit = (int)Math.Min(100000,
+                Math.Floor(Math.Floor(masse / Program.ParticleMassMean) / 10) + 1);
 
             if (transParticlesSplit <= 1)
             {
