@@ -31,6 +31,14 @@ namespace GRAL_2001
         [SkipLocalsInit]
         public static (float, float, float, int) IntWindCalculate(int IndexI, int IndexJ, float AHint, double xcoord, double ycoord, float zcoord)
         {
+            WindSearch search = default;
+            return IntWindCalculate(IndexI, IndexJ, AHint, xcoord, ycoord, zcoord, ref search);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [SkipLocalsInit]
+        internal static (float, float, float, int) IntWindCalculate(int IndexI, int IndexJ, float AHint, double xcoord, double ycoord, float zcoord, ref WindSearch search)
+        {
             float DXK = Program.DXK;
             float DYK = Program.DYK;
             float UXint = 0;
@@ -41,7 +49,7 @@ namespace GRAL_2001
             if (Program.Topo == Consts.TerrainAvailable)
             {
                 float f1 = zcoord - Program.AHMIN;
-                IndexK = BinarySearch(f1); //19.05.25 Ku
+                IndexK = BinarySearch(f1, ref search); //19.05.25 Ku
 
                 float u1 = Program.UK[IndexI][IndexJ][IndexK];
                 float u2 = Program.UK[IndexI + 1][IndexJ][IndexK];
@@ -153,6 +161,43 @@ namespace GRAL_2001
             return (UXint, UYint, UZint, IndexK);
         }
 
+
+        internal struct WindSearch
+        {
+            internal float[] Levels;
+            internal int Count;
+            internal float Height;
+            internal int Index;
+
+            public WindSearch()
+            {
+                Levels = Program.HOKART;
+                Count = Program.NKK;
+                Height = 0;
+                Index = 0;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        internal static int BinarySearch(float Height, ref WindSearch search)
+        {
+            // Vertical grids are fixed during particle tracking; each particle starts with a fresh search.
+            if (search.Levels == null)
+            {
+                return BinarySearch(Height);
+            }
+            if (search.Levels != Program.HOKART || search.Count != Program.NKK)
+            {
+                search = new WindSearch();
+            }
+            if (search.Index > 0 && float.IsFinite(Height) && Height == search.Height)
+            {
+                return search.Index;
+            }
+            search.Index = BinarySearch(Height);
+            search.Height = Height;
+            return search.Index;
+        }
 
         /// <summary>
         /// Find the index of a value in HOKART[] that exceeds the value Height - 19.05.25 Ku

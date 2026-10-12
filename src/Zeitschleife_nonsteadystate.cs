@@ -238,8 +238,9 @@ namespace GRAL_2001
 
             //wind-field interpolation
             float UXint = 0, UYint = 0, UZint = 0;
+            Zeitschleife.WindSearch windSearch = topo == Consts.TerrainAvailable ? new Zeitschleife.WindSearch() : default;
             int IndexK = 1;
-            (UXint, UYint, UZint, IndexK) = Zeitschleife.IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil);
+            (UXint, UYint, UZint, IndexK) = Zeitschleife.IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil, ref windSearch);
 
             float windge = MathF.Sqrt(Program.Pow2(UXint) + Program.Pow2(UYint));
             if (windge < 0.01F)
@@ -329,7 +330,7 @@ namespace GRAL_2001
                 }
 
                 //interpolate wind field
-                (UXint, UYint, UZint, IndexK) = Zeitschleife.IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil);
+                (UXint, UYint, UZint, IndexK) = Zeitschleife.IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil, ref windSearch);
                 windge = MathF.Sqrt(Program.Pow2(UXint) + Program.Pow2(UYint));
                 if (windge == 0)
                 {
@@ -662,7 +663,7 @@ namespace GRAL_2001
                     if (Program.BuildingsExist == true || topo == Consts.TerrainAvailable)
                     {
                         int IndexKOld = IndexK;
-                        IndexK = Zeitschleife.BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
+                        IndexK = Zeitschleife.BinarySearch(zcoord_nteil - Program.AHMIN, ref windSearch); //19.05.25 Ku
 
                         // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])

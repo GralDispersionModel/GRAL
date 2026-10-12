@@ -256,8 +256,9 @@ namespace GRAL_2001
 
             //wind-field interpolation
             float UXint = 0, UYint = 0, UZint = 0;
+            WindSearch windSearch = topo == Consts.TerrainAvailable ? new WindSearch() : default;
             int IndexK = 1;
-            (UXint, UYint, UZint, IndexK) = IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil);
+            (UXint, UYint, UZint, IndexK) = IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil, ref windSearch);
             float windge = MathF.Max(0.1F, MathF.Sqrt(Program.Pow2(UXint) + Program.Pow2(UYint)));
 
             //variables tunpa needs to be defined even if not used
@@ -560,7 +561,7 @@ namespace GRAL_2001
                 }
 
                 //interpolate wind field
-                (UXint, UYint, UZint, IndexK) = IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil);
+                (UXint, UYint, UZint, IndexK) = IntWindCalculate(FFCellX, FFCellY, AHint, xcoord_nteil, ycoord_nteil, zcoord_nteil, ref windSearch);
                 windge = MathF.Max(0.01F, MathF.Sqrt(Program.Pow2(UXint) + Program.Pow2(UYint)));
 
                 //particles below the surface or buildings are removed
@@ -1341,7 +1342,7 @@ namespace GRAL_2001
                         if (Program.BuildingsExist == true)
                         {
                             IndexKOld = IndexK;
-                            IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
+                            IndexK = BinarySearch(zcoord_nteil - Program.AHMIN, ref windSearch); //19.05.25 Ku
 
                             if ((IndexK <= Program.KKART[FFCellX][FFCellY]) && (Program.CUTK[FFCellX][FFCellY] > 0))
                             {
@@ -1610,7 +1611,7 @@ namespace GRAL_2001
                     if (Program.BuildingsExist == true || topo == Consts.TerrainAvailable)
                     {
                         int IndexKOld = IndexK;
-                        IndexK = BinarySearch(zcoord_nteil - Program.AHMIN); //19.05.25 Ku
+                        IndexK = BinarySearch(zcoord_nteil - Program.AHMIN, ref windSearch); //19.05.25 Ku
 
                         // Particle below building or terrain
                         if (IndexK <= Program.KKART[FFCellX][FFCellY])
