@@ -19,6 +19,41 @@ namespace GRAL_2001
     {
         private const float RNG_Const = 2.328306435454494e-10F;
         
+        // Build the same cumulative counts as the source scan, once per Calculate call.
+        private static double[] CumulativeParticles(int[] particles, int count, double offset)
+        {
+            double[] cumulative = new double[count + 1];
+            cumulative[0] = offset;
+            for (int i = 1; i <= count; i++)
+            {
+                cumulative[i] = cumulative[i - 1] + particles[i];
+            }
+            return cumulative;
+        }
+
+        // Return the first matching source, including when cumulative counts are equal.
+        private static int FindSource(double[] cumulative, int particle)
+        {
+            int low = 1, high = cumulative.Length - 1;
+            if (high == 0 || cumulative[high] < particle)
+            {
+                return 0;
+            }
+            while (low < high)
+            {
+                int middle = low + (high - low) / 2;
+                if (cumulative[middle] >= particle)
+                {
+                    high = middle;
+                }
+                else
+                {
+                    low = middle + 1;
+                }
+            }
+            return low;
+        }
+
         /// <summary>
         /// Calculate the start coordinates of all particles at a random point within the source geometries.
         /// Calculates the "mass" of each particle, depending on the emission rate of the source and the number of particles per source.
@@ -45,6 +80,11 @@ namespace GRAL_2001
             double Volume_Time_Unit = 1000000000 / Program.GridVolume / 3600;
             //SimpleRNG.SetSeed((uint)Environment.TickCount);
 
+            double[] pointParticles = CumulativeParticles(Program.PS_PartNumb, Program.PS_Count, 0);
+            double[] portalParticles = CumulativeParticles(Program.TS_PartNumb, Program.TS_Count, Program.PS_PartSum);
+            double[] lineParticles = CumulativeParticles(Program.LS_PartNumb, Program.LS_Count, Program.PS_PartSum + Program.TS_PartSum);
+            double[] areaParticles = CumulativeParticles(Program.AS_PartNumb, Program.AS_Count, Program.PS_PartSum + Program.TS_PartSum + Program.LS_PartSum);
+
             Parallel.For(1, Program.NTEILMAX + 1, Program.pOptions, nteil =>
             {
                 //random number generator seeds
@@ -66,7 +106,6 @@ namespace GRAL_2001
                 
                 float AHint = 0;
 
-                double sumanz = 0;
                 Program.ParticleSource[nteil] = 0; // marker if particle is not used
 
                 int caseswitch = Consts.SourceTypePoint; // Point Sources
@@ -92,15 +131,7 @@ namespace GRAL_2001
                     case Consts.SourceTypePoint:
                         {
                             AHint = 0;
-                            for (int j = 1; j <= Program.PS_Count; j++)
-                            {
-                                sumanz += Program.PS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = FindSource(pointParticles, nteil);
 
                             if (i > 0)
                             {
@@ -192,17 +223,8 @@ namespace GRAL_2001
                     //particle coordinates of portal sources
                     case Consts.SourceTypePortal:
                         {
-                            sumanz = Program.PS_PartSum;
                             AHint = 0;
-                            for (int j = 1; j <= Program.TS_Count; j++)
-                            {
-                                sumanz += Program.TS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = FindSource(portalParticles, nteil);
                             if (i > 0)
                             {
                                 zuff1 = DeterministicRng(ref m_z, ref m_w);
@@ -304,17 +326,8 @@ namespace GRAL_2001
                     //particle coordinates of line sources
                     case Consts.SourceTypeLine:
                         {
-                            sumanz = Program.PS_PartSum + Program.TS_PartSum;
                             AHint = 0;
-                            for (int j = 1; j <= Program.LS_Count; j++)
-                            {
-                                sumanz += Program.LS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = FindSource(lineParticles, nteil);
                             if (i > 0)
                             {
                                 Program.ParticleSource[nteil] = i;
@@ -466,17 +479,8 @@ namespace GRAL_2001
                     //particle coordinates of area sources
                     case Consts.SourceTypeArea:
                         {
-                            sumanz = Program.PS_PartSum + Program.TS_PartSum + Program.LS_PartSum;
                             AHint = 0;
-                            for (int j = 1; j <= Program.AS_Count; j++)
-                            {
-                                sumanz += Program.AS_PartNumb[j];
-                                if (nteil <= sumanz) // found the source
-                                {
-                                    i = j;
-                                    break;
-                                }
-                            }
+                            i = FindSource(areaParticles, nteil);
                             if (i > 0)
                             {
                                 Program.ParticleSource[nteil] = i;
