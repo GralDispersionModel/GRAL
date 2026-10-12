@@ -253,6 +253,7 @@ namespace GRAL_2001
         ///2D concentration separated into source groups and horizontal slices
         ///</summary>
         public static float[][][][] Conz3d = CreateArray<float[][][]>(1, () => CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1])));
+        public static double[][][][] Conz3dDouble = CreateArray<double[][][]>(1, () => CreateArray<double[][]>(1, () => CreateArray<double[]>(1, () => new double[1])));
         ///<summary>
         ///Height of u,v measurements
         ///</summary>
