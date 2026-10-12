@@ -43,7 +43,7 @@ namespace GRAL_2001
             
             // Split summed transient particles; limit the count before converting to Int32.
             int transParticlesSplit = (int)Math.Min(100000,
-                Math.Floor(Math.Floor(masse / Program.ParticleMassMean) / 10) + 1);
+                Math.Floor(Math.Floor(masse / ParticleManagement.ParticleMassActive) / 10) + 1);
 
             if (transParticlesSplit <= 1)
             {

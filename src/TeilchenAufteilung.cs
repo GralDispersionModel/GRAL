@@ -161,6 +161,47 @@ namespace GRAL_2001
             return Sum_of_Particles;
         }
 
+        public static double ParticleMassActive;
+
+        // Retain the last positive reference when all sources are switched off.
+        public static void SetResidualParticleMass()
+        {
+            double emission = ActiveEmission(Program.PS_ER, Program.PS_ER_Dep, Program.PS_Mode, Program.PS_SG, Program.PS_Count)
+                + ActiveEmission(Program.LS_ER, Program.LS_ER_Dep, Program.LS_Mode, Program.LS_SG, Program.LS_Count)
+                + ActiveEmission(Program.TS_ER, Program.TS_ER_Dep, Program.TS_Mode, Program.TS_SG, Program.TS_Count)
+                + ActiveEmission(Program.AS_ER, Program.AS_ER_Dep, Program.AS_Mode, Program.AS_SG, Program.AS_Count);
+            if (emission > 0)
+            {
+                ParticleMassActive = emission / 3600 / Program.TPS * 1000000000 / Program.GridVolume / Program.TAUS;
+            }
+            else if (ParticleMassActive <= 0)
+            {
+                ParticleMassActive = Program.ParticleMassMean;
+            }
+        }
+
+        private static double ActiveEmission(double[] rates, float[] depositionRates, byte[] modes, byte[] groups, int count)
+        {
+            double emission = 0;
+            for (int i = 1; i <= count; i++)
+            {
+                if (rates[i] <= 0 || (modes[i] == Consts.DepoOnly && depositionRates[i] <= 0))
+                {
+                    continue;
+                }
+                int group = Program.SourceGroups.IndexOf(groups[i]);
+                if (Program.EmissionTimeseriesExist && Program.IWET > 0 &&
+                    Program.IWET <= Program.EmFacTimeSeries.GetUpperBound(0) &&
+                    group >= 0 && group <= Program.EmFacTimeSeries.GetUpperBound(1) &&
+                    Program.EmFacTimeSeries[Program.IWET - 1, group] <= 0)
+                {
+                    continue;
+                }
+                emission += rates[i];
+            }
+            return emission;
+        }
+
         private static int Set_Min_Particles_PS_TS(int source_count)
         {
             int Min_Particles = 10;

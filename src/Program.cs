@@ -711,6 +711,7 @@ namespace GRAL_2001
                         int cellNr = NII * NJJ;
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
+                        ParticleManagement.SetResidualParticleMass();
                         ParallelTransientParticleDriver(0, cellNr);
                     } // non-steady-state particles
                     if (CancelToken.IsCancellationRequested)
