@@ -746,6 +746,8 @@ namespace GRAL_2001
                         FirstLoop = false;
                     }
 
+                    TransferConcentrations();
+
                     //Correction of concentration volume in each cell and for each gridded receptor 
                     VolumeCorrection();
 

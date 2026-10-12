@@ -1214,11 +1214,11 @@ namespace GRAL_2001
                     {
                         if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
-                            float[] conz3d_L = Program.Conz3d[iko][jko][II];
+                            double[] conz3d_L = Program.Conz3dDouble[iko][jko][II];
                             double conc = masse * idt;
                             lock (conz3d_L)
                             {
-                                conz3d_L[SG_nteil] += (float)conc;
+                                conz3d_L[SG_nteil] += conc;
                             }
                         }
                     }
