@@ -63,8 +63,8 @@ namespace GRAL_2001
 
         private static int ResidualSplitCount(double masse)
         {
-            return (int)Math.Min(100000,
-                Math.Floor(masse / (ParticleManagement.ParticleMassActive * residualSplitK)) + 1);
+            double split = Math.Floor(Math.Floor(masse / ParticleManagement.ParticleMassActive) / residualSplitK) + 1;
+            return (int)Math.Min(100000, split > 1 ? split : 1);
         }
 
         // Six adjustments limit work toward the fresh-particle budget; this is not a hard cap.

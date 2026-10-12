@@ -163,7 +163,7 @@ namespace GRAL_2001
 
         public static double ParticleMassActive;
 
-        // Retain the last positive reference when all sources are switched off.
+        // Use the nominal reference when all sources are switched off.
         public static void SetResidualParticleMass()
         {
             double emission = ActiveEmission(Program.PS_ER, Program.PS_ER_Dep, Program.PS_Mode, Program.PS_SG, Program.PS_Count)
@@ -174,7 +174,7 @@ namespace GRAL_2001
             {
                 ParticleMassActive = emission / 3600 / Program.TPS * 1000000000 / Program.GridVolume / Program.TAUS;
             }
-            else if (ParticleMassActive <= 0)
+            else
             {
                 ParticleMassActive = Program.ParticleMassMean;
             }
