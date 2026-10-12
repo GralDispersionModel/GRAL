@@ -41,14 +41,13 @@ namespace GRAL_2001
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
             double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
             
-            // how many particles (on average) were summed in this cell?
-            int transConcentrationFactor = (int)(masse / Program.ParticleMassMean);
-            // Split one transient particle into sub-particles if more than 10 average particles have been summed - reduce stat. error
-            int transParticlesSplit = transConcentrationFactor / 10 + 1;
+            // Split summed transient particles; limit the count before converting to Int32.
+            int transParticlesSplit = (int)Math.Min(100000,
+                Math.Floor(Math.Floor(masse / Program.ParticleMassMean) / 10) + 1);
 
             if (transParticlesSplit <= 1)
             {
-                ParticleDriver(i, j, k, SG, TransConcentration);
+                ParticleDriver(i, j, k, SG, TransConcentration, 0);
             }
             else
             {
@@ -56,7 +55,7 @@ namespace GRAL_2001
                 float transConcSplit = TransConcentration / transParticlesSplit;
                 for (int p = 0; p < transParticlesSplit; p++)
                 {
-                    ParticleDriver(i, j, k, SG, transConcSplit);
+                    ParticleDriver(i, j, k, SG, transConcSplit, p);
                 }
             }
         }
@@ -69,8 +68,9 @@ namespace GRAL_2001
         /// <param name="k">z grid position within the transient concentration grid</param>
         /// <param name="SG">Source group</param>
         /// <param name="TransConcentration">Concentration of the transient concentration cell [i][j][k]</param>
+        /// <param name="splitIndex">Index of the sub-particle released from this cell</param>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration)
+        private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration, int splitIndex)
         {
             //random number generator seeds
             int rnd = (Environment.TickCount + i + j) & Int32.MaxValue;
@@ -81,6 +81,7 @@ namespace GRAL_2001
                 m_w = Program.RnGSeed.Seed1 + (uint)(i + j);
                 m_z = Program.RnGSeed.Seed2 + (uint)(i * 2);
             }
+            ResidualSeeds(i, j, k, SG, splitIndex, ref m_w, ref m_z);
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
@@ -1305,5 +1306,32 @@ namespace GRAL_2001
             }
             return;
         }
+
+        private static ulong MixSeed(ulong seed)
+        {
+            unchecked
+            {
+                seed += 0x9E3779B97F4A7C15UL;
+                seed = (seed ^ (seed >> 30)) * 0xBF58476D1CE4E5B9UL;
+                seed = (seed ^ (seed >> 27)) * 0x94D049BB133111EBUL;
+                return seed ^ (seed >> 31);
+            }
+        }
+
+        // Include the full residual-particle identity before the first MWC step.
+        private static void ResidualSeeds(int i, int j, int k, int SG, int splitIndex, ref uint m_w, ref uint m_z)
+        {
+            ulong seed = MixSeed(((ulong)m_z << 32) | m_w);
+            seed = MixSeed(seed ^ (ulong)(uint)Program.IWET ^ 0x7265736964UL);
+            seed = MixSeed(seed ^ ((ulong)(uint)i | ((ulong)(uint)j << 32)));
+            seed = MixSeed(seed ^ ((ulong)(uint)k | ((ulong)(uint)SG << 32)));
+            seed = MixSeed(seed ^ (ulong)(uint)splitIndex);
+            m_w = (uint)seed;
+            m_z = (uint)(seed >> 32);
+            // Exclude the fixed points of the two MWC components.
+            if (m_w % 1179647999u == 0u) m_w = 521288629u;
+            if (m_z % 2422800383u == 0u) m_z = 2232121u;
+        }
+
     }
 }
