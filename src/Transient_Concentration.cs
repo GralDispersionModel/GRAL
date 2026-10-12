@@ -10,12 +10,15 @@
 ///</remarks>
 #endregion
 
+using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace GRAL_2001
 {
     internal class TransientConcentration
     {
+        internal static long NonFiniteResidualWriteCount;
 
         /// <summary>
         ///Store the particle concentration in the transient grid
@@ -33,14 +36,33 @@ namespace GRAL_2001
         {
             if (reflexion_flag == 0)
             {
-                int IndexK3d = BinarySearchTransient(zcoord_nteil - AHint);
+                float height = zcoord_nteil - AHint;
+                if (!double.IsFinite(xsi) || !double.IsFinite(eta) ||
+                    !float.IsFinite(height) || !double.IsFinite(masse))
+                {
+                    Interlocked.Increment(ref NonFiniteResidualWriteCount);
+                    return;
+                }
+                int IndexK3d = BinarySearchTransient(height);
                 int IndexI3d = (int)(xsi / Program.DXK) + 1;
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
+                float concentration = (float)(masse * Program.GridVolume * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
+                if (!float.IsFinite(concentration))
+                {
+                    Interlocked.Increment(ref NonFiniteResidualWriteCount);
+                    return;
+                }
                 float[] conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
                 lock (conz5d_L.SyncRoot)
                 {
-                    conz5d_L[SG_nteil] += (float)(masse * Program.GridVolume * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
+                    float total = conz5d_L[SG_nteil] + concentration;
+                    if (!float.IsFinite(total))
+                    {
+                        Interlocked.Increment(ref NonFiniteResidualWriteCount);
+                        return;
+                    }
+                    conz5d_L[SG_nteil] = total;
                 }
             }
         }
@@ -61,14 +83,33 @@ namespace GRAL_2001
         {
             if (reflexion_flag == 0)
             {
-                int IndexK3d = BinarySearchTransient(zcoord_nteil - AHint);
+                float height = zcoord_nteil - AHint;
+                if (!double.IsFinite(xsi) || !double.IsFinite(eta) ||
+                    !float.IsFinite(height) || !double.IsFinite(mass_real))
+                {
+                    Interlocked.Increment(ref NonFiniteResidualWriteCount);
+                    return;
+                }
+                int IndexK3d = BinarySearchTransient(height);
                 int IndexI3d = (int)(xsi / Program.DXK) + 1;
                 int IndexJ3d = (int)(eta / Program.DYK) + 1;
 
+                float concentration = (float)(mass_real * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
+                if (!float.IsFinite(concentration))
+                {
+                    Interlocked.Increment(ref NonFiniteResidualWriteCount);
+                    return;
+                }
                 float[] conz5d_L = Program.Conz5d[IndexI3d][IndexJ3d][IndexK3d];
                 lock (conz5d_L.SyncRoot)
                 {
-                    conz5d_L[SG_nteil] += (float)(mass_real * Program.TAUS / (Area_cart * Program.DZK_Trans[IndexK3d]));
+                    float total = conz5d_L[SG_nteil] + concentration;
+                    if (!float.IsFinite(total))
+                    {
+                        Interlocked.Increment(ref NonFiniteResidualWriteCount);
+                        return;
+                    }
+                    conz5d_L[SG_nteil] = total;
                 }
             }
         }
