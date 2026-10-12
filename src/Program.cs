@@ -712,6 +712,8 @@ namespace GRAL_2001
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
                         ParticleManagement.SetResidualParticleMass();
+                        ZeitschleifeNonSteadyState.PlanResidual();
+                        if (CancelToken.IsCancellationRequested) goto FinishGral;
                         ParallelTransientParticleDriver(0, cellNr);
                     } // non-steady-state particles
                     if (CancelToken.IsCancellationRequested)

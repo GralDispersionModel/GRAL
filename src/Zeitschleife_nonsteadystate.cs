@@ -42,8 +42,7 @@ namespace GRAL_2001
             double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
             
             // Split summed transient particles; limit the count before converting to Int32.
-            int transParticlesSplit = (int)Math.Min(100000,
-                Math.Floor(Math.Floor(masse / ParticleManagement.ParticleMassActive) / 10) + 1);
+            int transParticlesSplit = ResidualSplitCount(masse);
 
             if (transParticlesSplit <= 1)
             {
@@ -57,6 +56,54 @@ namespace GRAL_2001
                 {
                     ParticleDriver(i, j, k, SG, transConcSplit, p);
                 }
+            }
+        }
+
+        private static double residualSplitK = 10;
+
+        private static int ResidualSplitCount(double masse)
+        {
+            return (int)Math.Min(100000,
+                Math.Floor(masse / (ParticleManagement.ParticleMassActive * residualSplitK)) + 1);
+        }
+
+        // Six adjustments limit work toward the fresh-particle budget; this is not a hard cap.
+        public static void PlanResidual()
+        {
+            if (Program.CancelToken.IsCancellationRequested) return;
+            residualSplitK = 10;
+            double budget = Program.TAUS * Program.TPS;
+            if (budget <= 0 || ParticleManagement.ParticleMassActive <= 0)
+            {
+                return;
+            }
+            for (int it = 0; it < 6; it++)
+            {
+                long total = 0;
+                System.Threading.Tasks.Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
+                {
+                    if (Program.CancelToken.IsCancellationRequested) return;
+                    long local = 0;
+                    for (int j = 1; j <= Program.NJJ; j++)
+                    {
+                        for (int k = 1; k <= Program.NKK_Transient; k++)
+                        {
+                            double volume = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume;
+                            float[] concentrations = Program.Conz4d[i][j][k];
+                            for (int group = 0; group < Program.SourceGroups.Count; group++)
+                            {
+                                if (concentrations[group] >= Program.TransConcThreshold)
+                                {
+                                    local += ResidualSplitCount(concentrations[group] * volume / Program.TAUS);
+                                }
+                            }
+                        }
+                    }
+                    Interlocked.Add(ref total, local);
+                });
+                if (Program.CancelToken.IsCancellationRequested) return;
+                if (total <= budget) break;
+                residualSplitK *= Math.Max(1.05, total / budget);
             }
         }
 
