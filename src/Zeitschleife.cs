@@ -154,6 +154,11 @@ namespace GRAL_2001
 
             double decay_rate = Program.DecayRate[Program.ParticleSG[nteil]]; // decay rate for real source group number of this source
 
+            if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, 0.1F))
+            {
+                goto REMOVE_PARTICLE;
+            }
+
             //for transient simulations dispersion time needs to be equally distributed from zero to TAUS
             float tgesamt = Program.DispTimeSum;
             if (ISTATIONAER == Consts.TransientMode)
@@ -177,6 +182,11 @@ namespace GRAL_2001
                         goto REMOVE_PARTICLE;
                     }
                 }
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, 0.1F))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
                 //try
                 if (Deposition_type < Consts.DepoOnly) // compute concentrations for this particle
                 {
@@ -543,6 +553,11 @@ namespace GRAL_2001
         MOVE_FORWARD:
             while (timestep_number <= Max_Loops)
             {
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
                 ++timestep_number;
                 double xcoord_nteil_Prev = xcoord_nteil;
                 double ycoord_nteil_Prev = ycoord_nteil;
@@ -680,6 +695,11 @@ namespace GRAL_2001
                     idt = (float)Math.Min(4, idt);
                     idt = (float)Program.fl_max(0.1F, idt);
                      */
+                }
+
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
                 }
 
                 float dummyterm = curt - Program.Pow2(skew) / varw - varw2;
@@ -871,6 +891,11 @@ namespace GRAL_2001
                 if (Deposition_type > Consts.DepoOff && vsed > 0) // compute sedimentation for this particle
                 {
                     zcoord_nteil -= vsed * idt;
+                }
+
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
                 }
 
                 //control dispersion time of particles
@@ -1111,6 +1136,11 @@ namespace GRAL_2001
                     Math.Clamp(idt, 0.05F, 0.5F);
 
                     //idt = (float)Math.Min(Program.GralDx / (tunpa + 0.05F) * 0.5F, 0.5);
+                    if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                    {
+                        goto REMOVE_PARTICLE;
+                    }
+
                     float tunpao = tunpa;
 
                     //dispersion time of each particle
@@ -1223,6 +1253,11 @@ namespace GRAL_2001
                     xcoord_nteil = xtun - yneu * tunsin + Program.xturb[nteil];
                     ycoord_nteil = ytun + yneu * tuncos + Program.yturb[nteil];
                      */
+
+                    if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                    {
+                        goto REMOVE_PARTICLE;
+                    }
 
                     //coordinate transformation towards model grid
                     xsi = xcoord_nteil - IKOOAGRAL;
@@ -1518,6 +1553,11 @@ namespace GRAL_2001
                 int back = 1;
                 while (back == 1)
                 {
+                    if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                    {
+                        goto REMOVE_PARTICLE;
+                    }
+
                     //coordinate transformation towards model grid
                     xsi = xcoord_nteil - IKOOAGRAL;
                     eta = ycoord_nteil - JKOOAGRAL;
@@ -1952,6 +1992,12 @@ namespace GRAL_2001
 
             MOVE_TO_CONCENTRATIONCALCULATION:
 
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
+
                 //coordinate indices
                 int iko = (int)(xsi * ConcGridXRez) + 1;
                 int jko = (int)(eta * ConcGridYRez) + 1;
@@ -2013,6 +2059,11 @@ namespace GRAL_2001
                     masse *= Math.Exp(-decay_rate * idt);
                 }
 
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
                 // compute Wet deposition
                 if (Program.WetDeposition == true && Program.WetDepoRW != 0)
                 {
@@ -2024,6 +2075,11 @@ namespace GRAL_2001
                         epsilonW_Masse = masse;
                         ex = true;
                     }
+                    if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, epsilonW_Masse, idt))
+                    {
+                        goto REMOVE_PARTICLE;
+                    }
+
                     masse -= epsilonW_Masse;
 
                     if (!Program.WetDopoDropDrift) // default deposition on the position of the particle

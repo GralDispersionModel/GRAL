@@ -41,6 +41,12 @@ namespace GRAL_2001
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
             double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
             
+            if (!double.IsFinite(masse))
+            {
+                Interlocked.Increment(ref Program.NonFiniteParticleCount);
+                return;
+            }
+
             // how many particles (on average) were summed in this cell?
             int transConcentrationFactor = (int)(masse / Program.ParticleMassMean);
             // Split one transient particle into sub-particles if more than 10 average particles have been summed - reduce stat. error
@@ -183,6 +189,12 @@ namespace GRAL_2001
             //decay rate
             double decay_rate = Program.DecayRate[Program.SourceGroups[SG]]; // decay rate for real source group number of this source
 
+            if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, 0.1F) ||
+                !Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, mass_real, 0.1F))
+            {
+                goto REMOVE_PARTICLE;
+            }
+
             //cell-indices of particles moving in the microscale flow field
             double xsi = xcoord_nteil - IKOOAGRAL;
             double eta = ycoord_nteil - JKOOAGRAL;
@@ -312,6 +324,11 @@ namespace GRAL_2001
             //for (int izeit = 1; izeit <= 100000000; izeit++)
             while (timestep_number <= Max_Loops)
             {
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
                 ++timestep_number;
                 double xcoord_nteil_Prev = xcoord_nteil;
                 double ycoord_nteil_Prev = ycoord_nteil;
@@ -432,6 +449,11 @@ namespace GRAL_2001
                 }
 
                 Math.Clamp(idt, 0.1F, 4F);
+
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
 
                 //control dispersion time of particles
                 auszeit += idt;
@@ -619,6 +641,11 @@ namespace GRAL_2001
                 int back = 1;
                 while (back == 1)
                 {
+                    if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                    {
+                        goto REMOVE_PARTICLE;
+                    }
+
                     //coordinate transformation towards model grid
                     xsi = xcoord_nteil - IKOOAGRAL;
                     eta = ycoord_nteil - JKOOAGRAL;
@@ -983,6 +1010,11 @@ namespace GRAL_2001
                     }
                 }
 
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
                 //coordinate indices
                 int iko = (int)(xsi * ConcGridXRez) + 1;
                 int jko = (int)(eta * ConcGridYRez) + 1;
@@ -1054,6 +1086,11 @@ namespace GRAL_2001
                     masse *= Math.Exp(-decay_rate * idt);
                 }
 
+                if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, masse, idt))
+                {
+                    goto REMOVE_PARTICLE;
+                }
+
                 // compute Wet deposition
                 if (Program.WetDeposition == true && Program.WetDepoRW != 0)
                 {
@@ -1064,6 +1101,11 @@ namespace GRAL_2001
                     {
                         epsilonW_Masse = masse;
                         ex = true; // masse <= 0!
+                    }
+
+                    if (!Program.ParticleStateIsFinite(xcoord_nteil, ycoord_nteil, zcoord_nteil, epsilonW_Masse, idt))
+                    {
+                        goto REMOVE_PARTICLE;
                     }
 
                     masse -= epsilonW_Masse;

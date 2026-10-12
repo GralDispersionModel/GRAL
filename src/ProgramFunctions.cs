@@ -23,6 +23,19 @@ namespace GRAL_2001
 {
     partial class Program
     {
+        internal static long NonFiniteParticleCount;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool ParticleStateIsFinite(double x, double y, float z, double mass, float dt)
+        {
+            if (double.IsFinite(x) && double.IsFinite(y) && float.IsFinite(z) &&
+                double.IsFinite(mass) && float.IsFinite(dt))
+            {
+                return true;
+            }
+            Interlocked.Increment(ref NonFiniteParticleCount);
+            return false;
+        }
         /// <summary>
         /// Generate the vertical grid for GRAL calculations for flat terrain
         /// </summary>
