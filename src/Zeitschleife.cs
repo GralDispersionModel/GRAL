@@ -2134,7 +2134,7 @@ namespace GRAL_2001
                 if (Deposition_type < Consts.DepoOnly) // compute concentrations for this particle
                 {
                     //receptor concentrations
-                    if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
+                    if (Program.ReceptorsAvailable && reflexion_flag == Consts.ParticleNotReflected && Program.GridCellReceptors != null)
                     {
                         //search for a receptor within the recent cell
                         if (Program.GridCellReceptors.TryGetValue((iko, jko), out var receptors))
