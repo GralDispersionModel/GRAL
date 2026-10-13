@@ -275,6 +275,10 @@ namespace GRAL_2001
                     }
                 }
                 Program.GridCellReceptors = localGridCellReceptors.ToFrozenDictionary(); // create high performance frozen dictionary
+                if (Program.GridCellReceptors == null)
+                {
+                    Program.ReceptorsAvailable = false;
+                }
                 ReceptorResetConcentration();
             }
         }
