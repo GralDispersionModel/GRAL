@@ -79,11 +79,11 @@ namespace GRAL_2001
             }
             for (int it = 0; it < 6; it++)
             {
-                long total = 0;
+                long total = 0, entries = 0;
                 System.Threading.Tasks.Parallel.For(1, Program.NII + 1, Program.pOptions, i =>
                 {
                     if (Program.CancelToken.IsCancellationRequested) return;
-                    long local = 0;
+                    long local = 0, localEntries = 0;
                     for (int j = 1; j <= Program.NJJ; j++)
                     {
                         for (int k = 1; k <= Program.NKK_Transient; k++)
@@ -95,14 +95,16 @@ namespace GRAL_2001
                                 if (concentrations[group] >= Program.TransConcThreshold)
                                 {
                                     local += ResidualSplitCount(concentrations[group] * volume / Program.TAUS);
+                                    localEntries++;
                                 }
                             }
                         }
                     }
                     Interlocked.Add(ref total, local);
+                    Interlocked.Add(ref entries, localEntries);
                 });
                 if (Program.CancelToken.IsCancellationRequested) return;
-                if (total <= budget) break;
+                if (total <= budget || total == entries) break;
                 residualSplitK *= Math.Max(1.05, total / budget);
             }
         }
