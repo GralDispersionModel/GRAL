@@ -1019,7 +1019,7 @@ namespace GRAL_2001
         /// </summary>
         private static void TransferConcentrations()
         {
-            for (int i = 0; i < Conz3dDouble.Length; i++)
+            void TransferColumn(int i)
             {
                 for (int j = 0; j < Conz3dDouble[i].Length; j++)
                 {
@@ -1033,6 +1033,21 @@ namespace GRAL_2001
                         }
                     }
                 }
+            }
+
+            long values = (long)Conz3dDouble.Length * Conz3dDouble[0].Length *
+                NS * SourceGroups.Count;
+            // Keep small transfers and single-worker runs serial.
+            if (pOptions.MaxDegreeOfParallelism == 1 || values < 128 * 1024)
+            {
+                for (int i = 0; i < Conz3dDouble.Length; i++)
+                {
+                    TransferColumn(i);
+                }
+            }
+            else
+            {
+                Parallel.For(0, Conz3dDouble.Length, pOptions, TransferColumn);
             }
         }
 
