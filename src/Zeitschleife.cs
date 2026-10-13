@@ -41,6 +41,12 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Calculate(int nteil)
         {
+            CalculateWithWorkerBuffer(nteil, null);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        internal static void CalculateWithWorkerBuffer(int nteil, double[] workerConcentration)
+        {
             //random number generator seeds
             int rnd = (Environment.TickCount + nteil) & Int32.MaxValue;
             uint m_w = (uint)(rnd + 521288629);
@@ -124,6 +130,10 @@ namespace GRAL_2001
             {
                 return;
             }
+
+            int workerSlot = workerConcentration == null ? -1 : Program.WorkerConcentrationSlots[SG_nteil];
+            int workerNy = Program.WorkerConcentrationNy, workerNs = Program.WorkerConcentrationNs;
+            int workerSlots = Program.WorkerConcentrationSlotCount;
 
             int SourceType = Program.SourceType[nteil]; // sourcetype
             float blh = Program.BdLayHeight;
@@ -2175,11 +2185,18 @@ namespace GRAL_2001
                     {
                         if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
-                            double[] conz3d_L = Program.Conz3dDouble[iko][jko][II];
                             double conc = masse * idt;
-                            lock (conz3d_L)
+                            if (workerSlot >= 0)
                             {
-                                conz3d_L[SG_nteil] += conc;
+                                workerConcentration[((iko * workerNy + jko) * workerNs + II) * workerSlots + workerSlot] += conc;
+                            }
+                            else
+                            {
+                                double[] conz3d_L = Program.Conz3dDouble[iko][jko][II];
+                                lock (conz3d_L)
+                                {
+                                    conz3d_L[SG_nteil] += conc;
+                                }
                             }
                         }
                     }

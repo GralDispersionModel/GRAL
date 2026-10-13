@@ -1193,6 +1193,7 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
         {
+            bool useWorkerConcentrations = PrepareWorkerConcentrations();
             if (Program.UseFixedRndSeedVal)
             {
                 // Custom ligthweight parallel loop for the release of particles from all sources
@@ -1205,6 +1206,7 @@ namespace GRAL_2001
                     // Create each of the work items up to MaxDegreeOfParallelism
                     for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
                     {
+                        double[] workerConcentration = useWorkerConcentrations ? WorkerConcentrations[p] : null;
                         ThreadPool.QueueUserWorkItem(delegate
                         {
                             try
@@ -1213,7 +1215,7 @@ namespace GRAL_2001
                                 while ((index = Interlocked.Increment(ref nextIteration) - 1) < exclusiveUpperBound)
                                 {
                                     // start the particle driver for the particle No. index
-                                    Zeitschleife.Calculate(index);
+                                    Zeitschleife.CalculateWithWorkerBuffer(index, workerConcentration);
                                     // show progress bar
                                     if (index % percent10 == 0 && index > 0)
                                     {
@@ -1234,6 +1236,10 @@ namespace GRAL_2001
                     }
                     // Wait for all threads to complete
                     manResetEvent.WaitOne();
+                    if (useWorkerConcentrations)
+                    {
+                        MergeWorkerConcentrations();
+                    }
                 }
             }
             else

@@ -33,6 +33,9 @@ namespace GRAL_2001
             StretchFlexible = null;
             Conz3d = null;
             Conz3dDouble = null;
+            WorkerConcentrations = null;
+            WorkerConcentrationSlots = null;
+            WorkerConcentrationGroups = null;
             MeasurementHeight = null;
             XKO = null;
             YKO = null;
