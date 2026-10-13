@@ -1177,7 +1177,7 @@ namespace GRAL_2001
                 {
                     int remainingWorkItems = Program.pOptions.MaxDegreeOfParallelism;
                     int nextIteration = inclusiveLowerBound;
-                    int percent10 = (int)(Program.NTEILMAX * 0.1F);
+                    int percent10 = Math.Max(1, (int)(Program.NTEILMAX * 0.1F));
 
                     // Create each of the work items up to MaxDegreeOfParallelism
                     for (int p = 0; p < Program.pOptions.MaxDegreeOfParallelism; p++)
