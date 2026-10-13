@@ -11,6 +11,7 @@
 #endregion
 
 using System;
+ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -50,6 +51,7 @@ namespace GRAL_2001
                 m_w = Program.RnGSeed.Seed1 + (uint)nteil;
                 m_z = Program.RnGSeed.Seed2 + (uint)nteil * 2;
             }
+            //Dictionary <(int i, int j, int II), double> Concentration = new Dictionary<(int X, int Y, int II), double>();
 
             float zahl1 = 0;
             uint u_rg = 0;
@@ -423,7 +425,7 @@ namespace GRAL_2001
             double yneu = 0; double xneuy = 0; double yneuy = 0; float zturb = 0; double yold = 0;
             float coruri = 0; float corqri = 0; float coswind = 0; float sinwind = 0; float UXneu = 0;
             float UYneu = 0; float xrikor = 0; float yrikor = 0; float buoy = 0; float B = 0;
-            float HydrD = 0; float TLT0 = 0; float faktzeit = 1; float geschwalt = 0; float geschwneu = 0;
+            float HydrD = 0; float TLT0 = 0; float constA = 0.35F; float faktzeit = 1; float geschwalt = 0; float geschwneu = 0;
 
             float TS_ExitTemperature = 0;
             float TS_ExitVelocity = 0;
@@ -604,7 +606,7 @@ namespace GRAL_2001
                 float wstern = Ustern * 2.9F;
                 float vert_blh = PartHeightAboveBuilding / blh;
                 float hterm = (1 - vert_blh);
-                float dvarw = 0; float dcurt = 0;
+                float varwu = 0; float dvarw = 0; float dcurt = 0;
 
                 if (ObLength >= 0)
                 {
@@ -2134,7 +2136,7 @@ namespace GRAL_2001
                 if (Deposition_type < Consts.DepoOnly) // compute concentrations for this particle
                 {
                     //receptor concentrations
-                    if (Program.ReceptorsAvailable && reflexion_flag == Consts.ParticleNotReflected && Program.GridCellReceptors != null)
+                    if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
                     {
                         //search for a receptor within the recent cell
                         if (Program.GridCellReceptors.TryGetValue((iko, jko), out var receptors))
@@ -2175,12 +2177,8 @@ namespace GRAL_2001
                     {
                         if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
-                            float[] conz3d_L = Program.Conz3d[iko][jko][II];
-                            double conc = masse * idt;
-                            lock (conz3d_L)
-                            {
-                                conz3d_L[SG_nteil] += (float)conc;
-                            }
+                            var key = (iko, jko, II, SG_nteil);
+                            Program.Concentration2D.AddOrUpdate(key, masse * idt, (key, oldvalue) => oldvalue + masse * idt);
                         }
                     }
 
@@ -2214,12 +2212,8 @@ namespace GRAL_2001
                         {
                             if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
-                                float[] conz3dp_L = Program.Conz3dp[iko][jko][II];
-                                double conc = masse * idt;
-                                lock (conz3dp_L)
-                                {
-                                    conz3dp_L[SG_nteil] += (float)conc;
-                                }
+                                var key = (iko, jko, II, SG_nteil);
+                                Program.Concentration2D_P.AddOrUpdate(key, masse * idt, (key, oldvalue) => oldvalue + masse * idt);
                             }
                         }
                         for (int II = 0; II < kko.Length; II++)
@@ -2231,12 +2225,8 @@ namespace GRAL_2001
                         {
                             if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
-                                float[] conz3dm_L = Program.Conz3dm[iko][jko][II];
-                                double conc = masse * idt;
-                                lock (conz3dm_L)
-                                {
-                                    conz3dm_L[SG_nteil] += (float)conc;
-                                }
+                                var key = (iko, jko, II, SG_nteil);
+                                Program.Concentration2D_M.AddOrUpdate(key, masse * idt, (key, oldvalue) => oldvalue + masse * idt);
                             }
                         }
                     }

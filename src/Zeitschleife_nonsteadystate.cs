@@ -1215,12 +1215,8 @@ namespace GRAL_2001
                     {
                         if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
-                            float[] conz3d_L = Program.Conz3d[iko][jko][II];
-                            double conc = masse * idt;
-                            lock (conz3d_L)
-                            {
-                                conz3d_L[SG_nteil] += (float)conc;
-                            }
+                            var key = (iko, jko, II, SG_nteil);
+                            Program.Concentration2D.AddOrUpdate(key, masse * idt, (key, oldvalue) => oldvalue + masse * idt);
                         }
                     }
 
@@ -1251,12 +1247,8 @@ namespace GRAL_2001
                         {
                             if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
-                                float[] conz3dp_L = Program.Conz3dp[iko][jko][II];
-                                double conc = masse * idt;
-                                lock (conz3dp_L)
-                                {
-                                    conz3dp_L[SG_nteil] += (float)conc;
-                                }
+                                var key = (iko, jko, II, SG_nteil);
+                                Program.Concentration2D_P.AddOrUpdate(key, masse * idt, (key, oldvalue) => oldvalue + masse * idt);
                             }
                         }
                         for (int II = 0; II < kko.Length; II++)
@@ -1268,12 +1260,8 @@ namespace GRAL_2001
                         {
                             if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                             {
-                                float[] conz3dm_L = Program.Conz3dm[iko][jko][II];
-                                double conc = masse * idt;
-                                lock (conz3dm_L)
-                                {
-                                    conz3dm_L[SG_nteil] += (float)conc;
-                                }
+                                var key = (iko, jko, II, SG_nteil);
+                                Program.Concentration2D_M.AddOrUpdate(key, masse * idt, (key, oldvalue) => oldvalue + masse * idt);
                             }
                         }
                     }

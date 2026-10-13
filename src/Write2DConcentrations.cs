@@ -16,6 +16,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace GRAL_2001
 {
@@ -172,12 +173,12 @@ namespace GRAL_2001
                                 int IndexK = 1;
                                 float UXint = 0, UYint = 0, UZint = 0, U0int = 0, V0int = 0;
                                 float W0int = 0;
-                                double xco = Convert.ToDouble((float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL);
-                                double yco = Convert.ToDouble((float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL);
+                                double xco = Convert.ToDouble(i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL);
+                                double yco = Convert.ToDouble(j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL);
 
                                 //horizontal cell indices
-                                double xsi1 = (float)i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL - Program.GrammWest;
-                                double eta1 = (float)j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL - Program.GrammSouth;
+                                double xsi1 = i * Program.GralDx - 0.5 * Program.GralDx + Program.IKOOAGRAL - Program.GrammWest;
+                                double eta1 = j * Program.GralDy - 0.5 * Program.GralDy + Program.JKOOAGRAL - Program.GrammSouth;
                                 if (Program.Topo == Consts.TerrainAvailable)
                                 {
                                     double xsi = xco - Program.IKOOAGRAL;
@@ -317,6 +318,9 @@ namespace GRAL_2001
 
             //reset concentrations
             //Console.WriteLine(".");
+            Program.Concentration2D.Clear();
+            Program.Concentration2D_M.Clear();
+            Program.Concentration2D_P.Clear();
             for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
             {
                 for (int II = 0; II < Program.NS; II++)
@@ -325,12 +329,9 @@ namespace GRAL_2001
                     {
                         for (int j = 1; j <= Program.NYL; j++)
                         {
-                            Program.Conz3d[i][j][II][iq] = 0;
                             Program.Depo_conz[i][j][iq] = 0;
                             if (Program.Odour == true)
                             {
-                                Program.Conz3dp[i][j][II][iq] = 0;
-                                Program.Conz3dm[i][j][II][iq] = 0;
                                 Program.Q_cv0[II][iq] = 0;
                                 Program.DisConcVar[II][iq] = 0;
                             }
@@ -340,6 +341,25 @@ namespace GRAL_2001
             }
             //Console.WriteLine();
         }//output of 2-D concentration files (concentrations, deposition, odour-files)
+
+        private static void ConvertFromDictionaryToArray(ConcurrentDictionary<(int i, int j, int II, int SG), double> Concentration, ref float[][] arrValues, int Slice, int SG)
+        {
+            for (int i = 1; i < arrValues.Length; ++i)
+            {
+                Array.Clear(arrValues[i]);
+            }
+            if (Concentration != null)
+            {
+                //write from concentration2D to conz3d File
+                foreach (var value in Concentration)
+                {
+                    if (Slice == value.Key.II && SG == value.Key.SG)
+                    {
+                       arrValues[value.Key.i][value.Key.j] = (float)value.Value;
+                    }
+                }
+            }
+        }
 
         /// <summary>
         ///Output of deposition values
@@ -496,6 +516,7 @@ namespace GRAL_2001
         {
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D, ref Program.TempConcArray, II, IQ);
                 //flag for stream file (not for SOUNDPLAN)
                 if (Program.IOUTPUT <= 0)
                 {
@@ -513,11 +534,11 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0)
                         {
-                            if (Program.Conz3d[i][j][II][IQ] != 0)
+                            if (Program.TempConcArray[i][j] != 0)
                             {
                                 sw.Write(Program.ConvToInt(xxx));
                                 sw.Write(Program.ConvToInt(yyy));
-                                sw.Write((float)Program.Conz3d[i][j][II][IQ]);
+                                sw.Write(Program.TempConcArray[i][j]);
                             }
                         }
                         //SOUNDPLAN
@@ -525,7 +546,7 @@ namespace GRAL_2001
                         {
                             sw.Write((int)xxx);
                             sw.Write((int)yyy);
-                            sw.Write((float)Program.Conz3d[i][j][II][IQ]);
+                            sw.Write(Program.TempConcArray[i][j]);
                         }
                     }
                 }
@@ -545,6 +566,7 @@ namespace GRAL_2001
         {
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D, ref Program.TempConcArray, II, IQ);
                 //flag for stream file 
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
@@ -564,18 +586,18 @@ namespace GRAL_2001
                         // float yp1 = j * Program.GralDy - Program.GralDy * 0.5F;
                         // double xxx = xp1 + Program.IKOOAGRAL;
                         // double yyy = yp1 + Program.JKOOAGRAL;
-                        float _value = Program.Conz3d[i][j][II][IQ];
+                        float _value = Program.TempConcArray[i][j];
                         if (_value != 0)
                         {
                             if (count == 0) // write new start
                             {
                                 Start[0] = i;
                                 Start[1] = j;
-                                Remember[count++] = (float)_value;
+                                Remember[count++] = _value;
                             }
                             else
                             {
-                                Remember[count++] = (float)_value;
+                                Remember[count++] = _value;
                             }
                         }
                         else
@@ -636,6 +658,7 @@ namespace GRAL_2001
         {
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D, ref Program.TempConcArray, II, IQ);
                 //flag for stream file 
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
@@ -649,7 +672,7 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        sw.Write(Program.Conz3d[i][j][II][IQ]);
+                        sw.Write(Program.TempConcArray[i][j]);
                     }
                 }
 
@@ -669,6 +692,7 @@ namespace GRAL_2001
             CultureInfo ic = CultureInfo.InvariantCulture;
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D, ref Program.TempConcArray, II, IQ);
                 Filename = Path.GetFileNameWithoutExtension(Filename) + ".txt";
                 StringBuilder SB = new StringBuilder();
                 using (StreamWriter myWriter = new StreamWriter(Filename))
@@ -686,7 +710,7 @@ namespace GRAL_2001
                         SB.Clear();
                         for (int i = 1; i <= Program.NXL; i++)
                         {
-                            SB.Append(Program.Conz3d[i][j][II][IQ].ToString(ic));
+                            SB.Append(Program.TempConcArray[i][j].ToString(ic));
                             SB.Append(" ");
                         }
                         myWriter.WriteLine(SB.ToString());
@@ -746,6 +770,9 @@ namespace GRAL_2001
         {
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D_P, ref Program.TempConcArray, II, IQ);
+                float[][] TempConcArray2 = Program.CreateArray<float[]>(Program.NXL + 2, () => new float[Program.NYL + 2]);
+                ConvertFromDictionaryToArray(Program.Concentration2D_M, ref TempConcArray2, II, IQ);
                 //flag for stream file (not for SOUNDPLAN)
                 if (Program.IOUTPUT <= 0)
                 {
@@ -763,14 +790,14 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0)
                         {
-                            if (Program.Conz3d[i][j][II][IQ] != 0)
+                            if (Program.TempConcArray[i][j] != 0)
                             {
                                 sw.Write(Program.ConvToInt(xxx));
                                 sw.Write(Program.ConvToInt(yyy));
-                                sw.Write((float)Program.Conz3dp[i][j][II][IQ]);
-                                sw.Write((float)Program.Conz3dm[i][j][II][IQ]);
-                                sw.Write((float)Program.Q_cv0[II][IQ]);
-                                sw.Write((float)Program.DisConcVar[II][IQ]);
+                                sw.Write(Program.TempConcArray[i][j]);
+                                sw.Write(TempConcArray2[i][j]);
+                                sw.Write(Program.Q_cv0[II][IQ]);
+                                sw.Write(Program.DisConcVar[II][IQ]);
                             }
                         }
                         //SOUNDPLAN
@@ -778,10 +805,10 @@ namespace GRAL_2001
                         {
                             sw.Write((int)xxx);
                             sw.Write((int)yyy);
-                            sw.Write((float)Program.Conz3dp[i][j][II][IQ]);
-                            sw.Write((float)Program.Conz3dm[i][j][II][IQ]);
-                            sw.Write((float)Program.Q_cv0[II][IQ]);
-                            sw.Write((float)Program.DisConcVar[II][IQ]);
+                            sw.Write(Program.TempConcArray[i][j]);
+                            sw.Write(TempConcArray2[i][j]);
+                            sw.Write(Program.Q_cv0[II][IQ]);
+                            sw.Write(Program.DisConcVar[II][IQ]);
                         }
                     }
                 }
@@ -800,6 +827,9 @@ namespace GRAL_2001
         {
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D_P, ref Program.TempConcArray, II, IQ);
+                float[][] TempConcArray2 = Program.CreateArray<float[]>(Program.NXL + 2, () => new float[Program.NYL + 2]);
+                ConvertFromDictionaryToArray(Program.Concentration2D_M, ref TempConcArray2, II, IQ);
                 //flag for stream file 
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
@@ -815,23 +845,23 @@ namespace GRAL_2001
                     int count = 0;
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        if (Program.Conz3d[i][j][II][IQ] != 0)
+                        if (Program.TempConcArray[i][j] != 0)
                         {
                             if (count == 0) // write new start
                             {
                                 Start[0] = i;
                                 Start[1] = j;
-                                Remember[count++] = (float)Program.Conz3dp[i][j][II][IQ];
-                                Remember[count++] = (float)Program.Conz3dm[i][j][II][IQ];
-                                Remember[count++] = (float)Program.Q_cv0[II][IQ];
-                                Remember[count++] = (float)Program.DisConcVar[II][IQ];
+                                Remember[count++] = Program.TempConcArray[i][j];
+                                Remember[count++] = TempConcArray2[i][j];
+                                Remember[count++] = Program.Q_cv0[II][IQ];
+                                Remember[count++] = Program.DisConcVar[II][IQ];
                             }
                             else
                             {
-                                Remember[count++] = (float)Program.Conz3dp[i][j][II][IQ];
-                                Remember[count++] = (float)Program.Conz3dm[i][j][II][IQ];
-                                Remember[count++] = (float)Program.Q_cv0[II][IQ];
-                                Remember[count++] = (float)Program.DisConcVar[II][IQ];
+                                Remember[count++] = Program.TempConcArray[i][j];
+                                Remember[count++] = TempConcArray2[i][j];
+                                Remember[count++] = Program.Q_cv0[II][IQ];
+                                Remember[count++] = Program.DisConcVar[II][IQ];
                             }
                         }
                         else
@@ -873,6 +903,9 @@ namespace GRAL_2001
         {
             try
             {
+                ConvertFromDictionaryToArray(Program.Concentration2D_P, ref Program.TempConcArray, II, IQ);
+                float[][] TempConcArray2 = Program.CreateArray<float[]>(Program.NXL + 2, () => new float[Program.NYL + 2]);
+                ConvertFromDictionaryToArray(Program.Concentration2D_M, ref TempConcArray2, II, IQ);
                 //flag for stream file 
                 sw.Write(Program.ResultFileHeader);
                 sw.Write(Program.IKOOAGRAL);
@@ -886,12 +919,12 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        if (Program.Conz3d[i][j][II][IQ] != 0)
+                        if (Program.TempConcArray[i][j] != 0)
                         {
-                            sw.Write((float)Program.Conz3dp[i][j][II][IQ]);
-                            sw.Write((float)Program.Conz3dm[i][j][II][IQ]);
-                            sw.Write((float)Program.Q_cv0[II][IQ]);
-                            sw.Write((float)Program.DisConcVar[II][IQ]);
+                            sw.Write(Program.TempConcArray[i][j]);
+                            sw.Write(TempConcArray2[i][j]);
+                            sw.Write(Program.Q_cv0[II][IQ]);
+                            sw.Write(Program.DisConcVar[II][IQ]);
                         }
                         else
                         {

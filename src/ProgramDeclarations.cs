@@ -11,6 +11,7 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
@@ -252,7 +253,11 @@ namespace GRAL_2001
         ///<summary>
         ///2D concentration separated into source groups and horizontal slices
         ///</summary>
-        public static float[][][][] Conz3d = CreateArray<float[][][]>(1, () => CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1])));
+        public static ConcurrentDictionary<(int i, int j, int II, int SG), double> Concentration2D = new ConcurrentDictionary<(int i, int j, int II, int SG), double>();
+        ///<summary>
+        ///Temporary concentration array for writing concentration data to the files
+        ///</summary>
+        public static float[][] TempConcArray = CreateArray<float[]>(1, () => new float[1]);
         ///<summary>
         ///Height of u,v measurements
         ///</summary>
@@ -1115,11 +1120,11 @@ namespace GRAL_2001
         ///<summary>
         ///2D concentration separated into source groups and horizontal slices for the adjecent layer upwards
         ///</summary>
-        public static float[][][][] Conz3dp = CreateArray<float[][][]>(1, () => CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1])));
+        public static ConcurrentDictionary<(int i, int j, int II, int SG), double> Concentration2D_P = new ConcurrentDictionary<(int i, int j, int II, int SG), double>();
         ///<summary>
         ///2D concentration separated into source groups and horizontal slices for the adjecent layer downwards
         ///</summary>
-        public static float[][][][] Conz3dm = CreateArray<float[][][]>(1, () => CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1])));
+        public static ConcurrentDictionary<(int i, int j, int II, int SG), double> Concentration2D_M = new ConcurrentDictionary<(int i, int j, int II, int SG), double>();
         ///<summary>
         ///2D source term for concentration variance
         ///</summary>
@@ -1305,7 +1310,9 @@ namespace GRAL_2001
         /// Cancel token for the app, sent from the GUI
         ///</summary>
         public static CancellationTokenSource CancelToken = new();
-        
+
+       
+
         ///<summary>
         /// Table for the Drop Drift calculation
         /// col 0 = Precipitation intensity [mm/h]

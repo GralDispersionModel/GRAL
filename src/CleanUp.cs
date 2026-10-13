@@ -31,7 +31,11 @@ namespace GRAL_2001
                 StretchFlexible.Clear();
             }
             StretchFlexible = null;
-            Conz3d = null;
+            
+            Concentration2D.Clear();
+            Concentration2D_M.Clear();
+            Concentration2D_P.Clear();
+
             MeasurementHeight = null;
             XKO = null;
             YKO = null;
@@ -197,8 +201,6 @@ namespace GRAL_2001
             LS_PartNumb = null;
             AS_PartNumb = null;
 
-            Conz3dp = null;
-            Conz3dm = null;
             Q_cv0 = null;
             DisConcVar = null;
             Depo_conz = null;

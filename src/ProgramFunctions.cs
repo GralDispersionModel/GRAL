@@ -19,6 +19,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 namespace GRAL_2001
 {
     partial class Program
@@ -498,7 +499,7 @@ namespace GRAL_2001
             NX2 = NX + 2;
             NY2 = NY + 2;
             NZ2 = NZ + 2;
-            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
+            TempConcArray = CreateArray<float[]>(NXL + 2, () => new float[NYL + 2]);
             XKO = new double[NX2];
             YKO = new double[NY2];
             ZKO = new double[NZ2];
@@ -522,8 +523,6 @@ namespace GRAL_2001
             //create additional concentration arrays for calculating concentration gradients used for odour-hour modelling
             if (Odour == true)
             {
-                Conz3dp = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
-                Conz3dm = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
                 Q_cv0 = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count]);
                 DisConcVar = CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count]);
             }
@@ -1024,11 +1023,11 @@ namespace GRAL_2001
 
                 if (GralDx != DXK || GralDy != DYK) // if flow field grid is smaller than the concentration grid
                 {
-                    prgH.VolumeConcCorrection(Conz3d, 0);
+                    prgH.VolumeConcCorrection(Concentration2D, 0);
                     if (Program.Odour == true)
                     {
-                        prgH.VolumeConcCorrection(Conz3dm, -Program.GralDz);
-                        prgH.VolumeConcCorrection(Conz3dp, Program.GralDz);
+                        prgH.VolumeConcCorrection(Concentration2D_M, -Program.GralDz);
+                        prgH.VolumeConcCorrection(Concentration2D_P, Program.GralDz);
                     }
 
                     // Correction for all receptors
@@ -1078,11 +1077,11 @@ namespace GRAL_2001
                 }
                 else // if flow field grid and concentration grid match
                 {
-                    prgH.VolumeConcCorrection2(Conz3d, 0);
+                    prgH.VolumeConcCorrection2(Concentration2D, 0);
                     if (Program.Odour == true)
                     {
-                        prgH.VolumeConcCorrection2(Conz3dm, -Program.GralDz);
-                        prgH.VolumeConcCorrection2(Conz3dp, Program.GralDz);
+                        prgH.VolumeConcCorrection2(Concentration2D_M, -Program.GralDz);
+                        prgH.VolumeConcCorrection2(Concentration2D_P, Program.GralDz);
                     }
 
                     // Correction for all receptors
@@ -1170,6 +1169,7 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void ParallelParticleDriver(int inclusiveLowerBound, int exclusiveUpperBound)
         {
+            Program.Concentration2D.Clear();
             if (Program.UseFixedRndSeedVal)
             {
                 // Custom ligthweight parallel loop for the release of particles from all sources
@@ -1264,6 +1264,10 @@ namespace GRAL_2001
                 Console.Write("I");
                 Console.WriteLine();
             }
+            
+            
+            
+
         }
 
         /// <summary>
@@ -1418,7 +1422,7 @@ namespace GRAL_2001
         /// </summary>
         private static void cancelApp(object sender, ConsoleCancelEventArgs args)
         {
-            Console.WriteLine(Environment.NewLine + "....shutting down GRAL gracefully...." + Environment.NewLine);
+            Console.WriteLine("....shutting down GRAL gracefully....");
             args.Cancel = true;
             Program.CancelToken.Cancel();
         }
@@ -1438,7 +1442,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="Conc">Concentration array</param>
         /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
-        public void VolumeConcCorrection(float[][][][] Conc, float DeltaH)
+        public void VolumeConcCorrection(ConcurrentDictionary<(int i, int j, int II, int SG), double> Concentration, float DeltaH)
         {
             // double[,] corr = new double[NXL + 1, NYL + 1]; // DEBUG
             // loop over all concentration cells
@@ -1499,7 +1503,11 @@ namespace GRAL_2001
                             {
                                 // Limit factor to 10, because in these cases, just a small portion of volume is left
                                 float factor = (float)Math.Max(1, Math.Min(10, (Program.GridVolume / Math.Max(0.01F, Program.GridVolume - VolumeReduction[k]))));
-                                Conc[iko][jko][k][IQ] *= factor;
+                                var key = (iko, jko, k, IQ);
+                                if (Concentration.ContainsKey(key))
+                                {
+                                    Concentration.AddOrUpdate(key, 0, (key, oldvalue) => oldvalue * factor);
+                                }
                                 // corr[iko, jko] = factor; // DEBUG
                             }
                         }
@@ -1540,7 +1548,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="Conc">Concentration array</param>
         /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
-        public void VolumeConcCorrection2(float[][][][] Conc, float DeltaH)
+        public void VolumeConcCorrection2(ConcurrentDictionary<(int i, int j, int II, int SG), double> Concentration, float DeltaH)
         {
             //double[,] corr = new double[Program.NXL + 1, Program.NYL + 1]; // DEBUG
 
@@ -1569,7 +1577,11 @@ namespace GRAL_2001
                             float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.GralDz / (Program.GralDz - (buidingheight - HMin[k]))));
                             for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
                             {
-                                Conc[i][j][k][IQ] *= VolumeReduction;
+                                var key = (i, j, k, IQ);
+                                if (Concentration.ContainsKey(key))
+                                {
+                                    Concentration.AddOrUpdate(key, 0, (key, oldvalue) => oldvalue * VolumeReduction);
+                                }
                                 //corr[i, j] = VolumeReduction; // DEBUG
                             }
                         }
