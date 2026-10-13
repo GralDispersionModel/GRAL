@@ -39,7 +39,6 @@ namespace GRAL_2001
                     {
                         int lineCount = File.ReadLines("emissions_timeseries.txt").Count();
                         Program.EmFacTimeSeries = new float[lineCount, Program.SourceGroups.Count];
-                        double[] mean = new double[Program.SourceGroups.Count];
                         
                         using (StreamReader sr = new StreamReader("emissions_timeseries.txt"))
                         {
@@ -50,6 +49,7 @@ namespace GRAL_2001
                             
                             int SG_Time_Series_Count = Math.Max(text10.Length - 2, 1); // number of Source groups in emissions_timeseries.txt
                             int[] SG_Time_Series = new int[SG_Time_Series_Count];
+                            double[] mean = new double[SG_Time_Series_Count];
  
                             for (int ii = 2; ii < text10.Length; ii++)
                             {
@@ -72,6 +72,7 @@ namespace GRAL_2001
                                 for (int n = 0; n < SG_Time_Series_Count; n++) // check each source group defined in emissions_timeseries.txt
                                 {
                                     int SG_internal = Program.Get_Internal_SG_Number(SG_Time_Series[n]); // get the internal SG number
+                                    if (SG_internal < 0) continue;
 
                                     if (SG_internal >= 0 && (n + 2) < text10.Length) // otherwise this source group in emissions_timeseries.txt does not exist internal in GRAL
                                     {
@@ -91,6 +92,7 @@ namespace GRAL_2001
                             ProgramWriters.LogfileGralCoreWrite(info);
                             for (int n = 0; n < SG_Time_Series_Count; n++) // check each source group defined in emissions_timeseries.txt
                             {
+                                if (Program.Get_Internal_SG_Number(SG_Time_Series[n]) < 0) continue;
                                 info = "  Source group: " + SG_Time_Series[n].ToString() + " Mean emission factor: " + Math.Round(mean[n] / i, 2);
                                 Console.WriteLine(info);
                                 ProgramWriters.LogfileGralCoreWrite(info);
