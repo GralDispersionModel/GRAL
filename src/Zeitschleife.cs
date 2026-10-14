@@ -130,7 +130,7 @@ namespace GRAL_2001
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
-            Span<int> kko = new int[Program.NS];
+            Span<int> kko = Program.NS <= 512 ? stackalloc int[Program.NS] : new int[Program.NS];
             // Small receptor sets need no per-particle heap allocation; cap stack use at 2 KiB.
             int receptorCount = Program.ReceptorNumber == 0 ? 0 : Program.ReceptorNumber + 1;
             Span<double> ReceptorConcentration = receptorCount <= 256
