@@ -325,7 +325,7 @@ namespace GRAL_2001
                     {
                         for (int j = 1; j <= Program.NYL; j++)
                         {
-                            Program.Conz3d[i][j][II][iq] = 0;
+                            Program.Conz3dDouble[i][j][II][iq] = 0;
                             Program.Depo_conz[i][j][iq] = 0;
                             if (Program.Odour == true)
                             {
@@ -513,11 +513,11 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0)
                         {
-                            if (Program.Conz3d[i][j][II][IQ] != 0)
+                            if (Program.Conz3dDouble[i][j][II][IQ] != 0)
                             {
                                 sw.Write(Program.ConvToInt(xxx));
                                 sw.Write(Program.ConvToInt(yyy));
-                                sw.Write((float)Program.Conz3d[i][j][II][IQ]);
+                                sw.Write((float)Program.Conz3dDouble[i][j][II][IQ]);
                             }
                         }
                         //SOUNDPLAN
@@ -525,7 +525,7 @@ namespace GRAL_2001
                         {
                             sw.Write((int)xxx);
                             sw.Write((int)yyy);
-                            sw.Write((float)Program.Conz3d[i][j][II][IQ]);
+                            sw.Write((float)Program.Conz3dDouble[i][j][II][IQ]);
                         }
                     }
                 }
@@ -564,7 +564,7 @@ namespace GRAL_2001
                         // float yp1 = j * Program.GralDy - Program.GralDy * 0.5F;
                         // double xxx = xp1 + Program.IKOOAGRAL;
                         // double yyy = yp1 + Program.JKOOAGRAL;
-                        float _value = Program.Conz3d[i][j][II][IQ];
+                        float _value = (float)Program.Conz3dDouble[i][j][II][IQ];
                         if (_value != 0)
                         {
                             if (count == 0) // write new start
@@ -649,7 +649,7 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        sw.Write(Program.Conz3d[i][j][II][IQ]);
+                        sw.Write((float)Program.Conz3dDouble[i][j][II][IQ]);
                     }
                 }
 
@@ -686,7 +686,7 @@ namespace GRAL_2001
                         SB.Clear();
                         for (int i = 1; i <= Program.NXL; i++)
                         {
-                            SB.Append(Program.Conz3d[i][j][II][IQ].ToString(ic));
+                            SB.Append(Program.Conz3dDouble[i][j][II][IQ].ToString(ic));
                             SB.Append(" ");
                         }
                         myWriter.WriteLine(SB.ToString());
@@ -763,7 +763,7 @@ namespace GRAL_2001
 
                         if (Program.IOUTPUT <= 0)
                         {
-                            if (Program.Conz3d[i][j][II][IQ] != 0)
+                            if (Program.Conz3dDouble[i][j][II][IQ] != 0)
                             {
                                 sw.Write(Program.ConvToInt(xxx));
                                 sw.Write(Program.ConvToInt(yyy));
@@ -815,7 +815,7 @@ namespace GRAL_2001
                     int count = 0;
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        if (Program.Conz3d[i][j][II][IQ] != 0)
+                        if (Program.Conz3dDouble[i][j][II][IQ] != 0)
                         {
                             if (count == 0) // write new start
                             {
@@ -886,7 +886,7 @@ namespace GRAL_2001
                 {
                     for (int j = 1; j <= Program.NYL; j++)
                     {
-                        if (Program.Conz3d[i][j][II][IQ] != 0)
+                        if (Program.Conz3dDouble[i][j][II][IQ] != 0)
                         {
                             sw.Write((float)Program.Conz3dp[i][j][II][IQ]);
                             sw.Write((float)Program.Conz3dm[i][j][II][IQ]);

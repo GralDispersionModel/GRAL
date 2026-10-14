@@ -498,7 +498,6 @@ namespace GRAL_2001
             NX2 = NX + 2;
             NY2 = NY + 2;
             NZ2 = NZ + 2;
-            Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
             Conz3dDouble = CreateArray<double[][][]>(NXL + 2, () => CreateArray<double[][]>(NYL + 2, () => CreateArray<double[]>(NS, () => new double[Program.SourceGroups.Count])));
             XKO = new double[NX2];
             YKO = new double[NY2];
@@ -1015,28 +1014,6 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Transfer double precision concentrations to the output array
-        /// </summary>
-        private static void TransferConcentrations()
-        {
-            for (int i = 0; i < Conz3dDouble.Length; i++)
-            {
-                for (int j = 0; j < Conz3dDouble[i].Length; j++)
-                {
-                    for (int II = 0; II < Conz3dDouble[i][j].Length; II++)
-                    {
-                        double[] conz3d_L = Conz3dDouble[i][j][II];
-                        for (int iq = 0; iq < conz3d_L.Length; iq++)
-                        {
-                            Conz3d[i][j][II][iq] = (float)conz3d_L[iq];
-                            conz3d_L[iq] = 0;
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Volume correction nearby buildings if the flow field grid is smaller than the concentration grid
         /// </summary>
         private static void VolumeCorrection()
@@ -1047,7 +1024,7 @@ namespace GRAL_2001
 
                 if (GralDx != DXK || GralDy != DYK) // if flow field grid is smaller than the concentration grid
                 {
-                    prgH.VolumeConcCorrection(Conz3d, 0);
+                    prgH.VolumeConcCorrection(Conz3dDouble, 0);
                     if (Program.Odour == true)
                     {
                         prgH.VolumeConcCorrection(Conz3dm, -Program.GralDz);
@@ -1101,7 +1078,7 @@ namespace GRAL_2001
                 }
                 else // if flow field grid and concentration grid match
                 {
-                    prgH.VolumeConcCorrection2(Conz3d, 0);
+                    prgH.VolumeConcCorrection2(Conz3dDouble, 0);
                     if (Program.Odour == true)
                     {
                         prgH.VolumeConcCorrection2(Conz3dm, -Program.GralDz);
@@ -1557,6 +1534,81 @@ namespace GRAL_2001
             // }
             // SB = null;
         }
+        
+        /// <summary>
+        /// Volume correction for a concentration array if GralDx != DXK || GralDy != DYK
+        /// </summary>
+        /// <param name="Conc">Concentration array</param>
+        /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
+        public void VolumeConcCorrection(double[][][][] Conc, float DeltaH)
+        {
+            // double[,] corr = new double[NXL + 1, NYL + 1]; // DEBUG
+            // loop over all concentration cells
+            Parallel.For(0, Program.NXL, Program.pOptions, i =>
+            {
+                double x0 = i * Program.GralDx;
+                double xmax = x0 + Program.GralDx;
+
+                Span<double> VolumeReduction = new double[Program.NS];
+                Span<float> HMin = new float[Program.NS];
+                Span<float> HMax = new float[Program.NS];
+
+                for (int k = 0; k < HMin.Length; k++)
+                {
+                    HMin[k] = Program.HorSlices[k] - Program.GralDz * 0.5F + DeltaH;
+                    HMax[k] = Program.HorSlices[k] + Program.GralDz * 0.5F + DeltaH;
+                }
+
+                for (int j = 0; j < Program.NYL; ++j)
+                {
+                    double y0 = j * Program.GralDy;
+                    double ymax = y0 + Program.GralDy;
+                    VolumeReduction.Clear();
+
+                    // loop over all flow field cells inside the concentration cell
+                    for (double xi = x0; xi < xmax; xi += Program.DXK)
+                    {
+                        int IndexI = (int)(xi / Program.DXK) + 1;
+                        if (IndexI > 0 && IndexI < Program.NII + 1)
+                        {
+                            for (double yi = y0; yi < ymax; yi += Program.DYK)
+                            {
+                                int IndexJ = (int)(yi / Program.DYK) + 1;
+                                if (IndexJ > 0 && IndexJ < Program.NJJ + 1)
+                                {
+                                    float buidingheight = Program.BUI_HEIGHT[IndexI][IndexJ];
+                                    // loop over all slices
+                                    for (int k = 0; k < HMin.Length; k++)
+                                    {
+                                        if (buidingheight > HMin[k])
+                                        {
+                                            VolumeReduction[k] += Program.DXK * Program.DYK * (Math.Min(buidingheight, HMax[k]) - HMin[k]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    int iko = i + 1;
+                    int jko = j + 1;
+                    // Correction of the concentration
+                    for (int k = 0; k < HMin.Length; k++)
+                    {
+                        if (VolumeReduction[k] > 0)
+                        {
+                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                            {
+                                // Limit factor to 10, because in these cases, just a small portion of volume is left
+                                float factor = (float)Math.Max(1, Math.Min(10, (Program.GridVolume / Math.Max(0.01F, Program.GridVolume - VolumeReduction[k]))));
+                                Conc[iko][jko][k][IQ] *= factor;
+                                // corr[iko, jko] = factor; // DEBUG
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         /// <summary>
         /// Volume correction for a concentration array if GralDx == DXK || GralDy == DYK
@@ -1625,6 +1677,48 @@ namespace GRAL_2001
 
             // }
             // SB = null;
+        }
+        /// <summary>
+        /// Volume correction for a concentration array if GralDx == DXK || GralDy == DYK
+        /// </summary>
+        /// <param name="Conc">Concentration array</param>
+        /// <param name="DeltaH">DeltaH for vertical height of the concentration array</param>
+        public void VolumeConcCorrection2(double[][][][] Conc, float DeltaH)
+        {
+            //double[,] corr = new double[Program.NXL + 1, Program.NYL + 1]; // DEBUG
+
+            // loop over all concentration cells
+            Parallel.For(0, Program.NXL, Program.pOptions, i =>
+            {
+                Span<float> HMin = new float[Program.NS];
+                Span<float> HMax = new float[Program.NS];
+
+                for (int k = 0; k < HMin.Length; k++)
+                {
+                    HMin[k] = Program.HorSlices[k] - Program.GralDz * 0.5F + DeltaH;
+                    HMax[k] = Program.HorSlices[k] + Program.GralDz * 0.5F + DeltaH - 0.2F;
+                }
+
+                for (int j = 0; j < Program.NYL; ++j)
+                {
+                    float buidingheight = Program.BUI_HEIGHT[i][j];
+
+                    // loop over all slices
+                    for (int k = 0; k < HMin.Length; k++)
+                    {
+                        if (buidingheight > HMin[k] && buidingheight < HMax[k])
+                        {
+                            // Limit factor to 10, because in these cases, just a small portion of volume is left
+                            float VolumeReduction = MathF.Max(1, MathF.Min(10, Program.GralDz / (Program.GralDz - (buidingheight - HMin[k]))));
+                            for (int IQ = 0; IQ < Program.SourceGroups.Count; IQ++)
+                            {
+                                Conc[i][j][k][IQ] *= VolumeReduction;
+                                //corr[i, j] = VolumeReduction; // DEBUG
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
 }
