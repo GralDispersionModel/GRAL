@@ -146,6 +146,7 @@ namespace GRAL_2001
             int IFQ = Program.TS_Count;
             //Program.Sourcetype[0] = 3; 
             float blh = Program.BdLayHeight;
+            float cachedObLength = float.NaN, cachedUstern = float.NaN, cachedVariance = 0;
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
@@ -399,7 +400,13 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        varw = Program.Pow2(Ustern) * Program.Pow2(1.15F + 0.1F * MathF.Pow(blh / (-ObLength), 0.67F)) * Program.Pow2(Program.StdDeviationW);
+                        if (ObLength != cachedObLength || Ustern != cachedUstern)
+                        {
+                            cachedVariance = Program.Pow2(Ustern) * Program.Pow2(1.15F + 0.1F * MathF.Pow(blh / (-ObLength), 0.67F)) * Program.Pow2(Program.StdDeviationW);
+                            cachedObLength = ObLength;
+                            cachedUstern = Ustern;
+                        }
+                        varw = cachedVariance;
                     }
                     varw2 = Program.Pow2(varw);
 
