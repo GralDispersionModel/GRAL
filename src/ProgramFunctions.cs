@@ -499,6 +499,7 @@ namespace GRAL_2001
             NY2 = NY + 2;
             NZ2 = NZ + 2;
             Conz3d = CreateArray<float[][][]>(NXL + 2, () => CreateArray<float[][]>(NYL + 2, () => CreateArray<float[]>(NS, () => new float[Program.SourceGroups.Count])));
+            Conz3dDouble = CreateArray<double[][][]>(NXL + 2, () => CreateArray<double[][]>(NYL + 2, () => CreateArray<double[]>(NS, () => new double[Program.SourceGroups.Count])));
             XKO = new double[NX2];
             YKO = new double[NY2];
             ZKO = new double[NZ2];
@@ -1010,6 +1011,28 @@ namespace GRAL_2001
                 //write conz4d File 
                 TreadWriteConz4dFile = new Thread(() => WriteClass.WriteTransientConcentration(IWET));
                 TreadWriteConz4dFile.Start(); // start writing thread
+            }
+        }
+
+        /// <summary>
+        /// Transfer double precision concentrations to the output array
+        /// </summary>
+        private static void TransferConcentrations()
+        {
+            for (int i = 0; i < Conz3dDouble.Length; i++)
+            {
+                for (int j = 0; j < Conz3dDouble[i].Length; j++)
+                {
+                    for (int II = 0; II < Conz3dDouble[i][j].Length; II++)
+                    {
+                        double[] conz3d_L = Conz3dDouble[i][j][II];
+                        for (int iq = 0; iq < conz3d_L.Length; iq++)
+                        {
+                            Conz3d[i][j][II][iq] = (float)conz3d_L[iq];
+                            conz3d_L[iq] = 0;
+                        }
+                    }
+                }
             }
         }
 
