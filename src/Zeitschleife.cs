@@ -127,6 +127,8 @@ namespace GRAL_2001
 
             int SourceType = Program.SourceType[nteil]; // sourcetype
             float blh = Program.BdLayHeight;
+            float blhRez = 1/blh;
+            float blhRez2 = 1 / Program.Pow2(blh);
             float cachedObLength = float.NaN, cachedUstern = float.NaN, cachedVariance = 0;
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
@@ -603,7 +605,7 @@ namespace GRAL_2001
                 depo_reflection_counter++;
                 float W0int = 0; float varw2 = 0; float skew = 0; float curt = 0; float dskew = 0;
                 float wstern = Ustern * 2.9F;
-                float vert_blh = PartHeightAboveBuilding / blh;
+                float vert_blh = PartHeightAboveBuilding * blhRez;
                 float hterm = (1 - vert_blh);
                 float dvarw = 0; float dcurt = 0;
 
@@ -647,8 +649,8 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        skew = a3Const * PartHeightAboveBuilding * Program.Pow2(hterm) * Program.Pow3(wstern) / blh;
-                        dskew = a3Const * Program.Pow3(wstern) / blh * Program.Pow2(hterm) - 2 * a3Const * Program.Pow3(wstern) * PartHeightAboveBuilding * hterm / Program.Pow2(blh);
+                        skew = a3Const * PartHeightAboveBuilding * Program.Pow2(hterm) * Program.Pow3(wstern) * blhRez;
+                        dskew = a3Const * Program.Pow3(wstern) * blhRez * Program.Pow2(hterm) - 2 * a3Const * Program.Pow3(wstern) * PartHeightAboveBuilding * hterm * blhRez2;
                     }
 
                     if (PartHeightAboveBuilding < Program.BdLayH10)
