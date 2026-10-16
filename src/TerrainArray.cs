@@ -21,18 +21,17 @@ public class TerrainArray
 {
     private float[] arr;
     private readonly int Delta;
-    private float[] VectArray =new float[Vector<float>.Count];
-
+    
     /// <summary>
     /// Init a terrain following array
     /// </summary>
     /// <param name="lenght">Lenght of the array starting at the terrain</param>
     /// <param name="nkk">Total lenght of the array starting at the bottom of the domain</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TerrainArray(int lenght, int nkk)
+    public TerrainArray(int lenght, int start)
     {
         arr = new float[lenght];
-        Delta = arr.Length - nkk;
+        Delta = start;
     }
 
     // Enable validation of input
@@ -46,14 +45,11 @@ public class TerrainArray
     /// <param name="index">Absolute index starting at the bottom of the domain</param>
     public float this[int index]
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get 
         {
-            index += Delta; 
-            if (index < 0)
-            {
-                return 0;
-            }
-            else if (index < arr.Length)
+            index -= Delta; 
+            if (index >= 0 && index < arr.Length) //.Net11+ should remove bound checks after this check
             {
                 return arr[index];
             }
@@ -62,9 +58,10 @@ public class TerrainArray
                 return 0;
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            index += Delta; 
+            index -= Delta; 
             if (index >= 0 && index < arr.Length)
             {
                 arr[index] = value;
@@ -75,22 +72,21 @@ public class TerrainArray
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Vector<float> GetVector(int index)
     {
-        index += Delta;
-        if (index >= 0)
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector<float>.Count)
         {
             return new Vector<float>(arr, index);
         }
-        else if (index < -(Vector<float>.Count))
+        else if (index < -Vector<float>.Count)
         {
             return Vector<float>.Zero;
         }
-        else
+        else // index < 0 > - Vector<float>.lenght
         {
-            Array.Clear(VectArray);
-            int _off = Math.Abs(index);
-            for (int _c = 0; _c < index + Vector<float>.Count; _c++)
+            Span<float> VectArray = stackalloc float [Vector<float>.Count];
+            for (int _c = 0; _c < Vector<float>.Count + index; ++_c)
             {
-                VectArray[_off + _c] = arr[_c];
+                VectArray[_c - index]  = arr[_c];
             }
             return new Vector<float>(VectArray);
         }
@@ -99,8 +95,8 @@ public class TerrainArray
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void SetVector(Vector<float> v, int index)
     {
-        index += Delta;
-        if (index >= 0)
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector<float>.Count)
         {
             v.CopyTo(arr, index);
         }
@@ -108,13 +104,13 @@ public class TerrainArray
         {
             // do nothing in this case
         }
-        else
+        else // index < 0 > - Vector<float>.lenght
         {
+            Span<float> VectArray = stackalloc float [Vector<float>.Count];
             v.CopyTo(VectArray);
-            int _off = Math.Abs(index);
-            for (int _c = 0; _c < index + Vector<float>.Count; _c++)
+            for (int _c = 0; _c < Vector<float>.Count + index; ++_c)
             {
-                arr[_c] = VectArray[_off + _c];
+                arr[_c] = VectArray[_c - index];
             }
         }
     }
