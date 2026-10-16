@@ -13,6 +13,8 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// Thin wrapper for a terrain following array class
@@ -26,7 +28,7 @@ public class TerrainArray
     /// Init a terrain following array
     /// </summary>
     /// <param name="lenght">Lenght of the array starting at the terrain</param>
-    /// <param name="nkk">Total lenght of the array starting at the bottom of the domain</param>
+    /// <param name="start">Index of the vertical flow field grid where the terrain starts</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TerrainArray(int lenght, int start)
     {
@@ -114,4 +116,51 @@ public class TerrainArray
             }
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public Vector512<float> GetVector512(int index)
+    {
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector512<float>.Count)
+        {
+            return Vector512.LoadUnsafe<float>(ref MemoryMarshal.GetArrayDataReference(arr), (uint) index);
+        }
+        else if (index < -Vector<float>.Count)
+        {
+            return Vector512<float>.Zero;
+        }
+        else // index < 0 > - Vector<float>.lenght
+        {
+            Span<float> VectArray = stackalloc float [Vector512<float>.Count];
+            for (int _c = 0; _c < Vector512<float>.Count + index; ++_c)
+            {
+                VectArray[_c - index]  = arr[_c];
+            }
+            return Vector512.Create(VectArray);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public void SetVector512(Vector512<float> v, int index)
+    {
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector512<float>.Count)
+        {
+            v.CopyTo(arr, index);
+        }
+        else if (index < -(Vector<float>.Count))
+        {
+            // do nothing in this case
+        }
+        else // index < 0 > - Vector<float>.lenght
+        {
+            Span<float> VectArray = stackalloc float [Vector512<float>.Count];
+            v.CopyTo(VectArray);
+            for (int _c = 0; _c < Vector512<float>.Count + index; ++_c)
+            {
+                arr[_c] = VectArray[_c - index];
+            }
+        }
+    }
+
 }
