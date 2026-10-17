@@ -102,7 +102,7 @@ namespace GRAL_2001
                                         int sg_number = 0;
                                         if (int.TryParse(_values[0], out sg_number))
                                         {
-                                            if (sg_number > 0 && sg_number < 100)
+                                            if (sg_number > 0 && sg_number < Program.DecayRate.Length)
                                             {
                                                 try
                                                 {
