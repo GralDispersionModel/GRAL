@@ -727,6 +727,13 @@ namespace GRAL_2001
                     {
                         goto FinishGral;
                     }
+                    long nonFiniteParticles = Interlocked.Exchange(ref NonFiniteParticleCount, 0);
+                    if (nonFiniteParticles > 0)
+                    {
+                        Info = $"Rejected {nonFiniteParticles} non-finite particle states in weather situation {IWET}.";
+                        Console.WriteLine(Info);
+                        ProgramWriters.LogfileGralCoreWrite(Info);
+                    }
                     // Wait until conz4d file is written
                     if (ThreadWriteConz4dFile != null) // if Thread has been started -> wait until GFF--WriteThread has been finished
                     {
