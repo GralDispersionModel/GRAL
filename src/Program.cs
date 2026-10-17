@@ -727,6 +727,13 @@ namespace GRAL_2001
                     {
                         goto FinishGral;
                     }
+                    long nonFiniteResidualWrites = Interlocked.Exchange(ref TransientConcentration.NonFiniteResidualWriteCount, 0);
+                    if (nonFiniteResidualWrites > 0)
+                    {
+                        Info = $"Skipped {nonFiniteResidualWrites} non-finite residual writes in weather situation {IWET}.";
+                        Console.WriteLine(Info);
+                        ProgramWriters.LogfileGralCoreWrite(Info);
+                    }
                     // Wait until conz4d file is written
                     if (ThreadWriteConz4dFile != null) // if Thread has been started -> wait until GFF--WriteThread has been finished
                     {
