@@ -730,7 +730,8 @@ namespace GRAL_2001
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
+                    if (useGpu && ISTATIONAER == Consts.StationaryMode) { GpuExperimental.Run(1, NTEILMAX); }
+                    else if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
                     if (CancelToken.IsCancellationRequested)
                     {

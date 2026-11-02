@@ -126,8 +126,8 @@ Arr<float,1> PS_HorExitVel;
 Arr<float,1> PS_T;
 Arr<int,1> PS_TimeSeriesTemperature;
 Arr<int,1> PS_TimeSeriesVelocity;
-Arr<TimeSeriesColumn,1> PS_TimeSerTempValues;
-Arr<TimeSeriesColumn,1> PS_TimeSerVelValues;
+Arr<float,2> PS_TimeSerTempValues;
+Arr<float,2> PS_TimeSerVelValues;
 Arr<float,1> PS_V;
 Arr<double,2> ReceptorConc;
 Arr<int,1> ReceptorIInd;
@@ -152,8 +152,8 @@ Arr<float,1> TS_Height;
 Arr<float,1> TS_T;
 Arr<int,1> TS_TimeSeriesTemperature;
 Arr<int,1> TS_TimeSeriesVelocity;
-Arr<TimeSeriesColumn,1> TS_TimeSerTempValues;
-Arr<TimeSeriesColumn,1> TS_TimeSerVelValues;
+Arr<float,2> TS_TimeSerTempValues;
+Arr<float,2> TS_TimeSerVelValues;
 Arr<float,1> TS_V;
 Arr<float,1> TS_Width;
 Arr<double,1> TS_X1;
@@ -847,11 +847,11 @@ exitVelocity_125 = P.PS_V[Kenn_NTeil_53];
 velTimeSeriesIndex_126 = P.PS_TimeSeriesVelocity[Kenn_NTeil_53];
 exitDiameter_127 = P.PS_D[Kenn_NTeil_53];
 if (velTimeSeriesIndex_126 != -1) {
-if ((P.IWET - 1) < P.PS_TimeSerVelValues[velTimeSeriesIndex_126].Value.size()) {
+if ((P.IWET - 1) < P.PS_TimeSerVelValues[velTimeSeriesIndex_126].size()) {
 if (P.PS_HorExitVel[Kenn_NTeil_53] > 0.1) {
-horPSExitVelocity_35 = P.PS_TimeSerVelValues[velTimeSeriesIndex_126].Value[P.IWET - 1];
+horPSExitVelocity_35 = P.PS_TimeSerVelValues[velTimeSeriesIndex_126][P.IWET - 1];
 } else {
-exitVelocity_125 = P.PS_TimeSerVelValues[velTimeSeriesIndex_126].Value[P.IWET - 1];
+exitVelocity_125 = P.PS_TimeSerVelValues[velTimeSeriesIndex_126][P.IWET - 1];
 }
 }
 }
@@ -860,8 +860,8 @@ horPSExitVelocity_35 = gral_max((float)(0),(float)(horPSExitVelocity_35));
 exitTemperature_128 = P.PS_T[Kenn_NTeil_53];
 tempTimeSeriesIndex_129 = P.PS_TimeSeriesTemperature[Kenn_NTeil_53];
 if (tempTimeSeriesIndex_129 != -1) {
-if ((P.IWET - 1) < P.PS_TimeSerTempValues[tempTimeSeriesIndex_129].Value.size()) {
-exitTemperature_128 = P.PS_TimeSerTempValues[tempTimeSeriesIndex_129].Value[P.IWET - 1] + 273;
+if ((P.IWET - 1) < P.PS_TimeSerTempValues[tempTimeSeriesIndex_129].size()) {
+exitTemperature_128 = P.PS_TimeSerTempValues[tempTimeSeriesIndex_129][P.IWET - 1] + 273;
 }
 }
 if (P.PS_HorExitVel[Kenn_NTeil_53] > 0.1) {
@@ -957,15 +957,15 @@ if (SourceType_54 == (1)) {
 TS_ExitVelocity_163 = P.TS_V[Kenn_NTeil_53];
 velTimeSeriesIndex_164 = P.TS_TimeSeriesVelocity[Kenn_NTeil_53];
 if (velTimeSeriesIndex_164 != -1) {
-if ((P.IWET - 1) < P.TS_TimeSerVelValues[velTimeSeriesIndex_164].Value.size()) {
-TS_ExitVelocity_163 = P.TS_TimeSerVelValues[velTimeSeriesIndex_164].Value[P.IWET - 1];
+if ((P.IWET - 1) < P.TS_TimeSerVelValues[velTimeSeriesIndex_164].size()) {
+TS_ExitVelocity_163 = P.TS_TimeSerVelValues[velTimeSeriesIndex_164][P.IWET - 1];
 }
 }
 TS_ExitTemperature_162 = P.TS_T[Kenn_NTeil_53];
 tempTimeSeriesIndex_165 = P.TS_TimeSeriesTemperature[Kenn_NTeil_53];
 if (tempTimeSeriesIndex_165 != -1) {
-if ((P.IWET - 1) < P.TS_TimeSerTempValues[tempTimeSeriesIndex_165].Value.size()) {
-TS_ExitTemperature_162 = P.TS_TimeSerTempValues[tempTimeSeriesIndex_165].Value[P.IWET - 1];
+if ((P.IWET - 1) < P.TS_TimeSerTempValues[tempTimeSeriesIndex_165].size()) {
+TS_ExitTemperature_162 = P.TS_TimeSerTempValues[tempTimeSeriesIndex_165][P.IWET - 1];
 }
 }
 vtunx_131 = TS_ExitVelocity_163 * (P.TS_Y2[Kenn_NTeil_53] - P.TS_Y1[Kenn_NTeil_53]) / P.TS_Width[Kenn_NTeil_53];

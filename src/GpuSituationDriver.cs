@@ -29,6 +29,7 @@ namespace GRAL_2001
         {
             using var json=JsonDocument.Parse(File.ReadAllText(manifest));
             var omit=new HashSet<string>{"PS_TimeSerTempValues","PS_TimeSerVelValues","TS_TimeSerTempValues","TS_TimeSerVelValues","TransientDepo","Conz4d","SourceGroups"};
+            if(Program.ISTATIONAER==Consts.StationaryMode) { omit.Add("Conz5d");omit.Add("EmissionPerSG"); }
             foreach(var field in json.RootElement.GetProperty("fields").EnumerateArray())
             {
                 string name=field.GetProperty("name").GetString();
@@ -45,33 +46,56 @@ namespace GRAL_2001
         {
             Program.CancelToken.Token.ThrowIfCancellationRequested();
             if(first<1 || count<0) throw new InvalidOperationException("Invalid particle range");
-            if(Program.ISTATIONAER!=Consts.TransientMode || Program.Topo!=Consts.TerrainAvailable || Program.IStatistics!=4 ||
+            if((Program.ISTATIONAER!=Consts.TransientMode && Program.ISTATIONAER!=Consts.StationaryMode) || Program.Topo!=Consts.TerrainAvailable || Program.IStatistics!=4 ||
                !Program.UseFixedRndSeedVal || Program.BuildingsExist || Program.WetDeposition || Program.DepositionExist || Program.Odour ||
                Program.WriteVerticalConcentration || Program.TunnelEntr || Program.TunnelOppLane || Program.AdaptiveRoughnessMax!=0 || Program.LogLevel!=0 ||
-               Program.NS<1 || Program.NS>9 || Program.ReceptorNumber<0 || Program.ReceptorNumber>50 ||
-               Program.PS_Count!=0 || Program.TS_Count!=0)
+               Program.NS<1 || Program.NS>9 || Program.ReceptorNumber<0 || Program.ReceptorNumber>50)
                 return "Unsupported GPU configuration";
-            if(Program.AS_Count<0 || Program.LS_Count<0 ||
+            if(Program.PS_Count<0 || Program.TS_Count<0 || Program.AS_Count<0 || Program.LS_Count<0 ||
+               (Program.PS_Count>0 && (Program.PS_Mode==null || Program.PS_Mode.Length<=Program.PS_Count)) ||
+               (Program.TS_Count>0 && (Program.TS_Mode==null || Program.TS_Mode.Length<=Program.TS_Count)) ||
                (Program.AS_Count>0 && (Program.AS_Mode==null || Program.AS_Mode.Length<=Program.AS_Count)) ||
                (Program.LS_Count>0 && (Program.LS_Mode==null || Program.LS_Mode.Length<=Program.LS_Count)) ||
                Program.DecayRate==null || Program.ReceptorNearbyBuilding==null)
                 throw new InvalidOperationException("Invalid GPU configuration array length");
-            if((Program.AS_Count>0 && Program.AS_Mode.Skip(1).Take(Program.AS_Count).Any(x=>x!=0)) ||
+            if((Program.PS_Count>0 && Program.PS_Mode.Skip(1).Take(Program.PS_Count).Any(x=>x!=0)) ||
+               (Program.TS_Count>0 && Program.TS_Mode.Skip(1).Take(Program.TS_Count).Any(x=>x!=0)) ||
+               (Program.AS_Count>0 && Program.AS_Mode.Skip(1).Take(Program.AS_Count).Any(x=>x!=0)) ||
                (Program.LS_Count>0 && Program.LS_Mode.Skip(1).Take(Program.LS_Count).Any(x=>x!=0)) ||
                Program.DecayRate.Any(x=>x!=0))
-                return "Unsupported GPU configuration: zero-decay line or area emissions without deposition required";
+                return "Unsupported GPU configuration: zero-decay emissions without deposition required";
             if(Program.ReceptorNearbyBuilding.Any(x=>x) || (Program.ReceptorNumber>0 && Program.GridCellReceptors==null))
                 return "Unsupported GPU receptor configuration";
             if(Program.SourceType==null || (long)first+count>Program.SourceType.Length ||
-               Program.ParticleMode==null || (long)first+count>Program.ParticleMode.Length)
+               Program.ParticleMode==null || (long)first+count>Program.ParticleMode.Length ||
+               Program.ParticleSource==null || (long)first+count>Program.ParticleSource.Length)
                 throw new InvalidOperationException("Invalid particle range");
             for(int i=first;i<first+count;i++)
             {
-                if(Program.SourceType[i]!=Consts.SourceTypeArea && Program.SourceType[i]!=Consts.SourceTypeLine)
-                    return "Unsupported GPU particle source type";
+                int limit=Program.SourceType[i] switch { Consts.SourceTypePoint => Program.PS_Count, Consts.SourceTypePortal => Program.TS_Count, Consts.SourceTypeLine => Program.LS_Count, Consts.SourceTypeArea => Program.AS_Count, _ => -1 };
+                if(limit<0) return "Unsupported GPU particle source type";
+                if(Program.ParticleSource[i]<0 || Program.ParticleSource[i]>limit) throw new InvalidOperationException("Invalid particle source index");
                 if(Program.ParticleMode[i]!=0) return "Unsupported GPU particle deposition configuration";
             }
+            if(Program.IWET<1) throw new InvalidOperationException("Invalid situation index");
+            ValidateTimeSeries(Program.PS_TimeSerTempValues,Program.PS_TimeSeriesTemperature,Program.PS_Count);
+            ValidateTimeSeries(Program.PS_TimeSerVelValues,Program.PS_TimeSeriesVelocity,Program.PS_Count);
+            ValidateTimeSeries(Program.TS_TimeSerTempValues,Program.TS_TimeSeriesTemperature,Program.TS_Count);
+            ValidateTimeSeries(Program.TS_TimeSerVelValues,Program.TS_TimeSeriesVelocity,Program.TS_Count);
+            ValidateSourceArrays(Program.PS_Count, new[]{"PS_D","PS_HorExitDir","PS_HorExitVel","PS_T","PS_V"});
+            ValidateSourceArrays(Program.TS_Count, new[]{"TS_Area","TS_Height","TS_Width","TS_T","TS_V","TS_X1","TS_X2","TS_Y1","TS_Y2"});
+            for(int i=1;i<=Program.TS_Count;i++)
+                if(Program.TS_Width[i]<=0 || Program.TS_Height[i]<=0) throw new InvalidOperationException("Invalid portal dimensions");
             return null;
+        }
+        private static void ValidateSourceArrays(int count,string[] names)
+        {
+            foreach(string name in names)
+            {
+                var array=(Array)typeof(Program).GetField(name).GetValue(null);
+                if(count>0 && (array==null || array.Length<=count)) throw new InvalidOperationException("Invalid source array " + name);
+                for(int i=1;i<=count;i++) if(!double.IsFinite(Convert.ToDouble(array.GetValue(i)))) throw new InvalidOperationException("Non-finite source value " + name);
+            }
         }
         internal static void Guard(int first,int count)
         {
@@ -114,6 +138,26 @@ namespace GRAL_2001
             }
             return active;
         }
+        private static int ValidateTimeSeries(List<TimeSeriesColumn> columns, int[] indexes, int count)
+        {
+            int n=columns?.Count ?? 0;
+            int rows=n==0?0:columns[0]?.Value?.Length ?? throw new InvalidOperationException("Invalid time-series column");
+            for(int col=0;col<n;col++)
+            {
+                if(columns[col]?.Value==null || columns[col].Value.Length!=rows) throw new InvalidOperationException("Invalid time-series column length");
+                foreach(float value in columns[col].Value) if(!float.IsFinite(value)) throw new InvalidOperationException("Non-finite time-series value");
+            }
+            if(count>0 && (indexes==null || indexes.Length<=count)) throw new InvalidOperationException("Invalid time-series index array");
+            for(int i=1;i<=count;i++) if(indexes[i]<-1 || indexes[i]>=n) throw new InvalidOperationException("Invalid time-series index");
+            return rows;
+        }
+        private static float[,] TimeSeriesSnapshot(List<TimeSeriesColumn> columns, int[] indexes, int count)
+        {
+            int rows=ValidateTimeSeries(columns,indexes,count), n=columns?.Count ?? 0;
+            var result=new float[n,rows];
+            for(int col=0;col<n;col++) for(int row=0;row<rows;row++) result[col,row]=columns[col].Value[row];
+            return result;
+        }
         private static bool TraceThisSituation() => Program.IWET==Setting("INU_GPU_TRACE_SITUATION",1,1,int.MaxValue);
         internal void RunSituation(int first,int count)
         {
@@ -123,6 +167,11 @@ namespace GRAL_2001
             var clock=System.Diagnostics.Stopwatch.StartNew();
             var step=System.Diagnostics.Stopwatch.StartNew();
             var extra=new Dictionary<string,object>(receptors){{"RnGSeed1",Program.RnGSeed.Seed1},{"RnGSeed2",Program.RnGSeed.Seed2},{"SourceGroups",Program.SourceGroups.ToArray()}};
+            if(Program.IWET<1) throw new InvalidOperationException("Invalid situation index");
+            extra.Add("PS_TimeSerTempValues",TimeSeriesSnapshot(Program.PS_TimeSerTempValues,Program.PS_TimeSeriesTemperature,Program.PS_Count));
+            extra.Add("PS_TimeSerVelValues",TimeSeriesSnapshot(Program.PS_TimeSerVelValues,Program.PS_TimeSeriesVelocity,Program.PS_Count));
+            extra.Add("TS_TimeSerTempValues",TimeSeriesSnapshot(Program.TS_TimeSerTempValues,Program.TS_TimeSeriesTemperature,Program.TS_Count));
+            extra.Add("TS_TimeSerVelValues",TimeSeriesSnapshot(Program.TS_TimeSerVelValues,Program.TS_TimeSeriesVelocity,Program.TS_Count));
             long receptorSavedBytes=receptorsCommitted?4L*((long)((int[])receptors["GridRecStart"]).Length+((int[])receptors["GridRecList"]).Length):0;
             // CSR arrays are constructed once for this server; keep the scalar in every init frame.
             if(receptorsCommitted) { extra.Remove("GridRecStart");extra.Remove("GridRecList"); }
@@ -148,6 +197,7 @@ namespace GRAL_2001
             receptorsCommitted=true;
             JsonElement initDetails=initAck.RootElement.Clone();
             double initRoundTrip=step.Elapsed.TotalSeconds, residualSplit=0, residualRoundTrip=0, residualKernel=0;int batches=0;long residualParticles=0;
+            if(Program.ISTATIONAER==Consts.TransientMode)
             using(var iter=GpuResidualBatch.Enumerate().GetEnumerator())
             while(true)
             {

@@ -25,8 +25,7 @@ PARTICLE_ARRAYS = ('SourceType', 'Xcoord', 'YCoord', 'ZCoord', 'ParticleMass',
                    'ParticleSG', 'ParticleSource', 'ParticleMode', 'ParticleVdep', 'ParticleVsed')
 RESIDUAL_ARRAYS = ('_resI', '_resJ', '_resK', '_resSG', '_resConc', '_resSplit')
 # Nonempty data for these unsupported branches is rejected. ObsWindU/V are allocated in V2701.
-UNSUPPORTED_ACTIVE_ARRAYS = ('PS_TimeSerTempValues', 'PS_TimeSerVelValues', 'TS_TimeSerTempValues',
-                 'TS_TimeSerVelValues', 'TransientDepo')
+UNSUPPORTED_ACTIVE_ARRAYS = ('TransientDepo',)
 MANIFEST_BYTES = (ROOT / 'fields_manifest.json').read_bytes()
 MANIFEST = json.loads(MANIFEST_BYTES)
 ARR_TYPES = {}
@@ -304,17 +303,19 @@ class Server:
             raise ValueError('Missing scalar fields: '+','.join(sorted(missing)))
 
     def guard(self):
-        expected = {'Topo': 1, 'ISTATIONAER': 0, 'IStatistics': 4,
+        expected = {'Topo': 1, 'IStatistics': 4,
                     'UseFixedRndSeedVal': True, 'BuildingsExist': False,
                     'WetDeposition': False, 'Odour': False, 'WriteVerticalConcentration': False,
-                    'TunnelEntr': False, 'TunnelOppLane': False, 'TS_Count': 0,
+                    'TunnelEntr': False, 'TunnelOppLane': False,
                     'AdaptiveRoughnessMax': 0, 'LogLevel': 0}
         for name, value in expected.items():
             if getattr(self.state, name) != value:
                 raise ValueError(f'Unsupported runtime branch {name}={getattr(self.state,name)!r}; expected {value!r}')
+        if self.state.ISTATIONAER not in (0, 1):
+            raise ValueError('Unsupported runtime mode')
         if not 0 <= self.state.ReceptorNumber <= 50 or not 0 < self.state.NS <= 9:
             raise ValueError('Receptor/slice local capacity exceeded')
-        for name in ('UK','VK','WK','AHK','HOKART','Conz3dDouble','Conz5d','SourceGroups'):
+        for name in ('UK','VK','WK','AHK','HOKART','Conz3dDouble','SourceGroups') + (('Conz5d',) if self.state.ISTATIONAER == 0 else ()):
             if not getattr(self.state,name).p:
                 raise ValueError('Missing required grid: '+name)
         if self.state.GridRecRow:
@@ -372,6 +373,8 @@ class Server:
             raise ValueError('Unknown phase')
         self.receive(header)
         self.guard()
+        if phase == 'residual' and self.state.ISTATIONAER != 0:
+            raise ValueError('Residual execution requires transient mode')
         if phase == 'fresh':
             for name in PARTICLE_ARRAYS:
                 array = getattr(self.state, name)
@@ -420,7 +423,8 @@ class Server:
         cursor=0
         trace_outputs=tuple(name for name in ('Trace', 'StepTrace', 'ResidualTrace')
                             if self.state.TraceEnabled and getattr(self.state, name).p)
-        for name in OUTPUTS+trace_outputs:
+        outputs = OUTPUTS if self.state.ISTATIONAER == 0 else tuple(n for n in OUTPUTS if n not in ('Conz5d', 'EmissionPerSG'))
+        for name in outputs+trace_outputs:
             descriptor=dict(self.descriptors[name])
             size=descriptor['bytes']
             if size == 0:

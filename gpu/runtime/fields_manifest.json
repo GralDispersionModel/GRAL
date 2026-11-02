@@ -550,14 +550,14 @@
     {
       "name": "PS_TimeSerTempValues",
       "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
-      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "cpp": "Arr\u003Cfloat,2\u003E",
       "constant": false,
       "value": null
     },
     {
       "name": "PS_TimeSerVelValues",
       "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
-      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "cpp": "Arr\u003Cfloat,2\u003E",
       "constant": false,
       "value": null
     },
@@ -732,14 +732,14 @@
     {
       "name": "TS_TimeSerTempValues",
       "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
-      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "cpp": "Arr\u003Cfloat,2\u003E",
       "constant": false,
       "value": null
     },
     {
       "name": "TS_TimeSerVelValues",
       "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
-      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "cpp": "Arr\u003Cfloat,2\u003E",
       "constant": false,
       "value": null
     },
