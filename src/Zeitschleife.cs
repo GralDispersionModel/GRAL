@@ -292,7 +292,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * RNG_Const;
+            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -303,7 +303,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * RNG_Const;
+            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -361,7 +361,7 @@ namespace GRAL_2001
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * RNG_Const;
+                        u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
@@ -395,7 +395,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * RNG_Const;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -480,7 +480,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * RNG_Const;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -491,7 +491,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * RNG_Const;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -716,7 +716,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * RNG_Const;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -790,7 +790,7 @@ namespace GRAL_2001
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
-                        u1_rg = (u_rg + 1) * RNG_Const;
+                        u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                         u_rg = (m_z << 16) + m_w;
@@ -1011,7 +1011,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * RNG_Const;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -1024,7 +1024,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * RNG_Const;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -1078,7 +1078,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1089,7 +1089,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1100,7 +1100,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1195,7 +1195,7 @@ namespace GRAL_2001
                     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                     u_rg = (m_z << 16) + m_w;
-                    u1_rg = (u_rg + 1) * RNG_Const;
+                    u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                     u_rg = (m_z << 16) + m_w;
@@ -1381,7 +1381,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * RNG_Const;
+                                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1392,7 +1392,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * RNG_Const;
+                                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1402,7 +1402,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * RNG_Const;
+                                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1449,7 +1449,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1460,7 +1460,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1471,7 +1471,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1807,7 +1807,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * RNG_Const;
+                                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -1826,7 +1826,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1843,7 +1843,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * RNG_Const;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * RNG_Const;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;

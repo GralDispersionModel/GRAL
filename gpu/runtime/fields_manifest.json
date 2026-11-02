@@ -1,0 +1,971 @@
+{
+  "schema": 1,
+  "fields": [
+    {
+      "name": "AdaptiveRoughnessMax",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "AHK",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "AHMIN",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "BdLayH10",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "BdLayHeight",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "BuildingsExist",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "C0x",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "C0z",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Conz3dDouble",
+      "type": "double[][][][]",
+      "cpp": "Arr\u003Cdouble,4\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Conz3dm",
+      "type": "float[][][][]",
+      "cpp": "Arr\u003Cfloat,4\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Conz3dp",
+      "type": "float[][][][]",
+      "cpp": "Arr\u003Cfloat,4\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Conz5d",
+      "type": "float[][][][]",
+      "cpp": "Arr\u003Cfloat,4\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ConzSsum",
+      "type": "float[][][]",
+      "cpp": "Arr\u003Cfloat,3\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "CUTK",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DDX",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DDY",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DecayRate",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Depo_conz",
+      "type": "double[][][]",
+      "cpp": "Arr\u003Cdouble,3\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DispTimeSum",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DXK",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DYK",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DZK",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "DZK_Trans",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "EmFacTimeSeries",
+      "type": "float[*,*]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "EmissionPerSG",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "EmissionTimeseriesExist",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "EtaMaxGral",
+      "type": "double",
+      "cpp": "double",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "EtaMinGral",
+      "type": "double",
+      "cpp": "double",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "GralDx",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "GralDy",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "GralDz",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "GrammSouth",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "GrammWest",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "GridVolume",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "HOKART",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "HoKartTrans",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "HorSlices",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "IKOOAGRAL",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ISTATIONAER",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "IStatistics",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "IWET",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "JKOOAGRAL",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "KKART",
+      "type": "short[][]",
+      "cpp": "Arr\u003Cshort,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Log_Timesteps",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "LogLevel",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "LogReflexions",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "MeanderingOff",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "MeasurementHeight",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "MetProfileNumb",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ModelTopHeight",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "MWindMEander",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NII",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NJJ",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NKK",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NKK_Transient",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NS",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NX",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NXL",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NY",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "NYL",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Ob",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ObsWindU",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ObsWindV",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Odour",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "OLGral",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "OPP_LANE",
+      "type": "byte[][]",
+      "cpp": "Arr\u003Cunsigned char,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ParticleMass",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ParticleMode",
+      "type": "byte[]",
+      "cpp": "Arr\u003Cunsigned char,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ParticleSG",
+      "type": "byte[]",
+      "cpp": "Arr\u003Cunsigned char,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ParticleSource",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ParticleVdep",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ParticleVsed",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_D",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_HorExitDir",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_HorExitVel",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_T",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_TimeSeriesTemperature",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_TimeSeriesVelocity",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_TimeSerTempValues",
+      "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
+      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_TimeSerVelValues",
+      "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
+      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "PS_V",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorConc",
+      "type": "double[][]",
+      "cpp": "Arr\u003Cdouble,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorIInd",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorJInd",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorNearbyBuilding",
+      "type": "bool[]",
+      "cpp": "Arr\u003Cbool,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorNumber",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorParticleMaxConc",
+      "type": "double[][]",
+      "cpp": "Arr\u003Cdouble,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorsAvailable",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorX",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorY",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ReceptorZ",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "SourceGroups",
+      "type": "System.Collections.Generic.List\u003Cint\u003E",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "SourceType",
+      "type": "byte[]",
+      "cpp": "Arr\u003Cunsigned char,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "StdDeviationV",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "StdDeviationW",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TAUS",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Topo",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TransientDepo",
+      "type": "TransientDeposition[]",
+      "cpp": "Arr\u003CTransientDeposition,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_Area",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_Count",
+      "type": "int",
+      "cpp": "int",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_Height",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_T",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_TimeSeriesTemperature",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_TimeSeriesVelocity",
+      "type": "int[]",
+      "cpp": "Arr\u003Cint,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_TimeSerTempValues",
+      "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
+      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_TimeSerVelValues",
+      "type": "System.Collections.Generic.List\u003CTimeSeriesColumn\u003E",
+      "cpp": "Arr\u003CTimeSeriesColumn,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_V",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_Width",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_X1",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_X2",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_Y1",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TS_Y2",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TUN_ENTR",
+      "type": "byte[][]",
+      "cpp": "Arr\u003Cunsigned char,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TunnelEntr",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TunnelOppLane",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "TWindMeander",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "U0",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "UK",
+      "type": "float[][][]",
+      "cpp": "Arr\u003Cfloat,3\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "UseFixedRndSeedVal",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Ustern",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "USternGral",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "V0",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "VK",
+      "type": "float[][][]",
+      "cpp": "Arr\u003Cfloat,3\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "W0int",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WetDepoDropVelocity",
+      "type": "float[*,*]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WetDepoPrecipitation",
+      "type": "float",
+      "cpp": "float",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WetDepoRW",
+      "type": "double",
+      "cpp": "double",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WetDeposition",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WetDopoDropDrift",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WK",
+      "type": "float[][][]",
+      "cpp": "Arr\u003Cfloat,3\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "WriteVerticalConcentration",
+      "type": "bool",
+      "cpp": "bool",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Xcoord",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "XsiMaxGral",
+      "type": "double",
+      "cpp": "double",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "XsiMinGral",
+      "type": "double",
+      "cpp": "double",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "YCoord",
+      "type": "double[]",
+      "cpp": "Arr\u003Cdouble,1\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Z0Gral",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "Z0Gramm",
+      "type": "float[][]",
+      "cpp": "Arr\u003Cfloat,2\u003E",
+      "constant": false,
+      "value": null
+    },
+    {
+      "name": "ZCoord",
+      "type": "float[]",
+      "cpp": "Arr\u003Cfloat,1\u003E",
+      "constant": false,
+      "value": null
+    }
+  ]
+}

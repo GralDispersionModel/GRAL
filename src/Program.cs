@@ -677,6 +677,12 @@ namespace GRAL_2001
                     //calculating momentum and bouyancy forces for point sources
                     PointSourceHeight.CalculatePointSourceHeight();
 
+                    // Allocate new particles for the current transient situation.
+                    if (ISTATIONAER == Consts.TransientMode)
+                    {
+                        NTEILMAX = ParticleManagement.Calculate(true);
+                    }
+
                     //defining the initial positions of particles
                     StartCoordinates.Calculate();
 
@@ -687,6 +693,10 @@ namespace GRAL_2001
                     OutputOfMeteoData();
 
                     //Transient mode: non-steady-state particles
+                    if (GpuExperimental.Enabled && ISTATIONAER != Consts.TransientMode)
+                    {
+                        throw new InvalidOperationException("GPU path requires transient mode");
+                    }
                     if (ISTATIONAER == Consts.TransientMode)
                     {
                         Console.WriteLine();
@@ -711,7 +721,8 @@ namespace GRAL_2001
                         int cellNr = NII * NJJ;
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
-                        ParallelTransientParticleDriver(0, cellNr);
+                        if (GpuExperimental.Enabled) { GpuExperimental.Run(1, NTEILMAX); }
+                        else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
                     if (CancelToken.IsCancellationRequested)
                     {
@@ -721,7 +732,7 @@ namespace GRAL_2001
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    ParallelParticleDriver(1, NTEILMAX + 1);
+                    if (!GpuExperimental.Enabled) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
                     if (CancelToken.IsCancellationRequested)
                     {
@@ -805,6 +816,7 @@ namespace GRAL_2001
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
             } // loop for all meteorological situations
 FinishGral:
+            GpuExperimental.Close();
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == Consts.TransientMode)
             {
