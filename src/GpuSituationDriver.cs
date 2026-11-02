@@ -41,27 +41,42 @@ namespace GRAL_2001
             receptors=ReceptorCsr();
             server=new GpuServerConnection(python,script,stderrPath);
         }
-        internal static void Guard(int first,int count)
+        internal static string GetUnsupportedReason(int first,int count)
         {
             Program.CancelToken.Token.ThrowIfCancellationRequested();
-            if(Program.PS_Count!=0 || Program.LS_Count!=0 || Program.TS_Count!=0 || Program.AS_Mode.Skip(1).Take(Program.AS_Count).Any(x=>x!=0) || Program.DecayRate.Any(x=>x!=0))
-                throw new InvalidOperationException("Unsupported GPU configuration: zero-decay area emissions without deposition required");
+            if(first<1 || count<0) throw new InvalidOperationException("Invalid particle range");
             if(Program.ISTATIONAER!=Consts.TransientMode || Program.Topo!=Consts.TerrainAvailable || Program.IStatistics!=4 ||
                !Program.UseFixedRndSeedVal || Program.BuildingsExist || Program.WetDeposition || Program.DepositionExist || Program.Odour ||
                Program.WriteVerticalConcentration || Program.TunnelEntr || Program.TunnelOppLane || Program.AdaptiveRoughnessMax!=0 || Program.LogLevel!=0 ||
                Program.NS<1 || Program.NS>9 || Program.ReceptorNumber<0 || Program.ReceptorNumber>50 ||
-               Program.ReceptorNearbyBuilding.Any(x=>x) || (Program.ReceptorNumber>0 && Program.GridCellReceptors==null))
-                throw new InvalidOperationException("Unsupported GPU configuration");
-            if(Program.SourceType==null || Program.SourceType.Length==0)
-                throw new InvalidOperationException("Unsupported GPU source or residual configuration");
-            if(first<1 || count<0 || (long)first+count>Program.SourceType.Length)
+               Program.PS_Count!=0 || Program.TS_Count!=0)
+                return "Unsupported GPU configuration";
+            if(Program.AS_Count<0 || Program.LS_Count<0 ||
+               (Program.AS_Count>0 && (Program.AS_Mode==null || Program.AS_Mode.Length<=Program.AS_Count)) ||
+               (Program.LS_Count>0 && (Program.LS_Mode==null || Program.LS_Mode.Length<=Program.LS_Count)) ||
+               Program.DecayRate==null || Program.ReceptorNearbyBuilding==null)
+                throw new InvalidOperationException("Invalid GPU configuration array length");
+            if((Program.AS_Count>0 && Program.AS_Mode.Skip(1).Take(Program.AS_Count).Any(x=>x!=0)) ||
+               (Program.LS_Count>0 && Program.LS_Mode.Skip(1).Take(Program.LS_Count).Any(x=>x!=0)) ||
+               Program.DecayRate.Any(x=>x!=0))
+                return "Unsupported GPU configuration: zero-decay line or area emissions without deposition required";
+            if(Program.ReceptorNearbyBuilding.Any(x=>x) || (Program.ReceptorNumber>0 && Program.GridCellReceptors==null))
+                return "Unsupported GPU receptor configuration";
+            if(Program.SourceType==null || (long)first+count>Program.SourceType.Length ||
+               Program.ParticleMode==null || (long)first+count>Program.ParticleMode.Length)
                 throw new InvalidOperationException("Invalid particle range");
             for(int i=first;i<first+count;i++)
             {
-                if(Program.SourceType[i]!=Consts.SourceTypeArea) throw new InvalidOperationException("Unsupported non-area particle");
-                if(Program.ParticleMode==null || i>=Program.ParticleMode.Length || Program.ParticleMode[i]!=0)
-                    throw new InvalidOperationException("Unsupported GPU particle deposition configuration");
+                if(Program.SourceType[i]!=Consts.SourceTypeArea && Program.SourceType[i]!=Consts.SourceTypeLine)
+                    return "Unsupported GPU particle source type";
+                if(Program.ParticleMode[i]!=0) return "Unsupported GPU particle deposition configuration";
             }
+            return null;
+        }
+        internal static void Guard(int first,int count)
+        {
+            string reason=GetUnsupportedReason(first,count);
+            if(reason!=null)throw new InvalidOperationException(reason);
         }
         private static Dictionary<string,object> ReceptorCsr()
         {

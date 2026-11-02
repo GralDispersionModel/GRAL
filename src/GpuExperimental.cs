@@ -6,6 +6,15 @@ namespace GRAL_2001
     {
         internal static readonly bool Enabled=Environment.GetEnvironmentVariable("INU_GPU_EXPERIMENTAL")=="1";
         private static GpuSituationDriver driver;
+        private static string lastFallbackReason;
+        internal static bool CanRun(int first,int count)
+        {
+            string reason=GpuSituationDriver.GetUnsupportedReason(first,count);
+            if(reason==null) { lastFallbackReason=null; return true; }
+            if(reason!=lastFallbackReason) Console.WriteLine("GPU fallback to CPU: "+reason);
+            lastFallbackReason=reason;
+            return false;
+        }
         private static string Required(string name) => Environment.GetEnvironmentVariable(name) ?? throw new InvalidOperationException("Missing "+name);
         internal static void Run(int first,int count)
         {

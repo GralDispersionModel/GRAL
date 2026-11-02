@@ -692,11 +692,9 @@ namespace GRAL_2001
                     //show meteorological parameters on screen
                     OutputOfMeteoData();
 
+                    bool useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX);
+
                     //Transient mode: non-steady-state particles
-                    if (GpuExperimental.Enabled && ISTATIONAER != Consts.TransientMode)
-                    {
-                        throw new InvalidOperationException("GPU path requires transient mode");
-                    }
                     if (ISTATIONAER == Consts.TransientMode)
                     {
                         Console.WriteLine();
@@ -721,7 +719,7 @@ namespace GRAL_2001
                         int cellNr = NII * NJJ;
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
-                        if (GpuExperimental.Enabled) { GpuExperimental.Run(1, NTEILMAX); }
+                        if (useGpu) { GpuExperimental.Run(1, NTEILMAX); }
                         else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
                     if (CancelToken.IsCancellationRequested)
@@ -732,7 +730,7 @@ namespace GRAL_2001
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    if (!GpuExperimental.Enabled) { ParallelParticleDriver(1, NTEILMAX + 1); }
+                    if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
                     if (CancelToken.IsCancellationRequested)
                     {
