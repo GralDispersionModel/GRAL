@@ -831,13 +831,26 @@ namespace GRAL_2001
             } // loop for all meteorological situations
 FinishGral:
             GpuExperimental.Close();
+            bool verticalOutputFailed = false;
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == Consts.TransientMode)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
                 if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1) // do not write the files for multiple instances
                 {
-                       WriteClass.Write3DTextConcentrations();
+                    try
+                    {
+                        WriteClass.Write3DTextConcentrations();
+                    }
+                    catch (IOException exc)
+                    {
+                        // Finish the remaining output and cleanup steps, then report the failure in the exit code.
+                        verticalOutputFailed = true;
+                        string err = exc.Message + (exc.InnerException != null ? ": " + exc.InnerException.Message : string.Empty);
+                        Console.WriteLine();
+                        Console.WriteLine("ERROR: " + err);
+                        ProgramWriters.LogfileProblemreportWrite(err);
+                    }
                 }
                 Console.WriteLine();
                 ProgramWriters.LogfileGralCoreWrite("");
@@ -905,7 +918,7 @@ FinishGral:
                 Console.ReadKey(true); 	// wait for a key input
             }
 
-            Environment.Exit(0);        // Exit console
+            Environment.Exit(verticalOutputFailed ? 1 : 0);        // Exit console; nonzero if the vertical concentration file could not be written
         }
     }
 }
