@@ -52,11 +52,12 @@ Optional settings:
 | `INU_GPU_MAX_KERNEL_MS` | `500` | on a display GPU, launches are sized to stay well below this time |
 | `INU_GRAL_GPU_CHUNK` | `4096` | particles per launch (1 to 65536); does not change results |
 | `INU_GRAL_GPU_BLOCK` | `128` | CUDA block size, 128 or 256 |
-| `INU_GPU_ALLOW_UNVALIDATED` | `0` | `1`: also run configurations without a CPU/GPU comparison on the GPU |
 
 ## What runs on the GPU
 
-Transient and stationary runs with meteopgt.all meteorology, terrain or flat terrain, point, line, area and portal sources, buildings, dry deposition, decay, receptors and several concentration layers. Invalid inputs stop the run before any GPU work. Configurations that the kernels implement but that have no CPU/GPU comparison yet print `GPU fallback to CPU: <reason>`, write the reason to the GRAL log, and run on the CPU. The reasons list the remaining features.
+Transient and stationary runs with terrain or flat terrain; meteopgt.all meteorology, and in stationary mode also ZR, EKI and Sonic profiles; point, line, area and portal sources including tunnel entrances and opposite lanes; buildings; dry and wet deposition; decay; odour output; vertical concentration output; receptors; and up to nine concentration layers.
+
+Invalid inputs stop the run before any GPU work. A few inputs that the GPU cannot take run on the CPU instead: transient mode with meteorology other than meteopgt.all, a meteorology profile count outside 1 to 50, and accumulated concentrations that already hold non-finite values (for example from a restart file). GRAL then prints `GPU fallback to CPU: <reason>` and writes the reason to the GRAL log.
 
 With fixed random seeds the GPU reproduces the CPU field up to the summation order of the concentration sums. With native seeds every run draws new random streams on either backend, so two runs differ the way two CPU runs do. The GPU derives each fresh particle's seed by hashing a random master, the situation and the particle number, which gives the same run-to-run statistics as the CPU's native seeding.
 

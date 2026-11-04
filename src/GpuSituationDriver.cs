@@ -56,9 +56,6 @@ namespace GRAL_2001
             // Input-dependent conditions the GPU server would reject after the run has started: fall back instead.
             string input=InputReason();
             if(input!=null)return input;
-            string unvalidated=UnvalidatedFeature();
-            if(unvalidated!=null && !AllowUnvalidated)
-                return "GPU path not yet validated for "+unvalidated+" (set INU_GPU_ALLOW_UNVALIDATED=1 to test it)";
             if(Program.LogLevel<0 || Program.LogLevel>3)throw new InvalidOperationException("Invalid GPU diagnostic log level");
             if(Program.PS_Count<0 || Program.TS_Count<0 || Program.AS_Count<0 || Program.LS_Count<0 ||
                (Program.PS_Count>0 && (Program.PS_Mode==null || Program.PS_Mode.Length<=Program.PS_Count)) ||
@@ -155,18 +152,6 @@ namespace GRAL_2001
                 case Array a: foreach(object child in a) if(NonFiniteNested(child)) return true; return false;
                 default: throw new InvalidOperationException("Unsupported accumulated output type");
             }
-        }
-        private static readonly bool AllowUnvalidated=Environment.GetEnvironmentVariable("INU_GPU_ALLOW_UNVALIDATED")=="1";
-        // Features the GPU kernels implement but that have no CPU/GPU comparison yet; these runs stay on the CPU by default.
-        private static string UnvalidatedFeature()
-        {
-            if(Program.IStatistics!=Consts.MeteoPgtAll)return "meteorology input other than meteopgt.all";
-            // Wet deposition is active only with precipitation data (the kernel also skips it while WetDepoRW is 0).
-            if(Program.WetDeposition && Program.WetDepoPrecipLst.Count>0)return "wet deposition";
-            if(Program.Odour)return "odour output";
-            if(Program.WriteVerticalConcentration)return "vertical concentration output";
-            if(Program.TunnelEntr || Program.TunnelOppLane)return "tunnel entrance or opposite-lane portals";
-            return null;
         }
         private static void ValidateSourceArrays(int count,string[] names)
         {
