@@ -8,20 +8,46 @@ from pathlib import Path
 import re
 import struct
 import sys
+import tempfile
 import time
 import traceback
 
 ROOT = Path(__file__).parent
+MIN_PYTHON = (3, 8)
+
+
+def startup_error(message):
+    """Answer the host with an error frame before anything else runs (write_frame is defined later)."""
+    print(message, file=sys.stderr)
+    raw = json.dumps({'status': 'error', 'error': message, 'payload_bytes': 0}).encode('utf-8')
+    try:
+        sys.stdout.buffer.write(struct.pack('<Q', len(raw)) + raw)
+        sys.stdout.buffer.flush()
+    except OSError:
+        pass
+    raise SystemExit(1)
+
+
+# Keep this file free of newer syntax so an old interpreter reaches this check instead of a SyntaxError.
+if sys.version_info < MIN_PYTHON or struct.calcsize('P') != 8:
+    startup_error('GPU server needs 64-bit Python %d.%d or newer; INU_GPU_PYTHON runs %s (%d-bit)'
+                  % (MIN_PYTHON[0], MIN_PYTHON[1], sys.version.split()[0], struct.calcsize('P') * 8))
 
 
 def write_diagnostic(name, text):
-    """Write a diagnostic file next to the INU_GPU_STDERR log, never into the install folder."""
+    """Write a diagnostic file named after the INU_GPU_STDERR log, never into the install folder.
+
+    The host gives every concurrent GRAL process its own stderr log, so the derived names do not collide.
+    """
     stderr_path = os.environ.get('INU_GPU_STDERR')
-    folder = Path(stderr_path).parent if stderr_path else Path(os.environ.get('TEMP', '.'))
+    if stderr_path:
+        target = Path(stderr_path).with_name(Path(stderr_path).stem + '.' + name)
+    else:
+        target = Path(tempfile.gettempdir()) / ('inu_gpu_%d.%s' % (os.getpid(), name))
     try:
-        (folder / name).write_text(text, encoding='utf-8')
+        target.write_text(text, encoding='utf-8')
     except OSError as exc:
-        print(f'Could not write diagnostic file {name}: {exc}', file=sys.stderr)
+        print(f'Could not write diagnostic file {target}: {exc}', file=sys.stderr)
 from cuda_common import Cuda, CudaError, P, D, Z, I, NVRTC_PROGRAM
 import ptx_cache
 
@@ -269,6 +295,16 @@ class Server:
         self.startup_ms=(time.perf_counter()-self.start)*1000
         self.refresh_memory_budget()
         self.configure_launch_sizing()
+
+    def probe_info(self):
+        """Pre-flight answer for the host: device, architecture, memory and watchdog."""
+        info = dict(self.cuda.device_info)
+        info.update(total_memory_mib=info['total_memory_bytes'] // 1024**2,
+                    target=('compute_' if self.cuda.binary_kind == 'ptx' else 'sm_') + str(self.cuda.target_arch),
+                    device_free_bytes=self.metrics['device_free_bytes'], device_budget_bytes=self.device_budget,
+                    adaptive_launch=self.adaptive_launch, max_kernel_ms=self.max_kernel_ms,
+                    python=sys.version.split()[0], startup_ms=self.startup_ms)
+        return info
 
     def configure_launch_sizing(self):
         """On a GPU with a display watchdog (WDDM TDR), keep every launch well below the limit."""
@@ -1101,6 +1137,9 @@ def main():
             if command=='close':
                 write_frame({'status':'ok','payload_bytes':0})
                 break
+            if command=='probe':
+                write_frame({'status':'ok','frame':'probe','payload_bytes':0,'probe':server.probe_info()})
+                continue
             if command=='init':
                 server.metrics['init_count']+=1
                 server.residual_trace_base = 0

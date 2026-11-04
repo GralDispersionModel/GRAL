@@ -24,8 +24,12 @@ namespace GRAL_2001
             cancellationToken.ThrowIfCancellationRequested();
             var info=new ProcessStartInfo(python) { UseShellExecute=false, CreateNoWindow=true, RedirectStandardInput=true, RedirectStandardOutput=true, RedirectStandardError=true };
             info.ArgumentList.Add("-X"); info.ArgumentList.Add("utf8"); info.ArgumentList.Add("-B"); info.ArgumentList.Add(script);
-            stderrLog=new FileStream(stderrPath,FileMode.CreateNew,FileAccess.Write,FileShare.Read);
+            stderrLog=GpuLogFiles.OpenExclusive(stderrPath,out string actualStderr);
+            StderrPath=actualStderr;
+            // The server names its diagnostic files after this log, so they follow the per-process choice.
+            info.Environment["INU_GPU_STDERR"]=actualStderr;
             try { process=Process.Start(info) ?? throw new InvalidOperationException("GPU server failed to start"); }
+            catch(System.ComponentModel.Win32Exception error) { stderrLog.Dispose(); throw new InvalidOperationException("Cannot start the GPU server with INU_GPU_PYTHON="+python+": "+error.Message,error); }
             catch { stderrLog.Dispose(); throw; }
             stderrCopy=process.StandardError.BaseStream.CopyToAsync(stderrLog);
             input=new BufferedStream(process.StandardInput.BaseStream,1024*1024); output=new BufferedStream(process.StandardOutput.BaseStream,1024*1024);
@@ -34,6 +38,32 @@ namespace GRAL_2001
                 try { if(!process.HasExited)process.Kill(entireProcessTree:true); }
                 catch(InvalidOperationException) when(process.HasExited) { }
             });
+            try { Probe(); }
+            catch(Exception startupError) when(startupError is not OperationCanceledException)
+            {
+                // The probe error carries the server's reason; a nonzero exit code during cleanup adds nothing.
+                try { Dispose(); } catch(Exception) { }
+                throw;
+            }
+        }
+        internal string StderrPath { get; }
+        // Startup handshake: the server answers after CUDA, NVRTC and the kernel module are ready, or sends its startup error.
+        private void Probe()
+        {
+            IOException sendFailure=null;
+            try { SendControl("probe"); }
+            catch(IOException error) { sendFailure=error; } // the server may already have exited; its error frame is still readable
+            JsonDocument reply;
+            try { reply=ReadHeader(); }
+            catch(IOException readFailure)
+            { throw new IOException("GPU server exited during startup without a reason; see "+StderrPath,sendFailure ?? readFailure); }
+            using(reply)
+            {
+                if(!reply.RootElement.TryGetProperty("probe",out var probe))throw new InvalidDataException("GPU server did not answer the startup probe");
+                string Text(string name) => probe.TryGetProperty(name,out var value) ? value.ToString() : "?";
+                Console.WriteLine("GPU device "+Text("ordinal")+": "+Text("name")+", CC "+Text("compute_capability")+", "+Text("total_memory_mib")+" MiB, driver CUDA "+Text("driver_cuda")+
+                                  ", NVRTC "+Text("nvrtc_version")+" "+Text("binary_kind")+" "+Text("target")+", kernel_exec_timeout="+Text("kernel_exec_timeout")+", tcc="+Text("tcc_driver"));
+            }
         }
         private void AbortFailedWrite(Exception failure)
         {
