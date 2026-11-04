@@ -13,7 +13,7 @@ GRAL can move particle tracking and concentration accumulation to an NVIDIA GPU.
 - 64-bit Python 3.8 or newer. The runtime uses only the standard library.
 - Windows x64, which is the tested platform. The Linux code path (`libcuda.so.1`, `libnvrtc.so`) is untested.
 
-At startup the runtime reads the compute capability of the selected device, asks NVRTC which architectures it supports, and compiles for the highest one that does not exceed the device. Each run writes a line starting with `CUDA device` to the `INU_GPU_STDERR` log; it shows the device, compute capability, NVRTC version, target, memory, driver version and whether the display watchdog is active. The log is appended, so read the last such line.
+At startup the runtime reads the compute capability of the selected device, asks NVRTC which architectures it supports, and compiles for the highest one that does not exceed the device. After a successful start the `INU_GPU_STDERR` log gets a line starting with `CUDA device`; it shows the device, compute capability, NVRTC version, target, memory, driver version and whether the display watchdog is active. If the start fails, the log ends with the error instead, which names the missing piece. The log is appended, so read the last entry.
 
 ## Running GRAL on the GPU
 
@@ -57,9 +57,9 @@ Optional settings:
 
 Transient and stationary runs with terrain or flat terrain; meteopgt.all meteorology, and in stationary mode also ZR, EKI and Sonic profiles; point, line, area and portal sources including tunnel entrances and opposite lanes; buildings; dry and wet deposition; decay; odour output; vertical concentration output; receptors; and up to nine concentration layers.
 
-Invalid inputs stop the run before any GPU work. A few inputs that the GPU cannot take run on the CPU instead: transient mode with meteorology other than meteopgt.all, a meteorology profile count outside 1 to 50, and accumulated concentrations that already hold non-finite values (for example from a restart file). GRAL then prints `GPU fallback to CPU: <reason>` and writes the reason to the GRAL log.
+The inputs of each situation are checked before they go to the GPU; an invalid value (for example an unsupported `INU_GRAL_GPU_BLOCK` or a non-finite particle value) stops the run with an error. A few inputs that the GPU cannot take run on the CPU instead: transient mode with meteorology other than meteopgt.all, a meteorology profile count outside 1 to 50, and accumulated concentrations that already hold non-finite values (for example from a restart file). GRAL then prints `GPU fallback to CPU: <reason>` and writes the reason to the GRAL log.
 
-With fixed random seeds the GPU reproduces the CPU field up to the summation order of the concentration sums. With native seeds every run draws new random streams on either backend, so two runs differ the way two CPU runs do. The GPU derives each fresh particle's seed by hashing a random master, the situation and the particle number, which gives the same run-to-run statistics as the CPU's native seeding.
+With fixed random seeds the GPU uses the same random streams as the CPU; floating-point rounding (CUDA and .NET math functions differ in the last bits) leaves small differences, far below the difference between two CPU seeds. With native seeds every run draws new random streams on either backend, so two runs differ the way two CPU runs do. The GPU derives each fresh particle's seed by hashing a random master, the situation and the particle number, which gives the same run-to-run statistics as the CPU's native seeding.
 
 ## When something goes wrong
 

@@ -25,6 +25,7 @@ namespace GRAL_2001
             try
             {
                 StreamReader sr = new StreamReader("inputzr.dat");
+                int errorLine = Program.IWETstart + 2; // file line reported if reading fails
                 try
                 {
                     string[] text = new string[1];
@@ -64,7 +65,8 @@ namespace GRAL_2001
                                 Program.IEND = Consts.CalculationFinished;
                                 return;
                             }
-                            throw new FormatException("blank line " + (n + 2).ToString() + " is followed by more data");
+                            errorLine = n + 2;
+                            throw new FormatException("blank line is followed by more data");
                         }
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
@@ -133,7 +135,7 @@ namespace GRAL_2001
                 }
                 catch (Exception exc)
                 {
-                    string err = "Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + ": " + exc.Message + " Execution stopped: press ESC to stop";
+                    string err = "Error when reading file inputzr.dat in line " + errorLine.ToString() + ": " + exc.Message + " Execution stopped: press ESC to stop";
                     Console.WriteLine(err);
                     ProgramWriters.LogfileProblemreportWrite(err);
 
