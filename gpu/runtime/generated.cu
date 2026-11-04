@@ -230,6 +230,8 @@ Arr<float,1> ZCoord;
 unsigned int RnGSeed1; unsigned int RnGSeed2; Arr<int,1> GridRecStart; Arr<int,1> GridRecList; int GridRecRow; bool TraceEnabled; Arr<double,2> Trace; Arr<int,1> TraceIds; Arr<double,3> StepTrace; Arr<double,2> ResidualTrace; Arr<double,2> ParticleReceptorScratch; Arr<int,2> ParticleSliceScratch; int ParticleWindowFirst; int DeviceError; int DeviceErrorPhase; int DeviceErrorParticle; };
 extern "C" {__device__ State P;}
 __device__ bool CheckParticleFinite(double x,double y,float z,float t,float dt,int phase,int id){if(isfinite(x)&&isfinite(y)&&isfinite(z)&&isfinite(t)&&isfinite(dt))return true;if(atomicCAS(&P.DeviceError,0,1)==0){P.DeviceErrorPhase=phase;P.DeviceErrorParticle=id;}return false;}
+// GPU-only bound for the wet-deposition droplet drift loop (no CPU equivalent); code 3 aborts the run instead of stalling the kernel.
+#define GRAL_DROP_DRIFT_MAX_ITER 1000000u
 __device__ void RecordDeviceError(int code,int phase,int id){if(atomicCAS(&P.DeviceError,0,code)==0){P.DeviceErrorPhase=phase;P.DeviceErrorParticle=id;}}
 __device__ int ParticleIndex(int index){return index==0?0:index-P.ParticleWindowFirst+1;}
 __device__ Tuple2<float,float> Zeitschleife_IntStandCalculate(int nteil,float Roughness,float DiffBuilding,float windge,float sigmauHurley);
@@ -2030,7 +2032,9 @@ depoCellH_299 = 2;
 depo1stCell_303 = 2;
 }
 depoVelVertical_304 = P.WetDepoDropVelocity(dropDataIndex_293,dropSizeClass_294) * u_random_295;depoTime_305 = (float)(depoCellH_299) * 4 / depoVelVertical_304;depoU_306 = UXint_111;depoV_307 = UYint_112;depoZ_308 = UZint_113;depoZcoord_309 = zcoord_nteil_9;depoAH_310 = AHint_81;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
+unsigned int depoDriftIter = 0;
 while (depoZcoord_309 > depoAH_310) {
+if(++depoDriftIter > GRAL_DROP_DRIFT_MAX_ITER){RecordDeviceError(3,1,nteil);return;}
 if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
 depoZcoord_309 += depoZ_308 * depoTime_305 - (float)(depoCellH_299) * 4;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
 if (depoZcoord_309 > depo1stCell_303) {
@@ -3169,7 +3173,9 @@ depoCellH_189 = 2;
 depo1stCell_193 = 2;
 }
 depoVelVertical_194 = P.WetDepoDropVelocity(dropDataIndex_183,dropSizeClass_184) * u_random_185;depoTime_195 = (float)(depoCellH_189) * 4 / depoVelVertical_194;depoU_196 = UXint_88;depoV_197 = UYint_89;depoZ_198 = UZint_90;depoZcoord_199 = zcoord_nteil_14;depoAH_200 = AHint_58;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
+unsigned int depoDriftIter = 0;
 while (depoZcoord_199 > depoAH_200) {
+if(++depoDriftIter > GRAL_DROP_DRIFT_MAX_ITER){RecordDeviceError(3,2,trace_index);return;}
 if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
 depoZcoord_199 += depoZ_198 * depoTime_195 - (float)(depoCellH_189) * 4;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
 if (depoZcoord_199 > depo1stCell_193) {

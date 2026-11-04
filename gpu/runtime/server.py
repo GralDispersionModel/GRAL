@@ -825,7 +825,9 @@ class Server:
 
     def check_device_error(self):
         if self.state.DeviceError:
-            detail = 'droplet state invalid' if self.state.DeviceError == 2 else 'nonfinite trajectory'
+            detail = {2: 'droplet state invalid',
+                      3: 'wet-deposition droplet did not reach ground (updraft >= fall speed)'}.get(
+                          self.state.DeviceError, 'nonfinite trajectory')
             particle = self.state.DeviceErrorParticle
             if self.state.DeviceErrorPhase == 2 and particle < 0:
                 mapping = self.residual_error_mapping
