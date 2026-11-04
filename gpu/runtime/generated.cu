@@ -691,9 +691,19 @@ int trace_slot=-1;if(P.TraceEnabled && P.TraceIds.p){for(int qi=0;qi<P.TraceIds.
 
 
 
-{
+if (P.UseFixedRndSeedVal) {
 m_w_2 = P.RnGSeed1 + (unsigned int)(nteil);
 m_z_3 = P.RnGSeed2 + (unsigned int)(nteil) * 2;
+} else {
+// Native seeds: hash the per-request entropy masters with the situation and particle id (as ResidualSeeds does),
+// so neighbouring particles get independent MWC streams instead of seeds that differ by one.
+unsigned long long fresh_seed = ZeitschleifeNonSteadyState_MixSeed(((unsigned long long)(P.RnGSeed2) << 32) | P.RnGSeed1);
+fresh_seed = ZeitschleifeNonSteadyState_MixSeed(fresh_seed ^ (unsigned long long)((unsigned int)(P.IWET)) ^ 0x6672657368ull);
+fresh_seed = ZeitschleifeNonSteadyState_MixSeed(fresh_seed ^ (unsigned long long)((unsigned int)(nteil)));
+m_w_2 = (unsigned int)(fresh_seed);
+m_z_3 = (unsigned int)(fresh_seed >> 32);
+if (m_w_2 % 1179647999u == 0u) m_w_2 = 521288629u;
+if (m_z_3 % 2422800383u == 0u) m_z_3 = 2232121u;
 }
 zahl1_4 = 0;
 u_rg_5 = 0;
