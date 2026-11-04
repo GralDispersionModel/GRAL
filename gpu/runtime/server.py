@@ -40,6 +40,13 @@ RESIDUAL_ARRAYS = ('_resI', '_resJ', '_resK', '_resSG', '_resConc', '_resSplit')
 SCRATCH_ARRAYS = ('ParticleReceptorScratch', 'ParticleSliceScratch')
 TRANSFER_BYTES = 1024 * 1024
 MAX_MEMORY_PARTICLES = 65536
+ADAPTIVE_START_PART = 256
+DEFAULT_PINNED_BUDGET = 256 * 1024**2
+
+
+def default_reserve(total):
+    """VRAM left to the display and other processes: 10 % within 128-512 MiB, never above a quarter."""
+    return min(512 * 1024**2, max(128 * 1024**2, total // 10), total // 4)
 MANIFEST_BYTES = (ROOT / 'fields_manifest.json').read_bytes()
 MANIFEST = json.loads(MANIFEST_BYTES)
 ARR_TYPES = {}
@@ -261,6 +268,56 @@ class Server:
             self.cuda.events.append(event)
         self.startup_ms=(time.perf_counter()-self.start)*1000
         self.refresh_memory_budget()
+        self.configure_launch_sizing()
+
+    def configure_launch_sizing(self):
+        """On a GPU with a display watchdog (WDDM TDR), keep every launch well below the limit."""
+        self.max_kernel_ms = self.memory_setting('INU_GPU_MAX_KERNEL_MS', 500, 0)
+        self.adaptive_launch = self.cuda.kernel_exec_timeout and self.max_kernel_ms > 0
+        self.adaptive_part = {}
+        self.last_kernel_ms = 0.0
+        self.metrics.update(kernel_exec_timeout=self.cuda.kernel_exec_timeout, adaptive_launch=self.adaptive_launch,
+                            max_kernel_ms=self.max_kernel_ms, adaptive_part_min=None, adaptive_part_max=None,
+                            adaptive_part_final={}, launches_over_max_kernel_ms=0, slow_launches=[])
+
+    def begin_adaptive(self, phase):
+        """A new situation can be much slower per particle; restart from a quarter of the learned size."""
+        if self.adaptive_launch and phase in self.adaptive_part:
+            self.adaptive_part[phase] = max(ADAPTIVE_START_PART, self.adaptive_part[phase] // 4)
+
+    def launch_part(self, phase, chunk):
+        """Particles for the next launch: the host chunk, or the learned watchdog-safe size if smaller."""
+        if not self.adaptive_launch:
+            return chunk
+        return min(chunk, self.adaptive_part.get(phase, ADAPTIVE_START_PART))
+
+    def adapt_launch(self, phase, part):
+        """Resize after a launch so the next one aims at half of INU_GPU_MAX_KERNEL_MS.
+
+        Results do not depend on the split: particles are seeded and use scratch rows per particle.
+        """
+        if not self.adaptive_launch:
+            return
+        elapsed, target = self.last_kernel_ms, self.max_kernel_ms
+        current = self.adaptive_part.get(phase, ADAPTIVE_START_PART)
+        if elapsed > target:
+            self.metrics['launches_over_max_kernel_ms'] += 1
+            if len(self.metrics['slow_launches']) < 16:
+                self.metrics['slow_launches'].append({'phase': phase, 'part': part, 'planned': current,
+                                                      'device_ms': round(elapsed, 1)})
+        if elapsed > 0.5 * target:
+            new = max(1, min(current, int(part * 0.5 * target / elapsed)))
+        elif part >= current:
+            # Only a full-size launch is evidence for growth; a short tail launch is not.
+            new = min(MAX_MEMORY_PARTICLES, 2 * part, int(part * 0.5 * target / max(elapsed, 1e-3)))
+            new = max(new, current)
+        else:
+            new = current
+        self.adaptive_part[phase] = new
+        low, high = self.metrics['adaptive_part_min'], self.metrics['adaptive_part_max']
+        self.metrics['adaptive_part_min'] = part if low is None else min(low, part)
+        self.metrics['adaptive_part_max'] = part if high is None else max(high, part)
+        self.metrics['adaptive_part_final'] = dict(self.adaptive_part)
 
     @staticmethod
     def memory_setting(name, default, minimum):
@@ -271,7 +328,7 @@ class Server:
 
     def refresh_memory_budget(self):
         free, total = self.cuda.memory_info()
-        reserve = self.memory_setting('INU_GPU_MEMORY_RESERVE_BYTES', max(512 * 1024**2, total // 10), 0)
+        reserve = self.memory_setting('INU_GPU_MEMORY_RESERVE_BYTES', default_reserve(total), 0)
         requested = self.memory_setting('INU_GPU_MEMORY_BUDGET_BYTES', total, 4096)
         owned = self.metrics['device_buffer_bytes']
         self.device_budget = min(requested, owned + max(0, free - reserve))
@@ -475,14 +532,22 @@ class Server:
         self.spill_for_window(max(per_row + extra, target) + zero_bytes - retained)
         available = max(0, self.device_budget - self.metrics['device_buffer_bytes'] + retained - zero_bytes)
         capacity = min(MAX_MEMORY_PARTICLES, count, max(0, (available - extra) // per_row))
+        # Host-mapped scratch and windows are bounded by a pinned host-memory budget.
+        pinned_budget = self.memory_setting('INU_GPU_PINNED_BUDGET_BYTES', DEFAULT_PINNED_BUDGET, 0)
         if mapped_scratch:
-            capacity = min(capacity, 1)
-        required = {name: ((capacity + int(fresh)) * DTYPE_SIZE[self.descriptors[name]['dtype']], False)
+            capacity = min(capacity, max(1, pinned_budget // scratch_unit))
+        # When not even one particle window fits in device memory, use mapped host memory for the
+        # window arrays as well: slower, but the run continues instead of failing.
+        mapped_windows = capacity < 1 and count > 0
+        if mapped_windows:
+            mapped_scratch = True
+            capacity = min(MAX_MEMORY_PARTICLES, count, max(1, (pinned_budget - extra) // (unit + scratch_unit)))
+        required = {name: ((capacity + int(fresh)) * DTYPE_SIZE[self.descriptors[name]['dtype']], mapped_windows)
                     for name in names}
         required.update({name: (capacity * column_count * width, mapped_scratch)
                          for name, width, column_count in zip(SCRATCH_ARRAYS, (8, 4), columns)})
         if not fresh:
-            required.update({name: (DTYPE_SIZE[self.descriptors[name]['dtype']], False)
+            required.update({name: (DTYPE_SIZE[self.descriptors[name]['dtype']], mapped_windows)
                              for name in PARTICLE_ARRAYS if name in self.host_arrays})
         projected = self.metrics['device_buffer_bytes']
         replace = []
@@ -502,12 +567,12 @@ class Server:
                         if name not in self.host_arrays:
                             continue
                         width = DTYPE_SIZE[self.descriptors[name]['dtype']]
-                        pointer = self.memory(name, width, window=True)
+                        pointer = self.memory(name, width, window=True, force_mapped=mapped_windows)
                         getattr(self.state, name).p = pointer.value
                         self.upload(name, memoryview(self.host_arrays[name])[:width])
                 for name in names:
                     size = (capacity + int(fresh)) * DTYPE_SIZE[self.descriptors[name]['dtype']]
-                    pointer = self.memory(name, size, window=True)
+                    pointer = self.memory(name, size, window=True, force_mapped=mapped_windows)
                     if hasattr(self.state, name):
                         getattr(self.state, name).p = pointer.value
                 for name, width, column_count in zip(SCRATCH_ARRAYS, (8, 4), columns):
@@ -521,6 +586,8 @@ class Server:
                 self.metrics['particle_scratch_bytes_per_row'] = scratch_unit
                 self.metrics['particle_scratch_capacity'] = capacity
                 self.metrics['particle_scratch_mapped'] = mapped_scratch
+                self.metrics['particle_windows_mapped'] = mapped_windows
+                self.metrics['pinned_budget_bytes'] = pinned_budget
                 return capacity
             except CudaError as exc:
                 if exc.code != 2:
@@ -529,6 +596,8 @@ class Server:
                     self.release(name)
                 if capacity == 1 and not mapped_scratch:
                     mapped_scratch = True
+                elif capacity == 1 and not mapped_windows:
+                    mapped_windows = True
                 else:
                     capacity //= 2
                 self.metrics['particle_window_retries'] += 1
@@ -851,6 +920,7 @@ class Server:
         self.metrics['kernel_device_ms']+=gpu_elapsed.value
         self.metrics['kernel_launches']+=1
         self.metrics['kernel_max_device_ms']=max(self.metrics['kernel_max_device_ms'],gpu_elapsed.value)
+        self.last_kernel_ms = gpu_elapsed.value
         status_start = State.DeviceError.offset
         status_size = State.DeviceErrorParticle.offset + c.sizeof(c.c_int) - status_start
         download_start = time.perf_counter()
@@ -908,6 +978,7 @@ class Server:
             raise ValueError('Supported block sizes: 128, 256')
         block = min(block, self.kernel_resources[phase]['max_threads_per_block'])
         self.metrics[phase + '_block_size'] = block
+        self.begin_adaptive(phase)
         capacity = self.prepare_particle_windows(PARTICLE_ARRAYS if phase == 'fresh' else RESIDUAL_ARRAYS, count, phase == 'fresh') if count else 0
         for offset in range(0, count, max(1, capacity)):
             window_count = min(capacity, count - offset)
@@ -925,7 +996,7 @@ class Server:
             self.bind()
             local_offset = 0
             while local_offset < window_count:
-                part = min(chunk, window_count - local_offset)
+                part = min(self.launch_part(phase, chunk), window_count - local_offset)
                 if phase == 'fresh':
                     elapsed += self.launch(self.fn_fresh, part, [I(first + offset + local_offset), I(part)], block)
                 else:
@@ -940,6 +1011,7 @@ class Server:
                         self.residual_error_mapping = (global_base, part)
                     pointers = [D(self.buffers[name][0].value + local_offset * 4) for name in RESIDUAL_ARRAYS]
                     elapsed += self.launch(self.fn_residual, part, [I(part), I(encoded_base), *pointers], block)
+                self.adapt_launch(phase, part)
                 local_offset += part
             self.metrics[phase + '_memory_windows'] += 1
             # Preserve scalar changes before the next window rebinds the pointer state.
