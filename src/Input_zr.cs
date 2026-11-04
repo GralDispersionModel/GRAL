@@ -25,7 +25,7 @@ namespace GRAL_2001
             try
             {
                 StreamReader sr = new StreamReader("inputzr.dat");
-                int errorLine = Program.IWETstart + 2; // file line reported if reading fails
+                int errorLine = 1; // file line reported if reading fails
                 try
                 {
                     string[] text = new string[1];
@@ -35,6 +35,7 @@ namespace GRAL_2001
                     Program.MetProfileNumb = Convert.ToInt16(text[0].Replace(".", Program.Decsep));
 
                     //height of these observations above ground in m
+                    errorLine = 2;
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
                     Console.WriteLine();
                     Console.Write("Observational heights: ");
@@ -45,6 +46,7 @@ namespace GRAL_2001
                     }
                     Console.WriteLine();
 
+                    errorLine = Program.IWETstart + 2;
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
                         string text1 = sr.ReadLine();

@@ -910,21 +910,18 @@ FinishGral:
                 ThreadWriteConz4dFile = null;
             }
 
-            if (verticalOutputFailed)
+            if (verticalOutputFailed && (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp")))
             {
-                // Keep the last checkpoint (transient and vertical .tmp files together); a rerun in this folder resumes from it
-                if (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp"))
-                {
-                    ProgramWriters.LogfileProblemreportWrite("The transient checkpoint files were kept; run GRAL again in this folder to resume from the last checkpoint and write Vertical_Concentrations.txt.");
-                }
-                else
-                {
-                    ProgramWriters.LogfileProblemreportWrite("No transient checkpoint exists; the run must be repeated to write Vertical_Concentrations.txt.");
-                }
+                // Leave the checkpoint as an interrupted run would; GRAL's usual restart rules apply to a rerun in this folder
+                ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
             }
             else
             {
                 Delete_Temp_Files();
+                if (verticalOutputFailed)
+                {
+                    ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written and no transient checkpoint exists; repeat the run to write it.");
+                }
             }
 
             //Write receptor statistical error
