@@ -18,7 +18,13 @@ namespace GRAL_2001
             if(startupFailure!=null) return false;
             string reason=GpuSituationDriver.GetUnsupportedReason(first,count);
             if(reason==null) { lastFallbackReason=null; return Start(); }
-            if(reason!=lastFallbackReason) Console.WriteLine("GPU fallback to CPU: "+reason);
+            if(reason!=lastFallbackReason)
+            {
+                // Keep the reason in the GRAL log as well, so a CPU situation in a GPU run is visible afterwards.
+                Console.WriteLine("GPU fallback to CPU: "+reason);
+                ProgramWriters.LogfileGralCoreWrite("GPU fallback to CPU from situation "+Program.IWET.ToString(System.Globalization.CultureInfo.InvariantCulture)+": "+reason);
+                if(reason.Contains("non-finite",StringComparison.Ordinal))ProgramWriters.LogfileProblemreportWrite("GPU fallback to CPU: "+reason);
+            }
             lastFallbackReason=reason;
             return false;
         }

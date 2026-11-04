@@ -8,7 +8,8 @@ namespace GRAL_2001
         // Opens path for appending as the only writer; if another process writes it, opens a suffixed file instead.
         internal static FileStream OpenExclusive(string path,out string actualPath)
         {
-            try { actualPath=path;return new FileStream(path,FileMode.Append,FileAccess.Write,FileShare.Read); }
+            // FileShare.None: on Linux FileShare.Read is advisory only, so a second process could append to the same log.
+            try { actualPath=path;return new FileStream(path,FileMode.Append,FileAccess.Write,FileShare.None); }
             catch(IOException) when(File.Exists(path))
             {
                 actualPath=UniquePath(path);

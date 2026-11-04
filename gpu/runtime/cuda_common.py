@@ -15,7 +15,8 @@ D = c.c_uint64
 CUDA_ERROR_OUT_OF_MEMORY = 2
 CUDA_ERROR_DEVICE_UNAVAILABLE = 46
 # Module images the driver cannot use: invalid image, no binary for GPU, invalid PTX, unsupported PTX version.
-REJECTED_IMAGE_CODES = (200, 209, 218, 222)
+# 221/223: the driver cannot JIT PTX (missing JIT library or CUDA_DISABLE_PTX_JIT); a CUBIN may still load.
+REJECTED_IMAGE_CODES = (200, 209, 218, 221, 222, 223)
 ATTR_KERNEL_EXEC_TIMEOUT = 17
 ATTR_CAN_MAP_HOST_MEMORY = 19
 ATTR_COMPUTE_MODE = 20
