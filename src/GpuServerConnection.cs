@@ -24,8 +24,6 @@ namespace GRAL_2001
             cancellationToken.ThrowIfCancellationRequested();
             var info=new ProcessStartInfo(python) { UseShellExecute=false, CreateNoWindow=true, RedirectStandardInput=true, RedirectStandardOutput=true, RedirectStandardError=true };
             info.ArgumentList.Add("-X"); info.ArgumentList.Add("utf8"); info.ArgumentList.Add("-B"); info.ArgumentList.Add(script);
-            info.Environment["INU_GPU_MAX_SLICES"]=Program.NS.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            info.Environment["INU_GPU_MAX_RECEPTORS"]=Program.ReceptorNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             stderrLog=new FileStream(stderrPath,FileMode.CreateNew,FileAccess.Write,FileShare.Read);
             try { process=Process.Start(info) ?? throw new InvalidOperationException("GPU server failed to start"); }
             catch { stderrLog.Dispose(); throw; }

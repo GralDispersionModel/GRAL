@@ -22,7 +22,7 @@ def write_diagnostic(name, text):
         (folder / name).write_text(text, encoding='utf-8')
     except OSError as exc:
         print(f'Could not write diagnostic file {name}: {exc}', file=sys.stderr)
-from cuda_common import Cuda, CudaError, P, D, Z, I, NVRTC_PROGRAM, MAX_SLICES, MAX_RECEPTORS
+from cuda_common import Cuda, CudaError, P, D, Z, I, NVRTC_PROGRAM
 import ptx_cache
 
 CPP_TYPES = {'bool': c.c_bool, 'unsigned char': c.c_ubyte, 'short': c.c_short,
@@ -707,8 +707,8 @@ class Server:
             raise ValueError('Unsupported topography or meteorology mode')
         if self.state.ISTATIONAER not in (0, 1):
             raise ValueError('Unsupported runtime mode')
-        if not 0 <= s.ReceptorNumber <= MAX_RECEPTORS or not 0 < s.NS <= MAX_SLICES:
-            raise ValueError('Receptor/slice local capacity exceeded')
+        if s.NS < 1 or s.ReceptorNumber < 0:
+            raise ValueError('Invalid slice or receptor count')
         if not s.UseFixedRndSeedVal and (not s.RnGSeed1 or not s.RnGSeed2):
             raise ValueError('Nonfixed GPU execution requires nonzero master seeds')
         if s.WetDeposition and s.WetDopoDropDrift:

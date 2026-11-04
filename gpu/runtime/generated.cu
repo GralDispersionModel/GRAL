@@ -1,10 +1,4 @@
 // Generated trajectory body retains GRAL GPL-3.0 source provenance. This support layer is task local.
-#ifndef GRAL_MAX_SLICES
-#define GRAL_MAX_SLICES 9
-#endif
-#ifndef GRAL_MAX_RECEPTORS
-#define GRAL_MAX_RECEPTORS 50
-#endif
 template<class T,int N> struct Arr {
  T* p; int d[N];
  __device__ Arr<T,N-1> operator[](int i) const { Arr<T,N-1> a; unsigned long long stride=1; for(int j=1;j<N;j++){a.d[j-1]=d[j];stride*=d[j];} a.p=p+(unsigned long long)i*stride;return a; }

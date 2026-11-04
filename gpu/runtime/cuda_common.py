@@ -19,18 +19,9 @@ class CudaError(RuntimeError):
         super().__init__(f'{operation}: {code} {name!r}')
 
 
-def _capacity(name, default, minimum):
-    raw = os.environ.get(name, str(default))
-    if not raw.isascii() or not raw.isdecimal() or not minimum <= int(raw) < 2**31 - 1:
-        raise ValueError('Invalid local array capacity: ' + name)
-    return int(raw)
-
-
-MAX_SLICES = _capacity('INU_GPU_MAX_SLICES', 9, 1)
-MAX_RECEPTORS = _capacity('INU_GPU_MAX_RECEPTORS', 50, 0)
-NVRTC_OPTIONS = (b'--std=c++11', b'--fmad=false',
-                 f'-DGRAL_MAX_SLICES={MAX_SLICES}'.encode('ascii'),
-                 f'-DGRAL_MAX_RECEPTORS={MAX_RECEPTORS}'.encode('ascii'))
+# Project sizes (slices, receptors) are runtime array shapes, so they never enter the
+# compile options; one compiled module serves every project and keeps the cache key stable.
+NVRTC_OPTIONS = (b'--std=c++11', b'--fmad=false')
 NVRTC_PROGRAM = b'kernel.cu'
 
 
