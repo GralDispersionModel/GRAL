@@ -1,5 +1,7 @@
 import ctypes as c
 import os
+import re
+import sys
 import time
 from pathlib import Path
 
@@ -8,7 +10,7 @@ I = c.c_int
 U = c.c_uint
 Z = c.c_size_t
 D = c.c_uint64
-NVRTC_OPTIONS = (b'--gpu-architecture=compute_120', b'--std=c++11', b'--fmad=false')
+NVRTC_OPTIONS = (b'--std=c++11', b'--fmad=false')
 NVRTC_PROGRAM = b'kernel.cu'
 
 
@@ -18,10 +20,138 @@ def _bind(lib, name, argtypes, restype=I):
     return f
 
 
+def _nvrtc_candidates(explicit, bundled, cuda_path):
+    if explicit is not None:
+        if not explicit or not Path(explicit).is_absolute():
+            raise ValueError('INU_GPU_NVRTC_DIR must be a nonempty absolute path')
+        directories = [Path(explicit)]
+    else:
+        directories = [Path(bundled)]
+        if cuda_path:
+            if not Path(cuda_path).is_absolute():
+                raise ValueError('CUDA_PATH must be absolute')
+            directories += [Path(cuda_path) / 'bin' / 'x64', Path(cuda_path) / 'bin']
+    result = []
+    for directory in directories:
+        # NVRTC DLL names are versioned; exclude builtins and unrelated DLLs.
+        candidates = sorted((p for p in directory.glob('nvrtc64_*.dll') if p.is_file() and re.fullmatch(r'nvrtc64_[0-9]+_[0-9]+\.dll', p.name, re.IGNORECASE)), reverse=True)
+        result.extend(candidates)
+    if not result:
+        if explicit is not None:
+            raise FileNotFoundError(f'INU_GPU_NVRTC_DIR contains no NVRTC DLL: {explicit}')
+        raise FileNotFoundError('NVRTC DLL not found in bundled directory or CUDA_PATH/bin; set INU_GPU_NVRTC_DIR')
+    return result
+
+
+def _select_arch(device_arch, supported):
+    choices = [arch for arch in supported if 0 < arch <= device_arch]
+    if not choices:
+        raise RuntimeError(f'No compatible NVRTC virtual architecture for device compute_{device_arch}; supported: {supported}')
+    return max(choices)
+
+
+def _options_for_arch(arch):
+    return (f'--gpu-architecture=compute_{arch}'.encode('ascii'),) + NVRTC_OPTIONS
+
+
+def _supported_archs(nvrtc):
+    try:
+        count_fn = _bind(nvrtc, 'nvrtcGetNumSupportedArchs', [c.POINTER(I)])
+        list_fn = _bind(nvrtc, 'nvrtcGetSupportedArchs', [c.POINTER(I)])
+    except AttributeError:
+        return None
+    count = I()
+    rc = count_fn(c.byref(count))
+    if rc or not 0 < count.value < 1024:
+        raise RuntimeError(f'nvrtcGetNumSupportedArchs failed: {rc}, count={count.value}')
+    archs = (I * count.value)()
+    rc = list_fn(archs)
+    if rc:
+        raise RuntimeError(f'nvrtcGetSupportedArchs failed: {rc}')
+    return list(archs)
+
+
+def _open_nvrtc_candidate(path):
+    import _ctypes
+    directory = os.add_dll_directory(str(path.parent))
+    library = None
+    try:
+        library = c.WinDLL(str(path))
+        version_fn = _bind(library, 'nvrtcVersion', [c.POINTER(I), c.POINTER(I)])
+        major, minor = I(), I()
+        rc = version_fn(c.byref(major), c.byref(minor))
+        if rc:
+            raise RuntimeError(f'nvrtcVersion failed: {rc}')
+        builtins = path.parent / f'nvrtc-builtins64_{major.value}{minor.value}.dll'
+        if not builtins.is_file():
+            raise FileNotFoundError(f'Matching NVRTC builtins not found: {builtins}')
+        # NVRTC loads builtins lazily; AddDllDirectory alone does not affect that lookup.
+        library._inu_builtins = c.WinDLL(str(builtins))
+        return library, directory, builtins, (major.value, minor.value), _supported_archs(library)
+    except BaseException:
+        if library is not None:
+            _close_nvrtc_candidate((library, directory))
+        else:
+            directory.close()
+        raise
+
+
+def _close_nvrtc_candidate(candidate):
+    import _ctypes
+    library, directory = candidate[:2]
+    builtins = getattr(library, '_inu_builtins', None)
+    try:
+        _ctypes.FreeLibrary(library._handle)
+    finally:
+        try:
+            if builtins is not None:
+                _ctypes.FreeLibrary(builtins._handle)
+        finally:
+            directory.close()
+
+
+def _select_toolchain(candidates, device_arch, open_candidate=_open_nvrtc_candidate,
+                      driver_version=None, probe_candidate=None):
+    failures = []
+    for index, path in enumerate(candidates):
+        try:
+            candidate = open_candidate(path)
+        except (OSError, RuntimeError, AttributeError) as exc:
+            failures.append(f'{path}: {exc}')
+            continue
+        library, directory, builtins, version, supported = candidate
+        try:
+            target = device_arch if supported is None else _select_arch(device_arch, supported)
+        except RuntimeError as exc:
+            failures.append(f'{path}: {exc}')
+            _close_nvrtc_candidate(candidate)
+            continue
+        needs_probe = (probe_candidate is not None and index + 1 < len(candidates) and
+                       (supported is None or driver_version is None or
+                        version[0] * 1000 + version[1] * 10 > driver_version))
+        if needs_probe:
+            try:
+                result = probe_candidate(candidate, target)
+            except BaseException:
+                _close_nvrtc_candidate(candidate)
+                raise
+            if result in (209, 222):  # no binary for GPU, or unsupported PTX version
+                failures.append(f'{path}: driver rejected probe PTX ({result})')
+                print(f'NVRTC candidate rejected: {failures[-1]}', file=sys.stderr)
+                _close_nvrtc_candidate(candidate)
+                continue
+            if result:
+                _close_nvrtc_candidate(candidate)
+                raise RuntimeError(f'Unexpected PTX probe error: {result}')
+        return path, candidate, target
+    raise RuntimeError('No compatible NVRTC toolchain: ' + '; '.join(failures))
+
+
 class Cuda:
     def __init__(self):
         self.ctx = P()
         self.dll_dir = None
+        self.nvrtc = None
         self.modules = []
         self.buffers = []
         self.events = []
@@ -33,17 +163,11 @@ class Cuda:
 
     def _initialize(self):
         self.cuda = c.WinDLL('nvcuda.dll')
-        dll_dir = Path(os.environ.get('INU_GPU_NVRTC_DIR',
-                       Path(__file__).parent / 'nvrtc' / 'nvidia' / 'cuda_nvrtc' / 'bin')).resolve()
-        if not (dll_dir / 'nvrtc64_120_0.dll').is_file():
-            raise FileNotFoundError('Set INU_GPU_NVRTC_DIR to the CUDA NVRTC 12.9 DLL directory')
-        self.dll_dir = os.add_dll_directory(str(dll_dir))
-        os.environ['PATH'] = str(dll_dir) + os.pathsep + os.environ.get('PATH', '')
-        self.nvrtc_path = dll_dir / 'nvrtc64_120_0.dll'
-        self.nvrtc = c.WinDLL(str(self.nvrtc_path))
         driver = self.cuda
         self.init = _bind(driver, 'cuInit', [U])
+        self.driver_get_version = _bind(driver, 'cuDriverGetVersion', [c.POINTER(I)])
         self.device_get = _bind(driver, 'cuDeviceGet', [c.POINTER(I), I])
+        self.device_attribute = _bind(driver, 'cuDeviceGetAttribute', [c.POINTER(I), I, I])
         self.ctx_create = _bind(driver, 'cuCtxCreate_v2', [c.POINTER(P), U, I])
         self.ctx_destroy = _bind(driver, 'cuCtxDestroy_v2', [P])
         self.module_load = _bind(driver, 'cuModuleLoadData', [c.POINTER(P), P])
@@ -61,24 +185,55 @@ class Cuda:
         self.event_elapsed = _bind(driver, 'cuEventElapsedTime', [c.POINTER(c.c_float),P,P])
         self.event_destroy = _bind(driver, 'cuEventDestroy_v2', [P])
         self.error_name = _bind(driver, 'cuGetErrorName', [I,c.POINTER(c.c_char_p)])
-        self.nv_version = _bind(self.nvrtc, 'nvrtcVersion', [c.POINTER(I), c.POINTER(I)])
-        major, minor = I(), I()
-        if self.nv_version(c.byref(major), c.byref(minor)) or (major.value, minor.value) != (12, 9):
-            raise RuntimeError(f'Expected NVRTC 12.9, got {major.value}.{minor.value}')
-        self.nvrtc_version = (major.value, minor.value)
-        self.nvrtc_builtins_path = dll_dir / f'nvrtc-builtins64_{major.value}{minor.value}.dll'
-        self.nv_create = _bind(self.nvrtc, 'nvrtcCreateProgram', [c.POINTER(P),c.c_char_p,c.c_char_p,I,P,P])
-        self.nv_compile = _bind(self.nvrtc, 'nvrtcCompileProgram', [P,I,c.POINTER(c.c_char_p)])
-        self.nv_log_size = _bind(self.nvrtc, 'nvrtcGetProgramLogSize', [P,c.POINTER(Z)])
-        self.nv_log = _bind(self.nvrtc, 'nvrtcGetProgramLog', [P,c.c_char_p])
-        self.nv_ptx_size = _bind(self.nvrtc, 'nvrtcGetPTXSize', [P,c.POINTER(Z)])
-        self.nv_ptx = _bind(self.nvrtc, 'nvrtcGetPTX', [P,c.c_char_p])
-        self.nv_destroy = _bind(self.nvrtc, 'nvrtcDestroyProgram', [c.POINTER(P)])
         start = time.perf_counter()
         self.check(self.init(0), 'cuInit')
         dev=I(); self.check(self.device_get(c.byref(dev),0),'cuDeviceGet')
+        cc_major, cc_minor = I(), I()
+        self.check(self.device_attribute(c.byref(cc_major), 75, dev), 'device compute capability major')
+        self.check(self.device_attribute(c.byref(cc_minor), 76, dev), 'device compute capability minor')
+        self.device_arch = cc_major.value * 10 + cc_minor.value
+        driver_version = I()
+        self.check(self.driver_get_version(c.byref(driver_version),), 'cuDriverGetVersion')
         self.check(self.ctx_create(c.byref(self.ctx),0,dev),'cuCtxCreate')
+        bundled = Path(__file__).parent / 'nvrtc' / 'nvidia' / 'cuda_nvrtc' / 'bin'
+        candidates = _nvrtc_candidates(os.environ.get('INU_GPU_NVRTC_DIR'), bundled, os.environ.get('CUDA_PATH'))
+        self.nvrtc_path, candidate, self.target_arch = _select_toolchain(
+            candidates, self.device_arch, driver_version=driver_version.value, probe_candidate=self._probe_toolchain)
+        self.nvrtc, self.dll_dir, self.nvrtc_builtins_path, self.nvrtc_version, supported = candidate
+        self.nvrtc_options = _options_for_arch(self.target_arch)
+        query = '' if supported is not None else ' (exact target unverified; NVRTC has no architecture query)'
+        print(f'CUDA device 0 compute_{self.device_arch}; NVRTC {self.nvrtc_version[0]}.{self.nvrtc_version[1]}; '
+              f'target compute_{self.target_arch}{query}', file=sys.stderr)
+        self._bind_nvrtc(self.nvrtc)
         self.context_ms = (time.perf_counter() - start) * 1000
+
+    def _bind_nvrtc(self, library):
+        self.nv_create = _bind(library, 'nvrtcCreateProgram', [c.POINTER(P),c.c_char_p,c.c_char_p,I,P,P])
+        self.nv_compile = _bind(library, 'nvrtcCompileProgram', [P,I,c.POINTER(c.c_char_p)])
+        self.nv_log_size = _bind(library, 'nvrtcGetProgramLogSize', [P,c.POINTER(Z)])
+        self.nv_log = _bind(library, 'nvrtcGetProgramLog', [P,c.c_char_p])
+        self.nv_ptx_size = _bind(library, 'nvrtcGetPTXSize', [P,c.POINTER(Z)])
+        self.nv_ptx = _bind(library, 'nvrtcGetPTX', [P,c.c_char_p])
+        self.nv_destroy = _bind(library, 'nvrtcDestroyProgram', [c.POINTER(P)])
+
+    def _probe_toolchain(self, candidate, target):
+        library, _, _, _, supported = candidate
+        self._bind_nvrtc(library)
+        self.nvrtc_options = _options_for_arch(target)
+        try:
+            ptx, _ = self.compile_ptx('extern "C" __global__ void probe() {}')
+        except RuntimeError as exc:
+            if supported is None and 'invalid value for --gpu-architecture' in str(exc).lower():
+                return 209
+            raise
+        data = c.create_string_buffer(ptx, len(ptx))
+        module = P()
+        rc = self.module_load(c.byref(module), c.cast(data, P))
+        if rc in (209, 222):
+            return rc
+        self.check(rc, 'cuModuleLoadData PTX compatibility probe')
+        self.check(self.module_unload(module), 'cuModuleUnload PTX compatibility probe')
+        return 0
 
     def check(self, code, operation):
         if code:
@@ -90,8 +245,8 @@ class Cuda:
         rc=self.nv_create(c.byref(prog),source.encode('utf-8'),NVRTC_PROGRAM,0,None,None)
         if rc: raise RuntimeError(f'nvrtcCreateProgram: {rc}')
         try:
-            options=(c.c_char_p*len(NVRTC_OPTIONS))(*NVRTC_OPTIONS)
-            rc=self.nv_compile(prog,len(NVRTC_OPTIONS),options)
+            options=(c.c_char_p*len(self.nvrtc_options))(*self.nvrtc_options)
+            rc=self.nv_compile(prog,len(self.nvrtc_options),options)
             log_size=Z(); self.nv_log_size(prog,c.byref(log_size))
             log=c.create_string_buffer(max(log_size.value,1)); self.nv_log(prog,log)
             if rc: raise RuntimeError(f'nvrtcCompileProgram: {rc}; {log.value.decode(errors="replace")}')
@@ -105,7 +260,8 @@ class Cuda:
 
     def load_ptx(self, ptx):
         data = c.create_string_buffer(ptx, len(ptx))
-        mod=P(); self.check(self.module_load(c.byref(mod),c.cast(data,P)),'cuModuleLoadData')
+        mod=P(); self.check(self.module_load(c.byref(mod),c.cast(data,P)),
+                            'cuModuleLoadData (driver must support NVRTC-generated PTX)')
         self.modules.append(mod)
         return mod
 
@@ -140,5 +296,9 @@ class Cuda:
             self.ctx_destroy(self.ctx)
             self.ctx = P()
         if self.dll_dir is not None:
-            self.dll_dir.close()
+            if self.nvrtc is not None:
+                _close_nvrtc_candidate((self.nvrtc, self.dll_dir))
+                self.nvrtc = None
+            else:
+                self.dll_dir.close()
             self.dll_dir = None

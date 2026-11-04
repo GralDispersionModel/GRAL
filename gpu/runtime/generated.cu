@@ -42,6 +42,18 @@ template<>__device__ unsigned int cs_cast<unsigned int>(double x){if(isnan(x)||x
 template<>__device__ long long cs_cast<long long>(double x){if(isnan(x))return 0;if(x>=9223372036854775808.0)return 9223372036854775807ll;if(x<=-9223372036854775808.0)return (-9223372036854775807ll-1);return (long long)x;}
 template<>__device__ unsigned long long cs_cast<unsigned long long>(double x){if(isnan(x)||x<=0)return 0;if(x>=18446744073709551616.0)return 18446744073709551615ull;return (unsigned long long)x;}
 __device__ float gral_round(float x,int digits){float z=powf(10.0f,digits);return nearbyintf(x*z)/z;}
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 600
+// Native double atomicAdd requires sm_60; compare integer bits to handle NaN.
+__device__ double atomicAdd(double* address, double value){
+ unsigned long long* bits=(unsigned long long*)address;
+ unsigned long long old=*bits, assumed;
+ do {
+  assumed=old;
+  old=atomicCAS(bits,assumed,(unsigned long long)__double_as_longlong(value+__longlong_as_double((long long)assumed)));
+ } while(assumed!=old);
+ return __longlong_as_double((long long)old);
+}
+#endif
 template<class T,class V>__device__ T atomic_add(T* p,V v){return atomicAdd(p,(T)v);}
 template<class V>__device__ long long atomic_add(long long* p,V v){return (long long)atomicAdd((unsigned long long*)p,(unsigned long long)v);}
 template<class T>__device__ T atomic_inc(T* p){return atomic_add(p,1)+1;}

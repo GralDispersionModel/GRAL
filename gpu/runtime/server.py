@@ -11,7 +11,7 @@ import time
 import traceback
 
 ROOT = Path(__file__).parent
-from cuda_common import Cuda, P, D, Z, I, NVRTC_OPTIONS, NVRTC_PROGRAM
+from cuda_common import Cuda, P, D, Z, I, NVRTC_PROGRAM
 import ptx_cache
 
 CPP_TYPES = {'bool': c.c_bool, 'unsigned char': c.c_ubyte, 'short': c.c_short,
@@ -135,7 +135,7 @@ class Server:
                 identity = {'schema': ptx_cache.SCHEMA, 'source_sha256': ptx_cache.digest(source.encode('utf-8')),
                             'manifest_sha256': ptx_cache.digest(MANIFEST_BYTES),
                             'state_size': c.sizeof(State), 'state_alignment': c.alignment(State), 'fields': abi,
-                            'options': [option.decode('ascii') for option in NVRTC_OPTIONS],
+                            'options': [option.decode('ascii') for option in self.cuda.nvrtc_options],
                             'program': NVRTC_PROGRAM.decode('ascii'), 'nvrtc_version': self.cuda.nvrtc_version,
                             'nvrtc_sha256': ptx_cache.digest(self.cuda.nvrtc_path.read_bytes()),
                             'nvrtc_builtins_sha256': ptx_cache.digest(self.cuda.nvrtc_builtins_path.read_bytes())}
