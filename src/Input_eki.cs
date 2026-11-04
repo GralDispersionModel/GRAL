@@ -53,6 +53,11 @@ namespace GRAL_2001
                     }
 
                     float observedObukhovLength = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                    // Ob = 0 would give infinite dissipation and a zero time step; same substitution as inputzr.dat and sonic.dat
+                    if (observedObukhovLength == 0)
+                    {
+                        observedObukhovLength = 1.0F;
+                    }
 
                     //read wind components along the vertical profile
                     int n1 = 0;

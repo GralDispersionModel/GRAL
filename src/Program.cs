@@ -345,6 +345,13 @@ namespace GRAL_2001
                 Console.WriteLine();
                 Console.WriteLine("Reading file portals.dat");
                 ReadTunnelPortals.Read();
+                if ((TunnelEntr || TunnelOppLane) && TS_Count == 0)
+                {
+                    // The cell flags stay active: tunnel_entrance.txt can still remove area, line and point source particles.
+                    string warn = "Warning: tunnel_entrance.txt or Opposite_lane.txt exists, but portals.dat defines no portal";
+                    Console.WriteLine(warn);
+                    ProgramWriters.LogfileGralCoreWrite(warn);
+                }
             }
             //reading area source data
             if (AS_Count > 0)

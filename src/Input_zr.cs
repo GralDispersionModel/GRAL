@@ -117,9 +117,11 @@ namespace GRAL_2001
 
                     Program.IWETstart = Program.IDISP + 1;
                 }
-                catch
+                catch (Exception exc)
                 {
-                    Console.WriteLine("Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop");
+                    string err = "Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + ": " + exc.Message + " Execution stopped: press ESC to stop";
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileProblemreportWrite(err);
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     {
@@ -128,6 +130,8 @@ namespace GRAL_2001
                             ;
                         }
                     }
+                    // Continuing would reuse the previous situation's meteorology without notice.
+                    Environment.Exit(1);
                 }
                 sr.Close();
                 sr.Dispose();
