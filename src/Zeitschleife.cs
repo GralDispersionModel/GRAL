@@ -2202,11 +2202,11 @@ namespace GRAL_2001
                             TransientGridX = (int)(xsi * FFGridXRez) + 1;
                             TransientGridY = (int)(eta * FFGridYRez) + 1;
 
-                            float[] conzsum_L = Program.ConzSsum[TransientGridX][TransientGridY];
+                            double[] conzsum_L = Program.ConzSsum[TransientGridX][TransientGridY];
                             double conc = masse * Program.GridVolume * idt / (Area_cart * Program.DZK_Trans[TransientGridZ]);
                             lock (conzsum_L)
                             {
-                                conzsum_L[TransientGridZ] += (float)conc;
+                                conzsum_L[TransientGridZ] += conc;
                             }
                         }
                     }

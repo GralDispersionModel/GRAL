@@ -1151,7 +1151,7 @@ namespace GRAL_2001
         ///<summary>
         ///3D concentration sum file
         ///</summary>
-        public static float[][][] ConzSsum = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        public static double[][][] ConzSsum = CreateArray<double[][]>(1, () => CreateArray<double[]>(1, () => new double[1]));
         ///<summary>
         ///Sets the lower concentration threshold below which the memory effect in transient simulations is neglected
         ///</summary>

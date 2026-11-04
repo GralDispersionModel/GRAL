@@ -115,11 +115,11 @@
     },
     {
       "name": "ConzSsum",
-      "type": "float[][][]",
+      "type": "double[][][]",
       "cpp": "Arr\u003Cdouble,3\u003E",
       "constant": false,
       "value": null,
-      "wire_dtype": "Single"
+      "wire_dtype": null
     },
     {
       "name": "DDX",

@@ -2119,7 +2119,7 @@ TransientGridY_71 = cs_cast<int>((eta_98 * FFGridYRez_44)) + 1;
 conzsum_L_322 = P.ConzSsum[TransientGridX_70][TransientGridY_71];
 conc_323 = masse_10 * P.GridVolume * idt_86 / (Area_cart_74 * P.DZK_Trans[TransientGridZ_72]);
 {
-atomic_add(&(conzsum_L_322[TransientGridZ_72]),(float)(conc_323));
+atomic_add(&(conzsum_L_322[TransientGridZ_72]),conc_323);
 }
 }
 }
@@ -3259,7 +3259,7 @@ TransientGridY_54 = cs_cast<int>((eta_74 * FFGridYRez_28)) + 1;
 conzsum_L_212 = P.ConzSsum[TransientGridX_53][TransientGridY_54];
 conc_213 = mass_real_19 * idt_62 / (Area_cart_17 * P.DZK_Trans[TransientGridZ_55]);
 {
-atomic_add(&(conzsum_L_212[TransientGridZ_55]),(float)(conc_213));
+atomic_add(&(conzsum_L_212[TransientGridZ_55]),conc_213);
 }
 }
 if (P.Odour == true) {

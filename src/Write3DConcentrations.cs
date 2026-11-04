@@ -405,7 +405,7 @@ namespace GRAL_2001
                                         // find lowest and highest index with values > trans_conc_threshold
                                         int maxindex = -1;
                                         int minindex = -1;
-                                        float[] conz_sum_L = Program.ConzSsum[i][j];
+                                        double[] conz_sum_L = Program.ConzSsum[i][j];
                                         for (int k = 1; k < Program.NKK_Transient; k++)
                                         {
                                             if (conz_sum_L[k] > float.Epsilon && (minindex == -1))
@@ -426,7 +426,7 @@ namespace GRAL_2001
 
                                             for (int k = minindex; k <= maxindex; k++)
                                             {
-                                                bw.Write(conz_sum_L[k]);
+                                                bw.Write((float)conz_sum_L[k]); // the .tmp file keeps its single-precision format
                                             } // loop over vertical layers
                                         }
 
