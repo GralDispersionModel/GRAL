@@ -420,6 +420,21 @@ namespace GRAL_2001
             Thread ThreadWriteConz4dFile = null;
             Thread ThreadWrite2DConcentrationFiles = null;
             int recentWeatherSituation = 0;
+            // A failed GPU situation ends the run; let the writer threads of earlier situations finish their files first.
+            void RunGpuSituation()
+            {
+                try
+                {
+                    GpuExperimental.Run(1, NTEILMAX);
+                }
+                catch
+                {
+                    ThreadWriteGffFiles?.Join();
+                    ThreadWriteConz4dFile?.Join();
+                    ThreadWrite2DConcentrationFiles?.Join();
+                    throw;
+                }
+            }
 
             bool FirstLoop = true;
             while (IEND == Consts.CalculationRunning)
@@ -740,7 +755,7 @@ namespace GRAL_2001
                                 ThreadWriteConz4dFile.Join();
                                 ThreadWriteConz4dFile = null;
                             }
-                            GpuExperimental.Run(1, NTEILMAX);
+                            RunGpuSituation();
                         }
                         else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
@@ -752,7 +767,7 @@ namespace GRAL_2001
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    if (useGpu && ISTATIONAER == Consts.StationaryMode) { GpuExperimental.Run(1, NTEILMAX); }
+                    if (useGpu && ISTATIONAER == Consts.StationaryMode) { RunGpuSituation(); }
                     else if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
                     if (CancelToken.IsCancellationRequested)
@@ -837,7 +852,20 @@ namespace GRAL_2001
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
             } // loop for all meteorological situations
 FinishGral:
-            GpuExperimental.Close();
+            bool gpuShutdownFailed = false;
+            try
+            {
+                GpuExperimental.Close();
+            }
+            catch (Exception exc)
+            {
+                // All situations are computed; finish writing the outputs and report the failure in the exit code.
+                gpuShutdownFailed = true;
+                string err = "GPU server shutdown failed: " + exc.Message + (exc.InnerException != null ? ": " + exc.InnerException.Message : string.Empty);
+                Console.WriteLine();
+                Console.WriteLine("ERROR: " + err);
+                ProgramWriters.LogfileProblemreportWrite(err);
+            }
             bool verticalOutputFailed = false;
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == Consts.TransientMode)
@@ -876,8 +904,12 @@ FinishGral:
                 ThreadWrite2DConcentrationFiles = null; // Release ressources
             }
 
-            // Clean transient files
-            Delete_Temp_Files();
+            // Clean transient files; keep Vertical_Concentrations.tmp if the final vertical file could not be written
+            Delete_Temp_Files(verticalOutputFailed);
+            if (verticalOutputFailed)
+            {
+                ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.tmp was kept; it holds the accumulated vertical concentrations.");
+            }
 
             //Write receptor statistical error
             if (Program.ReceptorsAvailable)
@@ -925,7 +957,7 @@ FinishGral:
                 Console.ReadKey(true); 	// wait for a key input
             }
 
-            Environment.Exit(verticalOutputFailed ? 1 : 0);        // Exit console; nonzero if the vertical concentration file could not be written
+            Environment.Exit(verticalOutputFailed || gpuShutdownFailed || MeteoInputFailed ? 1 : 0);        // Exit console; nonzero if the vertical file, the GPU shutdown or the meteorology input failed
         }
     }
 }

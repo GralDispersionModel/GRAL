@@ -47,7 +47,7 @@ namespace GRAL_2001
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
                         string text1 = sr.ReadLine();
-                        if (text1 == null)
+                        if (string.IsNullOrWhiteSpace(text1)) // end of file or trailing blank line
                         {
                             Program.IEND = Consts.CalculationFinished;
                             return;
@@ -131,7 +131,12 @@ namespace GRAL_2001
                         }
                     }
                     // Continuing would reuse the previous situation's meteorology without notice.
-                    Environment.Exit(1);
+                    // End the run through the normal finish sequence so pending output writers complete; exit code 1.
+                    Program.MeteoInputFailed = true;
+                    Program.IEND = Consts.CalculationFinished;
+                    sr.Close();
+                    sr.Dispose();
+                    return;
                 }
                 sr.Close();
                 sr.Dispose();

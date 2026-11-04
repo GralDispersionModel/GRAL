@@ -989,6 +989,10 @@ namespace GRAL_2001
         ///</summary>
         public static int IEND = Consts.CalculationRunning;
         ///<summary>
+        ///Set when a meteorological input line could not be read; the run ends early with exit code 1
+        ///</summary>
+        public static bool MeteoInputFailed = false;
+        ///<summary>
         ///Volume of the GRAL concentration grid
         ///</summary>
         public static float GridVolume = 0;
