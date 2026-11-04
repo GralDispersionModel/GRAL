@@ -48,6 +48,37 @@ namespace GRAL_2001
             }
         }
 
+        // Conz5d init only: measure the complete jagged envelope even after a nonzero bit.
+        private static bool MeasureConz5d(float[][][][] value, List<int> shape)
+        {
+            bool allPositiveZero = true;
+            UpdateExtent(shape, 0, value.Length);
+            foreach (float[][][] a in value)
+            {
+                if (a == null) continue;
+                UpdateExtent(shape, 1, a.Length);
+                foreach (float[][] b in a)
+                {
+                    if (b == null) continue;
+                    UpdateExtent(shape, 2, b.Length);
+                    foreach (float[] c in b)
+                    {
+                        if (c == null) continue;
+                        UpdateExtent(shape, 3, c.Length);
+                        if (allPositiveZero)
+                            foreach (float element in c)
+                                if (BitConverter.SingleToInt32Bits(element) != 0) { allPositiveZero = false; break; }
+                    }
+                }
+            }
+            return allPositiveZero;
+        }
+
+        private static void UpdateExtent(List<int> shape, int depth, int length)
+        {
+            if (shape.Count <= depth) shape.Add(0);
+            shape[depth] = Math.Max(shape[depth], length);
+        }
         private static object At(object node, int[] indices, ref int depth)
         {
             if (node == null) return null;
@@ -147,13 +178,46 @@ namespace GRAL_2001
                 return;
             }
             if(a.Rank!=1) throw new NotSupportedException("Non-primitive rectangular array");
-            for(int i=0;i<shape[depth];i++) WriteNested(w,i<a.Length?a.GetValue(i):null,shape,depth+1,elem,ref buffer);
+            for(int i=0;i<shape[depth];i++) WriteNested(w,i<a.Length?(a is object[] children?children[i]:a.GetValue(i)):null,shape,depth+1,elem,ref buffer);
+        }
+
+        // Null branches and ragged padding are serialized as positive zero.
+        private static bool AllZero(object node, List<int> shape, int depth)
+        {
+            if (node == null) return true;
+            Array a = (Array)node;
+            Type et = a.GetType().GetElementType();
+            if (et.IsPrimitive)
+            {
+                if (a.Rank > 1)
+                    for (int i = 0; i < a.Rank; i++)
+                        if (a.GetLength(i) != shape[depth + i])
+                            throw new NotSupportedException("Ragged multidimensional arrays require explicit layout");
+                if (TryPrimitiveBytes(a, out Span<byte> bytes))
+                {
+                    foreach (byte b in bytes) if (b != 0) return false;
+                    return true;
+                }
+                byte[] scratch = new byte[ChunkSize];
+                int total = Buffer.ByteLength(a);
+                for (int pos = 0; pos < total;)
+                {
+                    int n = Math.Min(scratch.Length, total - pos);
+                    Buffer.BlockCopy(a, pos, scratch, 0, n);
+                    for (int i = 0; i < n; i++) if (scratch[i] != 0) return false;
+                    pos += n;
+                }
+                return true;
+            }
+            if (a.Rank != 1) throw new NotSupportedException("Non-primitive rectangular array");
+            foreach (object child in a) if (!AllZero(child, shape, depth + 1)) return false;
+            return true;
         }
 
         private sealed class ArrayRecord
         {
             internal string Name; internal Type Element; internal object Value;
-            internal List<int> Shape; internal long Offset, Bytes, Count;
+            internal List<int> Shape; internal long Offset, Bytes, Count; internal bool ZeroFill;
         }
 
         internal static long Export(Stream output, IEnumerable<string> names, string command = "init", string phase = null, int? first = null, int? itemCount = null, IReadOnlyDictionary<string, object> extra = null, int? chunk = null, int? block = null)
@@ -170,22 +234,29 @@ namespace GRAL_2001
                 else { FieldInfo f = typeof(Program).GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static); if (f == null) throw new InvalidOperationException("Missing field " + name); value=f.GetValue(null); fieldType=f.FieldType; }
                 Type element = ElementType(fieldType);
                 if (!fieldType.IsArray) { Size(element); scalars.Add(name, value); continue; }
-                Size(element); var shape = new List<int>(); Measure(value, shape, 0);
+                Size(element); var shape = new List<int>();
+                bool typedConz5d = command == "init" && name == "Conz5d" && value is float[][][][];
+                bool typedAllZero = false;
+                if (typedConz5d) typedAllZero = MeasureConz5d((float[][][][])value, shape);
+                else Measure(value, shape, 0);
                 if (value != null && shape.Count != Rank(fieldType)) throw new InvalidOperationException("Incomplete shape; explicit dimensions required for " + name);
                 long count = value == null ? 0 : 1;
                 foreach (int n in shape) count = checked(count * n);
                 long bytes = checked(count * Size(element));
-                records.Add(new ArrayRecord { Name = name, Element = element, Value = value, Shape = shape, Offset = payloadBytes, Bytes = bytes, Count = count });
-                payloadBytes = checked(payloadBytes + bytes);
+                bool zeroFill = command == "init" && name == "Conz5d" && element == typeof(float) && value != null && bytes > 0 && (typedConz5d ? typedAllZero : AllZero(value, shape, 0));
+                records.Add(new ArrayRecord { Name = name, Element = element, Value = value, Shape = shape, Offset = payloadBytes, Bytes = bytes, Count = count, ZeroFill = zeroFill });
+                payloadBytes = checked(payloadBytes + (zeroFill ? 0 : bytes));
             }
             var arrays = new List<object>();
-            foreach (var r in records) arrays.Add(new { name = r.Name, dtype = r.Element.Name, shape = r.Shape, offset = r.Offset, bytes = r.Bytes, is_null = r.Value == null });
+            foreach (var r in records)
+                if (r.ZeroFill) arrays.Add(new { name = r.Name, dtype = r.Element.Name, shape = r.Shape, offset = r.Offset, bytes = r.Bytes, is_null = false, zero_fill = true });
+                else arrays.Add(new { name = r.Name, dtype = r.Element.Name, shape = r.Shape, offset = r.Offset, bytes = r.Bytes, is_null = r.Value == null });
             byte[] header = JsonSerializer.SerializeToUtf8Bytes(new { command, phase, first, count = itemCount, chunk, block, scalars, arrays, payload_bytes = payloadBytes });
             var frame = new BinaryWriter(output, System.Text.Encoding.UTF8, true);
             frame.Write((ulong)header.Length); frame.Write(header);
             byte[] buffer = null;
             foreach (var r in records)
-                if (r.Value != null) WriteNested(frame, r.Value, r.Shape, 0, r.Element, ref buffer);
+                if (r.Value != null && !r.ZeroFill) WriteNested(frame, r.Value, r.Shape, 0, r.Element, ref buffer);
             output.Flush();
             return checked(8L + header.Length + payloadBytes);
         }

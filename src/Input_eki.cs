@@ -52,7 +52,7 @@ namespace GRAL_2001
                         }
                     }
 
-                    Program.Ob[1][1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                    float observedObukhovLength = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
 
                     //read wind components along the vertical profile
                     int n1 = 0;
@@ -91,6 +91,8 @@ namespace GRAL_2001
                     {
                         for (int iy = 1; iy <= Program.NY; iy++)
                         {
+                            // EKI supplies one meteorological profile for the entire domain.
+                            Program.Ob[ix][iy] = observedObukhovLength;
                             if ((Program.Ob[ix][iy] >= 0) && (Program.Ob[ix][iy] < 100))
                             {
                                 double phim = 1 + 5 * Program.MeasurementHeight[Program.MetProfileNumb] / Program.Ob[ix][iy];

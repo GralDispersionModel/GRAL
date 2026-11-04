@@ -2358,11 +2358,10 @@ namespace GRAL_2001
                         lock (recmit_L)
                         {
                             recmit_L[SG_nteil] += recconc;
-                        }
-
-                        if (recconc > Program.ReceptorParticleMaxConc[ii][SG_nteil])
-                        {
-                            Interlocked.Exchange(ref Program.ReceptorParticleMaxConc[ii][SG_nteil], recconc);
+                            if (recconc > Program.ReceptorParticleMaxConc[ii][SG_nteil])
+                            {
+                                Program.ReceptorParticleMaxConc[ii][SG_nteil] = recconc;
+                            }
                         }
                     }
                 }

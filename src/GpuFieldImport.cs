@@ -55,7 +55,43 @@ namespace GRAL_2001
                 return;
             }
             if(a.Rank!=1 || a.Length>dims[depth])throw new InvalidDataException("Jagged shape mismatch");
-            for(int i=0;i<dims[depth];i++) ReadNested(r,i<a.Length?a.GetValue(i):null,dims,depth+1,dtype,size,ref buffer);
+            for(int i=0;i<dims[depth];i++) ReadNested(r,i<a.Length?(a is object[] children?children[i]:a.GetValue(i)):null,dims,depth+1,dtype,size,ref buffer);
+        }
+        // A complete [k, source-group] row is read before scattering. Errors are fatal;
+        // on malformed or truncated input the stream can advance farther than ReadNested.
+        private static void ReadConz5d(BinaryReader r,float[][][][] target,List<int> dims,int rowBytes,ref byte[] buffer)
+        {
+            if(target.Length>dims[0])throw new InvalidDataException("Jagged shape mismatch");
+            for(int i=0;i<dims[0];i++)
+            {
+                float[][][] a=i<target.Length?target[i]:null;
+                if(a==null){ReadZeros(r,Elements(dims,1),"Single",4,ref buffer,"Nonzero result in unallocated cell");continue;}
+                if(a.Length>dims[1])throw new InvalidDataException("Jagged shape mismatch");
+                for(int j=0;j<dims[1];j++)
+                {
+                    float[][] b=j<a.Length?a[j]:null;
+                    if(b==null){ReadZeros(r,Elements(dims,2),"Single",4,ref buffer,"Nonzero result in unallocated cell");continue;}
+                    if(b.Length>dims[2])throw new InvalidDataException("Jagged shape mismatch");
+                    byte[] row=rowBytes==0?Array.Empty<byte>():buffer ??= new byte[GpuFieldExport.ChunkSize];
+                    r.BaseStream.ReadExactly(row.AsSpan(0,rowBytes));
+                    int stride=dims[2]==0?0:checked(dims[3]*4);
+                    for(int k=0;k<dims[2];k++)
+                    {
+                        float[] leaf=k<b.Length?b[k]:null;
+                        int start=k*stride;
+                        if(leaf==null){CheckFloatZeros(row.AsSpan(start,stride),"Nonzero result in unallocated cell");continue;}
+                        if(leaf.Length>dims[3])throw new InvalidDataException("Result dimension smaller than target");
+                        int bytes=leaf.Length*4;
+                        Buffer.BlockCopy(row,start,leaf,0,bytes);
+                        CheckFloatZeros(row.AsSpan(start+bytes,stride-bytes),"Nonzero array padding");
+                    }
+                }
+            }
+        }
+        private static void CheckFloatZeros(ReadOnlySpan<byte> data,string error)
+        {
+            for(int i=0;i<data.Length;i+=4)
+                if((BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(i,4)) & 0x7fffffffU)!=0)throw new InvalidDataException(error);
         }
         internal static long Apply(Stream source,JsonElement header)
         {
@@ -90,7 +126,11 @@ namespace GRAL_2001
                 long bytes=checked(count*size);
                 if(item.GetProperty("offset").GetInt64()!=bytesRead || item.GetProperty("bytes").GetInt64()!=bytes)throw new InvalidDataException("Result frame layout mismatch");
                 object target=f.GetValue(null);
-                ReadNested(r,target,dims,0,dtype,size,ref buffer);
+                // Compare element count before byte multiplication, including zero outer dimensions.
+                long rowElements=dims.Count==4?(long)dims[2]*dims[3]:0;
+                if(name=="Conz5d" && dtype=="Single" && dims.Count==4 && target is float[][][][] typed && rowElements<=GpuFieldExport.ChunkSize/4)
+                    ReadConz5d(r,typed,dims,(int)(rowElements*4),ref buffer);
+                else ReadNested(r,target,dims,0,dtype,size,ref buffer);
                 bytesRead=checked(bytesRead+bytes);
             }
             if(header.GetProperty("payload_bytes").GetInt64()!=bytesRead)throw new InvalidDataException("Result payload length mismatch");

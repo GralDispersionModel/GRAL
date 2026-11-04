@@ -129,7 +129,7 @@ namespace GRAL_2001
 
                     for (int k = 1; k < Program.NKK_Transient; k++)
                     {
-                        if (k % 2 == 0)
+                        if (k % 2 == 0 && !Console.IsOutputRedirected)
                         {
                             float p = (float)k / (float)Program.NKK_Transient * 100F;
                             Console.SetCursorPosition(Console.CursorLeft - 4, Console.CursorTop);
@@ -212,9 +212,9 @@ namespace GRAL_2001
                 }
                 Console.WriteLine("");
             }
-            catch
+            catch (Exception exc)
             {
-                Console.WriteLine("");
+                throw new IOException("Error writing complete vertical concentration file Vertical_Concentrations.txt", exc);
             }
         }
 

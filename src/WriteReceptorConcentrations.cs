@@ -171,7 +171,6 @@ namespace GRAL_2001
                             {
                                 DateTime rdate = new DateTime(2020, month, day, hour, minute, 0);
                                 StB.Append(rdate.ToString());
-                                StB.Append("\t");
                             }
                             catch
                             {
@@ -185,6 +184,7 @@ namespace GRAL_2001
                                 StB.Append(minute.ToString());
                             }
 
+                            StB.Append("\t");
                             // write concentrations
                             for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                             {

@@ -10,7 +10,27 @@ I = c.c_int
 U = c.c_uint
 Z = c.c_size_t
 D = c.c_uint64
-NVRTC_OPTIONS = (b'--std=c++11', b'--fmad=false')
+
+
+class CudaError(RuntimeError):
+    def __init__(self, code, operation, name):
+        self.code = code
+        self.operation = operation
+        super().__init__(f'{operation}: {code} {name!r}')
+
+
+def _capacity(name, default, minimum):
+    raw = os.environ.get(name, str(default))
+    if not raw.isascii() or not raw.isdecimal() or not minimum <= int(raw) < 2**31 - 1:
+        raise ValueError('Invalid local array capacity: ' + name)
+    return int(raw)
+
+
+MAX_SLICES = _capacity('INU_GPU_MAX_SLICES', 9, 1)
+MAX_RECEPTORS = _capacity('INU_GPU_MAX_RECEPTORS', 50, 0)
+NVRTC_OPTIONS = (b'--std=c++11', b'--fmad=false',
+                 f'-DGRAL_MAX_SLICES={MAX_SLICES}'.encode('ascii'),
+                 f'-DGRAL_MAX_RECEPTORS={MAX_RECEPTORS}'.encode('ascii'))
 NVRTC_PROGRAM = b'kernel.cu'
 
 
@@ -154,6 +174,7 @@ class Cuda:
         self.nvrtc = None
         self.modules = []
         self.buffers = []
+        self.host_buffers = []
         self.events = []
         try:
             self._initialize()
@@ -173,8 +194,14 @@ class Cuda:
         self.module_load = _bind(driver, 'cuModuleLoadData', [c.POINTER(P), P])
         self.module_unload = _bind(driver, 'cuModuleUnload', [P])
         self.get_fn = _bind(driver, 'cuModuleGetFunction', [c.POINTER(P), P, c.c_char_p])
+        self.func_attribute = _bind(driver, 'cuFuncGetAttribute', [c.POINTER(I), I, P])
         self.alloc = _bind(driver, 'cuMemAlloc_v2', [c.POINTER(D), Z])
         self.free = _bind(driver, 'cuMemFree_v2', [D])
+        self.mem_info = _bind(driver, 'cuMemGetInfo_v2', [c.POINTER(Z), c.POINTER(Z)])
+        self.host_alloc = _bind(driver, 'cuMemHostAlloc', [c.POINTER(P), Z, U])
+        self.host_free = _bind(driver, 'cuMemFreeHost', [P])
+        self.host_device_pointer = _bind(driver, 'cuMemHostGetDevicePointer_v2', [c.POINTER(D), P, U])
+        self.memset_d8 = _bind(driver, 'cuMemsetD8_v2', [D, c.c_ubyte, Z])
         self.h2d = _bind(driver, 'cuMemcpyHtoD_v2', [D, P, Z])
         self.d2h = _bind(driver, 'cuMemcpyDtoH_v2', [P, D, Z])
         self.sync = _bind(driver, 'cuCtxSynchronize', [])
@@ -194,7 +221,10 @@ class Cuda:
         self.device_arch = cc_major.value * 10 + cc_minor.value
         driver_version = I()
         self.check(self.driver_get_version(c.byref(driver_version),), 'cuDriverGetVersion')
-        self.check(self.ctx_create(c.byref(self.ctx),0,dev),'cuCtxCreate')
+        can_map = I()
+        self.check(self.device_attribute(c.byref(can_map), 19, dev), 'canMapHostMemory')
+        self.can_map_host_memory = bool(can_map.value)
+        self.check(self.ctx_create(c.byref(self.ctx),8,dev),'cuCtxCreate')
         bundled = Path(__file__).parent / 'nvrtc' / 'nvidia' / 'cuda_nvrtc' / 'bin'
         candidates = _nvrtc_candidates(os.environ.get('INU_GPU_NVRTC_DIR'), bundled, os.environ.get('CUDA_PATH'))
         self.nvrtc_path, candidate, self.target_arch = _select_toolchain(
@@ -238,7 +268,43 @@ class Cuda:
     def check(self, code, operation):
         if code:
             name=c.c_char_p(); self.error_name(code,c.byref(name))
-            raise RuntimeError(f'{operation}: {code} {name.value!r}')
+            raise CudaError(code, operation, name.value)
+
+    def memory_info(self):
+        free, total = Z(), Z()
+        self.check(self.mem_info(c.byref(free), c.byref(total)), 'cuMemGetInfo')
+        return free.value, total.value
+
+    def function_attributes(self, function):
+        result = {}
+        for name, attribute in (('max_threads_per_block', 0), ('local_size_bytes', 3)):
+            value = I()
+            self.check(self.func_attribute(c.byref(value), attribute, function), 'cuFuncGetAttribute ' + name)
+            result[name] = value.value
+        if result['max_threads_per_block'] < 1 or result['local_size_bytes'] < 0:
+            raise RuntimeError('Invalid kernel resource attributes')
+        return result
+
+    def mapped_buffer(self, size):
+        if not self.can_map_host_memory:
+            raise RuntimeError('GPU cannot map pinned host memory; no CPU trajectory fallback')
+        host, device = P(), D()
+        self.check(self.host_alloc(c.byref(host), size, 2), 'cuMemHostAlloc mapped')
+        try:
+            self.check(self.host_device_pointer(c.byref(device), host, 0), 'cuMemHostGetDevicePointer')
+        except BaseException:
+            self.host_free(host)
+            raise
+        self.host_buffers.append(host)
+        return host, device
+
+    def release_buffer(self, pointer):
+        self.check(self.free(pointer), 'cuMemFree')
+        self.buffers.remove(pointer)
+
+    def release_mapped_buffer(self, host):
+        self.check(self.host_free(host), 'cuMemFreeHost')
+        self.host_buffers.remove(host)
 
     def compile_ptx(self, source):
         prog=P()
@@ -290,6 +356,8 @@ class Cuda:
         self.events.clear()
         for buf in self.buffers: self.free(buf)
         self.buffers.clear()
+        for host in self.host_buffers: self.host_free(host)
+        self.host_buffers.clear()
         for module in self.modules: self.module_unload(module)
         self.modules.clear()
         if self.ctx.value:

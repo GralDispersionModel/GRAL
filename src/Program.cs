@@ -439,6 +439,13 @@ namespace GRAL_2001
                     goto FinishGral;
                 }
 
+                // Odour output reads the current wind and turbulence fields.
+                if (Odour && ThreadWrite2DConcentrationFiles != null)
+                {
+                    ThreadWrite2DConcentrationFiles.Join();
+                    ThreadWrite2DConcentrationFiles = null;
+                }
+
                 //Next weather situation
                 IWET++;
                 IDISP = IWET;
@@ -719,7 +726,15 @@ namespace GRAL_2001
                         int cellNr = NII * NJJ;
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
-                        if (useGpu) { GpuExperimental.Run(1, NTEILMAX); }
+                        if (useGpu)
+                        {
+                            if (ThreadWriteConz4dFile != null)
+                            {
+                                ThreadWriteConz4dFile.Join();
+                                ThreadWriteConz4dFile = null;
+                            }
+                            GpuExperimental.Run(1, NTEILMAX);
+                        }
                         else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
                     if (CancelToken.IsCancellationRequested)

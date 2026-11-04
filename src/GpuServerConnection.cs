@@ -24,6 +24,8 @@ namespace GRAL_2001
             cancellationToken.ThrowIfCancellationRequested();
             var info=new ProcessStartInfo(python) { UseShellExecute=false, CreateNoWindow=true, RedirectStandardInput=true, RedirectStandardOutput=true, RedirectStandardError=true };
             info.ArgumentList.Add("-X"); info.ArgumentList.Add("utf8"); info.ArgumentList.Add("-B"); info.ArgumentList.Add(script);
+            info.Environment["INU_GPU_MAX_SLICES"]=Program.NS.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            info.Environment["INU_GPU_MAX_RECEPTORS"]=Program.ReceptorNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             stderrLog=new FileStream(stderrPath,FileMode.CreateNew,FileAccess.Write,FileShare.Read);
             try { process=Process.Start(info) ?? throw new InvalidOperationException("GPU server failed to start"); }
             catch { stderrLog.Dispose(); throw; }
@@ -88,6 +90,18 @@ namespace GRAL_2001
             cancellationToken.ThrowIfCancellationRequested();
             BytesReceived=checked(BytesReceived+GpuFieldImport.Apply(output,header.RootElement));
             cancellationToken.ThrowIfCancellationRequested();
+        }
+        internal JsonElement ReadResultMetrics(JsonDocument result)
+        {
+            var metrics=result.RootElement.GetProperty("metrics_cumulative").Clone();
+            if(result.RootElement.TryGetProperty("metrics_follow",out var follow) && follow.GetBoolean())
+            {
+                using var footer=ReadHeader();
+                if(footer.RootElement.GetProperty("frame").GetString()!="result_metrics" || footer.RootElement.GetProperty("payload_bytes").GetInt64()!=0)
+                    throw new InvalidDataException("Invalid GPU result metrics footer");
+                metrics=footer.RootElement.GetProperty("metrics_cumulative").Clone();
+            }
+            return metrics;
         }
         internal void ReadPayload(Span<byte> buffer)
         {

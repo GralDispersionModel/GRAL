@@ -7,7 +7,7 @@ namespace GRAL_2001
         internal static IEnumerable<Dictionary<string,object>> Enumerate(int capacity=65536)
         {
             if(capacity<1) throw new ArgumentOutOfRangeException(nameof(capacity));
-            if(!Program.UseFixedRndSeedVal || Program.SourceType==null || Program.SourceType.Length==0)
+            if(Program.SourceType==null || Program.SourceType.Length==0)
                 throw new InvalidOperationException("Unsupported residual configuration");
             var vi=new List<int>(capacity);var vj=new List<int>(capacity);var vk=new List<int>(capacity);var vg=new List<int>(capacity);var vs=new List<int>(capacity);var vc=new List<float>(capacity);
             for(int index=0;index<Program.NII*Program.NJJ;index++)
