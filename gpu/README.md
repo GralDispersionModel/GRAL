@@ -4,7 +4,7 @@ GRAL can move particle tracking and concentration accumulation to an NVIDIA GPU.
 
 ## Requirements
 
-- An NVIDIA GPU and driver. The driver must accept PTX from the NVRTC version you use; for NVRTC 12.9 that is a driver with CUDA 12.9 support. If the driver cannot JIT the PTX, the runtime retries with a CUBIN for the device.
+- An NVIDIA GPU and driver. The driver must accept PTX from the NVRTC version you use; for NVRTC 12.9 that is a driver with CUDA 12.9 support. If the driver cannot JIT the PTX, the runtime retries with a CUBIN when NVRTC can emit one for the device's compute-capability major.
 - NVRTC, the CUDA runtime compiler. Any of these works:
   - `pip install nvidia-cuda-nvrtc-cu12` into the Python used below (supports compute capability 5.0 and newer),
   - a CUDA toolkit installation (`CUDA_PATH`),
@@ -13,7 +13,7 @@ GRAL can move particle tracking and concentration accumulation to an NVIDIA GPU.
 - 64-bit Python 3.8 or newer. The runtime uses only the standard library.
 - Windows x64, which is the tested platform. The Linux code path (`libcuda.so.1`, `libnvrtc.so`) is untested.
 
-At startup the runtime reads the compute capability of the selected device, asks NVRTC which architectures it supports, and compiles for the highest one that does not exceed the device. The first line of the `INU_GPU_STDERR` log shows the device, compute capability, NVRTC version, target, memory, driver version and whether the display watchdog is active.
+At startup the runtime reads the compute capability of the selected device, asks NVRTC which architectures it supports, and compiles for the highest one that does not exceed the device. Each run writes a line starting with `CUDA device` to the `INU_GPU_STDERR` log; it shows the device, compute capability, NVRTC version, target, memory, driver version and whether the display watchdog is active. The log is appended, so read the last such line.
 
 ## Running GRAL on the GPU
 

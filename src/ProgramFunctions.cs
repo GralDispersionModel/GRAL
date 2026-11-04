@@ -139,7 +139,7 @@ namespace GRAL_2001
         /// <summary>
         /// Delete temporary files for transient calculations
         /// </summary>
-        private static void Delete_Temp_Files(bool keepVerticalTemp = false)
+        private static void Delete_Temp_Files()
         {
             if (TransientTempFileDelete)
             {
@@ -153,8 +153,7 @@ namespace GRAL_2001
                     {
                         File.Delete("Transient_Concentrations2.tmp");
                     }
-                    // After a failed final write the .tmp file holds the only copy of the accumulated vertical field.
-                    if (!keepVerticalTemp && File.Exists("Vertical_Concentrations.tmp"))
+                    if (File.Exists("Vertical_Concentrations.tmp"))
                     {
                         File.Delete("Vertical_Concentrations.tmp");
                     }

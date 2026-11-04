@@ -904,12 +904,13 @@ FinishGral:
                 ThreadWrite2DConcentrationFiles = null; // Release ressources
             }
 
-            // Clean transient files; keep Vertical_Concentrations.tmp if the final vertical file could not be written
-            Delete_Temp_Files(verticalOutputFailed);
-            if (verticalOutputFailed)
+            if (ThreadWriteConz4dFile != null) // wait for the last transient checkpoint before the temporary files are deleted
             {
-                ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.tmp was kept; it holds the accumulated vertical concentrations.");
+                ThreadWriteConz4dFile.Join();
+                ThreadWriteConz4dFile = null;
             }
+
+            Delete_Temp_Files();
 
             //Write receptor statistical error
             if (Program.ReceptorsAvailable)
@@ -932,13 +933,14 @@ FinishGral:
                 SyncWithMutex.Dispose();
             }
 
+            bool runFailed = verticalOutputFailed || gpuShutdownFailed || MeteoInputFailed;
             if (Program.CancelToken.IsCancellationRequested)
             {
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations cancelled at: " + DateTime.Now.ToString());    
             }
             else
             {
-                ProgramWriters.LogfileGralCoreWrite("GRAL simulations finished at: " + DateTime.Now.ToString());
+                ProgramWriters.LogfileGralCoreWrite((runFailed ? "GRAL simulations stopped with errors at: " : "GRAL simulations finished at: ") + DateTime.Now.ToString());
             }
             ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
 
@@ -951,13 +953,13 @@ FinishGral:
                 }
                 else
                 {
-                    Console.WriteLine("GRAL simulations finished. Press any key to continue...");
+                    Console.WriteLine(runFailed ? "GRAL simulations stopped with errors. Press any key to continue..." : "GRAL simulations finished. Press any key to continue...");
                 }
                 Program.CleanUpMemory();
                 Console.ReadKey(true); 	// wait for a key input
             }
 
-            Environment.Exit(verticalOutputFailed || gpuShutdownFailed || MeteoInputFailed ? 1 : 0);        // Exit console; nonzero if the vertical file, the GPU shutdown or the meteorology input failed
+            Environment.Exit(runFailed ? 1 : 0);        // Exit console; nonzero if the vertical file, the GPU shutdown or the meteorology input failed
         }
     }
 }

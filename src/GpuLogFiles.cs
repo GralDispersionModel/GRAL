@@ -8,8 +8,10 @@ namespace GRAL_2001
         // Opens path for appending as the only writer; if another process writes it, opens a suffixed file instead.
         internal static FileStream OpenExclusive(string path,out string actualPath)
         {
-            // FileShare.None: on Linux FileShare.Read is advisory only, so a second process could append to the same log.
-            try { actualPath=path;return new FileStream(path,FileMode.Append,FileAccess.Write,FileShare.None); }
+            // Windows: FileShare.Read keeps the log readable during the run and still blocks a second writer.
+            // Linux: share modes are advisory only, so FileShare.None is used to make a second process fail over to its own file.
+            FileShare share=Program.RunOnUnix ? FileShare.None : FileShare.Read;
+            try { actualPath=path;return new FileStream(path,FileMode.Append,FileAccess.Write,share); }
             catch(IOException) when(File.Exists(path))
             {
                 actualPath=UniquePath(path);

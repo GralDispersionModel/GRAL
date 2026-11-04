@@ -47,10 +47,24 @@ namespace GRAL_2001
                     for (int n = 1; n <= Program.IWETstart; n++)
                     {
                         string text1 = sr.ReadLine();
-                        if (string.IsNullOrWhiteSpace(text1)) // end of file or trailing blank line
+                        if (text1 == null)
                         {
                             Program.IEND = Consts.CalculationFinished;
                             return;
+                        }
+                        if (string.IsNullOrWhiteSpace(text1))
+                        {
+                            // Trailing blank lines end the data; a blank line followed by more data is an input error
+                            string rest;
+                            while ((rest = sr.ReadLine()) != null && string.IsNullOrWhiteSpace(rest))
+                            {
+                            }
+                            if (rest == null)
+                            {
+                                Program.IEND = Consts.CalculationFinished;
+                                return;
+                            }
+                            throw new FormatException("blank line " + (n + 2).ToString() + " is followed by more data");
                         }
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
