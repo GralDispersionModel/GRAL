@@ -43,7 +43,8 @@ namespace GRAL_2001
             receptors=ReceptorCsr();
             server=new GpuServerConnection(python,script,stderrPath);
         }
-        internal static string GetUnsupportedReason(int first,int count)
+        // scanAccumulated=false skips the non-finite output scan; Guard uses it after CanRun has already scanned this situation.
+        internal static string GetUnsupportedReason(int first,int count,bool scanAccumulated=true)
         {
             Program.CancelToken.Token.ThrowIfCancellationRequested();
             if(first<1 || count<0) throw new InvalidOperationException("Invalid particle range");
@@ -52,8 +53,9 @@ namespace GRAL_2001
                (Program.IStatistics!=Consts.MeteoZR && Program.IStatistics!=Consts.MeteoEKI && Program.IStatistics!=Consts.MeteoSonic && Program.IStatistics!=Consts.MeteoPgtAll) ||
                Program.NS<1 || Program.ReceptorNumber<0)
                 throw new InvalidOperationException("Invalid GPU configuration");
-            if(Program.WriteVerticalConcentration && Program.ISTATIONAER!=Consts.TransientMode)
-                throw new InvalidOperationException("Vertical concentration output requires transient mode");
+            // Input-dependent conditions the GPU server would reject after the run has started: fall back instead.
+            string input=InputReason();
+            if(input!=null)return input;
             string unvalidated=UnvalidatedFeature();
             if(unvalidated!=null && !AllowUnvalidated)
                 return "GPU path not yet validated for "+unvalidated+" (set INU_GPU_ALLOW_UNVALIDATED=1 to test it)";
@@ -109,14 +111,58 @@ namespace GRAL_2001
             ValidateSourceArrays(Program.TS_Count, new[]{"TS_Area","TS_Height","TS_Width","TS_T","TS_V","TS_X1","TS_X2","TS_Y1","TS_Y2"});
             for(int i=1;i<=Program.TS_Count;i++)
                 if(Program.TS_Width[i]<=0 || Program.TS_Height[i]<=0) throw new InvalidOperationException("Invalid portal dimensions");
+            // Last, because it is the only check that costs a pass over output arrays.
+            if(scanAccumulated && NonFiniteAccumulatedOutput())return "non-finite accumulated output";
             return null;
+        }
+        private static string InputReason()
+        {
+            if(Program.WriteVerticalConcentration && Program.ISTATIONAER!=Consts.TransientMode)
+                return "vertical concentration output requires transient mode";
+            // The CPU reads mettimeseries.dat and meteopgt.all only for this combination (Program.cs, transient branch).
+            if(Program.ISTATIONAER==Consts.TransientMode && Program.IStatistics!=Consts.MeteoPgtAll)
+                return "transient mode requires meteopgt.all";
+            // Same condition as the server's profile requirement; the profile arrays hold 50 levels.
+            bool needsProfile=(Program.Topo==Consts.TerrainFlat && !Program.BuildingsExist) ||
+                              Program.IStatistics==Consts.MeteoZR || Program.IStatistics==Consts.MeteoSonic;
+            if(needsProfile && (Program.MetProfileNumb<1 || Program.MetProfileNumb>50))
+                return "meteorology profile count out of range";
+            return null;
+        }
+        // The server rejects non-finite values in uploaded output fields; a CPU-fallback situation or a .tmp restart can contain them.
+        private static bool NonFiniteAccumulatedOutput()
+        {
+            if(Program.WriteVerticalConcentration && NonFinite(Program.ConzSsum))return true;
+            if(Program.Odour && (NonFinite(Program.Conz3dp) || NonFinite(Program.Conz3dm)))return true;
+            if(NonFinite(Program.Conz3dDouble))return true;
+            if((Program.DepositionExist || Program.WetDeposition) && NonFinite(Program.Depo_conz))return true;
+            return false;
+        }
+        private static bool NonFinite(Array outer)
+        {
+            if(outer==null)return false;
+            bool found=false;
+            System.Threading.Tasks.Parallel.For(0,outer.Length,(i,loop)=>{ if(NonFiniteNested(outer.GetValue(i))){found=true;loop.Stop();} });
+            return found;
+        }
+        private static bool NonFiniteNested(object value)
+        {
+            switch(value)
+            {
+                case null: return false;
+                case float[] f: foreach(float x in f) if(!float.IsFinite(x)) return true; return false;
+                case double[] d: foreach(double x in d) if(!double.IsFinite(x)) return true; return false;
+                case Array a: foreach(object child in a) if(NonFiniteNested(child)) return true; return false;
+                default: throw new InvalidOperationException("Unsupported accumulated output type");
+            }
         }
         private static readonly bool AllowUnvalidated=Environment.GetEnvironmentVariable("INU_GPU_ALLOW_UNVALIDATED")=="1";
         // Features the GPU kernels implement but that have no CPU/GPU comparison yet; these runs stay on the CPU by default.
         private static string UnvalidatedFeature()
         {
             if(Program.IStatistics!=Consts.MeteoPgtAll)return "meteorology input other than meteopgt.all";
-            if(Program.WetDeposition)return "wet deposition";
+            // Wet deposition is active only with precipitation data (the kernel also skips it while WetDepoRW is 0).
+            if(Program.WetDeposition && Program.WetDepoPrecipLst.Count>0)return "wet deposition";
             if(Program.Odour)return "odour output";
             if(Program.WriteVerticalConcentration)return "vertical concentration output";
             if(Program.TunnelEntr || Program.TunnelOppLane)return "tunnel entrance or opposite-lane portals";
@@ -133,7 +179,7 @@ namespace GRAL_2001
         }
         internal static void Guard(int first,int count)
         {
-            string reason=GetUnsupportedReason(first,count);
+            string reason=GetUnsupportedReason(first,count,scanAccumulated:false);
             if(reason!=null)throw new InvalidOperationException(reason);
         }
         private static Dictionary<string,object> ReceptorCsr()
