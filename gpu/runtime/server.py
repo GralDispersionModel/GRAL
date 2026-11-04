@@ -205,7 +205,7 @@ class Server:
         self.start = time.perf_counter()
         self.metrics.update(context_ms=self.cuda.context_ms, cache_read_ms=0.0, nvrtc_compile_ms=0.0,
                             module_load_ms=0.0, post_load_abi_ms=0.0, cache_status='disabled',
-                            cache_write_status='not_attempted')
+                            cache_write_status='not_attempted', device=dict(self.cuda.device_info))
         source = (ROOT/'generated.cu').read_text(encoding='utf-8')
         cache_path, key = None, None
         ptx = None
@@ -219,11 +219,12 @@ class Server:
                             'state_size': c.sizeof(State), 'state_alignment': c.alignment(State), 'fields': abi,
                             'options': [option.decode('ascii') for option in self.cuda.nvrtc_options],
                             'program': NVRTC_PROGRAM.decode('ascii'), 'nvrtc_version': self.cuda.nvrtc_version,
+                            'binary_kind': self.cuda.binary_kind,
                             'nvrtc_sha256': ptx_cache.digest(self.cuda.nvrtc_path.read_bytes()),
                             'nvrtc_builtins_sha256': ptx_cache.digest(self.cuda.nvrtc_builtins_path.read_bytes())}
                 cache_path, key = ptx_cache.cache_path(identity)
                 if cache_path is not None:
-                    ptx, self.metrics['cache_status'] = ptx_cache.read(cache_path, key)
+                    ptx, self.metrics['cache_status'] = ptx_cache.read(cache_path, key, self.cuda.binary_kind)
                 else:
                     self.metrics['cache_status'] = key
         except (OSError, ValueError, TypeError, RuntimeError) as exc:
@@ -242,15 +243,15 @@ class Server:
         if ptx is None:
             compile_start = time.perf_counter()
             try:
-                ptx, log = self.cuda.compile_ptx(source)
+                ptx, log = self.cuda.compile_image(source)
             finally:
                 self.metrics['nvrtc_compile_ms'] += (time.perf_counter() - compile_start) * 1000
             self.load_and_validate(ptx)
             write_diagnostic('server_compile.log', log)
             if cache_path is not None:
-                self.metrics['cache_write_status'] = ptx_cache.write(cache_path, key, ptx)
+                self.metrics['cache_write_status'] = ptx_cache.write(cache_path, key, ptx, self.cuda.binary_kind)
         else:
-            write_diagnostic('server_compile.log', 'PTX cache hit; NVRTC compile skipped.\n')
+            write_diagnostic('server_compile.log', 'Module cache hit; NVRTC compile skipped.\n')
         write_diagnostic('state_layout.json', json.dumps({'bytes': c.sizeof(State), 'fields': {
             name: {'offset': getattr(State, name).offset, 'bytes': c.sizeof(typ)} for name, typ in State._fields_}}, indent=2))
         self.prewarm_kernels()
@@ -285,7 +286,7 @@ class Server:
         self.module = None
         start = time.perf_counter()
         try:
-            self.module = self.cuda.load_ptx(ptx)
+            self.module = self.cuda.load_image(ptx)
         finally:
             self.metrics['module_load_ms'] += (time.perf_counter() - start) * 1000
         start = time.perf_counter()
