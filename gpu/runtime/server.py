@@ -12,6 +12,16 @@ import time
 import traceback
 
 ROOT = Path(__file__).parent
+
+
+def write_diagnostic(name, text):
+    """Write a diagnostic file next to the INU_GPU_STDERR log, never into the install folder."""
+    stderr_path = os.environ.get('INU_GPU_STDERR')
+    folder = Path(stderr_path).parent if stderr_path else Path(os.environ.get('TEMP', '.'))
+    try:
+        (folder / name).write_text(text, encoding='utf-8')
+    except OSError as exc:
+        print(f'Could not write diagnostic file {name}: {exc}', file=sys.stderr)
 from cuda_common import Cuda, CudaError, P, D, Z, I, NVRTC_PROGRAM, MAX_SLICES, MAX_RECEPTORS
 import ptx_cache
 
@@ -236,12 +246,12 @@ class Server:
             finally:
                 self.metrics['nvrtc_compile_ms'] += (time.perf_counter() - compile_start) * 1000
             self.load_and_validate(ptx)
-            (ROOT/'server_compile.log').write_text(log, encoding='utf-8')
+            write_diagnostic('server_compile.log', log)
             if cache_path is not None:
                 self.metrics['cache_write_status'] = ptx_cache.write(cache_path, key, ptx)
         else:
-            (ROOT/'server_compile.log').write_text('PTX cache hit; NVRTC compile skipped.\n', encoding='utf-8')
-        (ROOT/'state_layout.json').write_text(json.dumps({'bytes': c.sizeof(State), 'fields': {
+            write_diagnostic('server_compile.log', 'PTX cache hit; NVRTC compile skipped.\n')
+        write_diagnostic('state_layout.json', json.dumps({'bytes': c.sizeof(State), 'fields': {
             name: {'offset': getattr(State, name).offset, 'bytes': c.sizeof(typ)} for name, typ in State._fields_}}, indent=2))
         self.prewarm_kernels()
         self.event_start,self.event_end=P(),P()

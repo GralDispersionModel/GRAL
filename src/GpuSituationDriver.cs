@@ -54,6 +54,9 @@ namespace GRAL_2001
                 throw new InvalidOperationException("Invalid GPU configuration");
             if(Program.WriteVerticalConcentration && Program.ISTATIONAER!=Consts.TransientMode)
                 throw new InvalidOperationException("Vertical concentration output requires transient mode");
+            string unvalidated=UnvalidatedFeature();
+            if(unvalidated!=null && !AllowUnvalidated)
+                return "GPU path not yet validated for "+unvalidated+" (set INU_GPU_ALLOW_UNVALIDATED=1 to test it)";
             if(Program.LogLevel<0 || Program.LogLevel>3)throw new InvalidOperationException("Invalid GPU diagnostic log level");
             if(Program.PS_Count<0 || Program.TS_Count<0 || Program.AS_Count<0 || Program.LS_Count<0 ||
                (Program.PS_Count>0 && (Program.PS_Mode==null || Program.PS_Mode.Length<=Program.PS_Count)) ||
@@ -106,6 +109,17 @@ namespace GRAL_2001
             ValidateSourceArrays(Program.TS_Count, new[]{"TS_Area","TS_Height","TS_Width","TS_T","TS_V","TS_X1","TS_X2","TS_Y1","TS_Y2"});
             for(int i=1;i<=Program.TS_Count;i++)
                 if(Program.TS_Width[i]<=0 || Program.TS_Height[i]<=0) throw new InvalidOperationException("Invalid portal dimensions");
+            return null;
+        }
+        private static readonly bool AllowUnvalidated=Environment.GetEnvironmentVariable("INU_GPU_ALLOW_UNVALIDATED")=="1";
+        // Features the GPU kernels implement but that have no CPU/GPU comparison yet; these runs stay on the CPU by default.
+        private static string UnvalidatedFeature()
+        {
+            if(Program.IStatistics!=Consts.MeteoPgtAll)return "meteorology input other than meteopgt.all";
+            if(Program.WetDeposition)return "wet deposition";
+            if(Program.Odour)return "odour output";
+            if(Program.WriteVerticalConcentration)return "vertical concentration output";
+            if(Program.TunnelEntr || Program.TunnelOppLane)return "tunnel entrance or opposite-lane portals";
             return null;
         }
         private static void ValidateSourceArrays(int count,string[] names)
