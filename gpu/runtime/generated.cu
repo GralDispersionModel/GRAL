@@ -44,6 +44,9 @@ template<>__device__ int cs_cast<int>(double x){if(isnan(x))return 0;if(x>=21474
 template<>__device__ unsigned int cs_cast<unsigned int>(double x){if(isnan(x)||x<=0)return 0;if(x>=4294967295.0)return 4294967295u;return (unsigned int)x;}
 template<>__device__ long long cs_cast<long long>(double x){if(isnan(x))return 0;if(x>=9223372036854775808.0)return 9223372036854775807ll;if(x<=-9223372036854775808.0)return (-9223372036854775807ll-1);return (long long)x;}
 template<>__device__ unsigned long long cs_cast<unsigned long long>(double x){if(isnan(x)||x<=0)return 0;if(x>=18446744073709551616.0)return 18446744073709551615ull;return (unsigned long long)x;}
+// Float arguments: same saturation result as the double version (no float lies in [2^31-1, 2^31)), in fp32.
+template<class T>__device__ T cs_cast(float x);
+template<>__device__ int cs_cast<int>(float x){if(isnan(x))return 0;if(x>=2147483648.0f)return 2147483647;if(x<=-2147483648.0f)return (-2147483647-1);return (int)x;}
 __device__ float gral_round(float x,int digits){float z=powf(10.0f,digits);return nearbyintf(x*z)/z;}
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 600
 // Native double atomicAdd requires sm_60; compare integer bits to handle NaN.
