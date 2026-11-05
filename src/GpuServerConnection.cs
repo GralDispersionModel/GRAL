@@ -89,7 +89,7 @@ namespace GRAL_2001
             catch(Exception failure) { AbortFailedWrite(failure);throw; }
             cancellationToken.ThrowIfCancellationRequested();
         }
-        internal void Execute(string phase, int first, int count, IEnumerable<string> fields, IReadOnlyDictionary<string, object> extra = null, int chunk = 4096, int block = 128)
+        internal void Execute(string phase, int first, int count, IEnumerable<string> fields, IReadOnlyDictionary<string, object> extra = null, int chunk = 65536, int block = 128)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try { BytesSent=checked(BytesSent+GpuFieldExport.Export(input,fields,"execute",phase,first,count,extra,chunk,block)); }

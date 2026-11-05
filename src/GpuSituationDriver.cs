@@ -37,7 +37,7 @@ namespace GRAL_2001
                 if(!field.GetProperty("constant").GetBoolean() && !omit.Contains(name)) fields.Add(name);
             }
             this.metricsPath=metricsPath;
-            chunk=Setting("INU_GRAL_GPU_CHUNK",4096,1,65536);
+            chunk=Setting("INU_GRAL_GPU_CHUNK",65536,1,65536);
             block=Setting("INU_GRAL_GPU_BLOCK",128,128,256);
             if(block!=128 && block!=256)throw new InvalidOperationException("Invalid INU_GRAL_GPU_BLOCK");
             receptors=ReceptorCsr();

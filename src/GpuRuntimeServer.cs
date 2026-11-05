@@ -1083,7 +1083,7 @@ namespace GRAL_2001
             }
             double elapsed = 0;
             // Start conservatively; a single trajectory can still be long. Actual timing is recorded.
-            long chunk = Math.Min(65536, Math.Max(1, header.TryGetProperty("chunk", out var chunkElement) ? (long)chunkElement.GetDouble() : 4096));
+            long chunk = Math.Min(65536, Math.Max(1, header.TryGetProperty("chunk", out var chunkElement) ? (long)chunkElement.GetDouble() : 65536));
             long blockRequest = header.TryGetProperty("block", out var blockElement) ? (long)blockElement.GetDouble() : 128;
             if (blockRequest != 128 && blockRequest != 256) throw new ArgumentException("Supported block sizes: 128, 256");
             int block = (int)Math.Min(blockRequest, kernelResources[phase]["max_threads_per_block"]);
