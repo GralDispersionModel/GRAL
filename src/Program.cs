@@ -427,6 +427,13 @@ namespace GRAL_2001
                 {
                     GpuExperimental.Run(1, NTEILMAX);
                 }
+                catch (Exception) when (CancelToken.IsCancellationRequested)
+                {
+                    // A cancelled run stops like the CPU path: the caller sees the token and finishes GRAL normally.
+                    ThreadWriteGffFiles?.Join();
+                    ThreadWriteConz4dFile?.Join();
+                    ThreadWrite2DConcentrationFiles?.Join();
+                }
                 catch
                 {
                     ThreadWriteGffFiles?.Join();
@@ -721,7 +728,13 @@ namespace GRAL_2001
                     //show meteorological parameters on screen
                     OutputOfMeteoData();
 
-                    bool useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX);
+                    bool useGpu;
+                    try { useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX); }
+                    catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
+                    {
+                        // A stop during the GPU check or startup finishes GRAL like the checks below.
+                        goto FinishGral;
+                    }
 
                     //Transient mode: non-steady-state particles
                     if (ISTATIONAER == Consts.TransientMode)

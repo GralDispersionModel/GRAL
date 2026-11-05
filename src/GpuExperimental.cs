@@ -51,7 +51,7 @@ namespace GRAL_2001
         private static GpuSituationDriver CreateDriver()
         {
             string metrics=GpuLogFiles.Claim(Required("INU_GPU_METRICS"),out metricsLock);
-            try { return new GpuSituationDriver(Required("INU_GPU_PYTHON"),Required("INU_GPU_SERVER"),Required("INU_GPU_MANIFEST"),metrics,Required("INU_GPU_STDERR")); }
+            try { return new GpuSituationDriver(Required("INU_GPU_MANIFEST"),metrics,Required("INU_GPU_STDERR")); }
             catch { ReleaseMetricsLock(); throw; }
         }
         private static void ReleaseMetricsLock()

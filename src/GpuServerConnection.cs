@@ -1,47 +1,54 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 namespace GRAL_2001
 {
-    // Persistent subprocess transport only; callers must implement phase semantics and output application.
+    // Transport to the GPU runtime (GpuRuntimeServer). Request and response frames travel through in-process pipes to a
+    // dedicated thread that owns the CUDA context. Callers implement phase semantics and output application.
     internal sealed class GpuServerConnection : IDisposable
     {
-        private readonly Process process;
+        private readonly Thread runtimeThread;
+        private readonly GpuRuntimeServer runtime;
+        private readonly TextWriter runtimeLog;
         private readonly Stream input, output;
         private readonly FileStream stderrLog;
-        private readonly System.Threading.Tasks.Task stderrCopy;
         private bool disposed;
         private readonly CancellationToken cancellationToken;
-        private readonly CancellationTokenRegistration cancellationRegistration;
         internal long BytesSent { get; private set; }
         internal long BytesReceived { get; private set; }
-        internal GpuServerConnection(string python, string script, string stderrPath)
+        internal GpuServerConnection(string manifestPath, string stderrPath)
         {
             cancellationToken=Program.CancelToken.Token;
             cancellationToken.ThrowIfCancellationRequested();
-            var info=new ProcessStartInfo(python) { UseShellExecute=false, CreateNoWindow=true, RedirectStandardInput=true, RedirectStandardOutput=true, RedirectStandardError=true };
-            info.ArgumentList.Add("-X"); info.ArgumentList.Add("utf8"); info.ArgumentList.Add("-B"); info.ArgumentList.Add(script);
             stderrLog=GpuLogFiles.OpenExclusive(stderrPath,out string actualStderr);
             StderrPath=actualStderr;
-            // The server names its diagnostic files after this log, so they follow the per-process choice.
-            info.Environment["INU_GPU_STDERR"]=actualStderr;
-            try { process=Process.Start(info) ?? throw new InvalidOperationException("GPU server failed to start"); }
-            catch(System.ComponentModel.Win32Exception error) { stderrLog.Dispose(); throw new InvalidOperationException("Cannot start the GPU server with INU_GPU_PYTHON="+python+": "+error.Message,error); }
-            catch { stderrLog.Dispose(); throw; }
-            stderrCopy=process.StandardError.BaseStream.CopyToAsync(stderrLog);
-            input=new BufferedStream(process.StandardInput.BaseStream,1024*1024); output=new BufferedStream(process.StandardOutput.BaseStream,1024*1024);
-            cancellationRegistration=cancellationToken.Register(() =>
+            var request=new AnonymousPipeServerStream(PipeDirection.Out,HandleInheritability.None,1024*1024);
+            var requestReader=new AnonymousPipeClientStream(PipeDirection.In,request.ClientSafePipeHandle);
+            var response=new AnonymousPipeServerStream(PipeDirection.Out,HandleInheritability.None,1024*1024);
+            var responseReader=new AnonymousPipeClientStream(PipeDirection.In,response.ClientSafePipeHandle);
+            try
             {
-                try { if(!process.HasExited)process.Kill(entireProcessTree:true); }
-                catch(InvalidOperationException) when(process.HasExited) { }
-            });
+                runtimeLog=TextWriter.Synchronized(new StreamWriter(stderrLog,new UTF8Encoding(false),4096,true){AutoFlush=true});
+                runtime=new GpuRuntimeServer(new BufferedStream(requestReader,1024*1024),new BufferedStream(response,1024*1024),manifestPath,actualStderr,runtimeLog.WriteLine,cancellationToken);
+            }
+            catch { request.Dispose();requestReader.Dispose();response.Dispose();responseReader.Dispose();runtimeLog?.Dispose();stderrLog.Dispose();throw; }
+            runtimeThread=new Thread(() =>
+            {
+                // Run reports its own failures through error frames; anything else must not take down GRAL.
+                try { runtime.Run(); }
+                catch(Exception error) { try { runtimeLog.WriteLine("GPU runtime thread failed: "+error); } catch(Exception) { } }
+            }) { IsBackground=true, Name="GRAL GPU runtime" };
+            runtimeThread.Start();
+            input=new BufferedStream(request,1024*1024); output=new BufferedStream(responseReader,1024*1024);
+            // The runtime checks the token between launches, transfers and startup steps and then answers with an error frame.
             try { Probe(); }
-            catch(Exception startupError) when(startupError is not OperationCanceledException)
+            catch
             {
-                // The probe error carries the server's reason; a nonzero exit code during cleanup adds nothing.
+                // Closing the request pipe ends the runtime thread, also after a stop request.
                 try { Dispose(); } catch(Exception) { }
                 throw;
             }
@@ -67,9 +74,13 @@ namespace GRAL_2001
         }
         private void AbortFailedWrite(Exception failure)
         {
-            try { if(!process.HasExited)process.Kill(entireProcessTree:true); }
-            catch(InvalidOperationException) when(process.HasExited) { }
-            catch(Exception cleanup) { throw new AggregateException("GPU write and abort failed",failure,cleanup); }
+            // The runtime stopped reading because it failed; its error frame names the reason.
+            if(failure is IOException)
+            {
+                try { using var reply=ReadHeader(); }
+                catch(InvalidDataException serverError) { throw new InvalidDataException(serverError.Message,failure); }
+                catch(Exception) { }
+            }
         }
         internal void Init(IEnumerable<string> fields, IReadOnlyDictionary<string, object> extra = null)
         {
@@ -139,29 +150,29 @@ namespace GRAL_2001
         public void Dispose()
         {
             if(disposed)return;disposed=true;
-            cancellationRegistration.Dispose();
-            var failures=new List<Exception>();bool timedOut=false;
+            var failures=new List<Exception>();
+            bool stopped;
             try
             {
+                // End of input lets the runtime finish its close sequence.
                 try { input.Dispose(); } catch(Exception error) { failures.Add(error); }
-                try
+                stopped=runtimeThread.Join(10000);
+                if(!stopped)
                 {
-                    if(!process.WaitForExit(5000))
-                    {
-                        timedOut=true;
-                        // This process reference belongs to the child started by this connection.
-                        try { process.Kill(entireProcessTree:true); }
-                        catch(InvalidOperationException) when(process.HasExited) { }
-                        if(!process.WaitForExit(5000))throw new TimeoutException("GPU server did not exit after termination");
-                        failures.Add(new TimeoutException("GPU server shutdown timed out; owned process tree terminated"));
-                    }
-                    if(!timedOut && !cancellationToken.IsCancellationRequested && process.ExitCode!=0)failures.Add(new InvalidOperationException("GPU server exit code "+process.ExitCode));
+                    // A runtime blocked writing a response that nobody reads is released by closing the response pipe.
+                    try { output.Dispose(); } catch(Exception error) { failures.Add(error); }
+                    stopped=runtimeThread.Join(5000);
+                    failures.Add(new TimeoutException(stopped ? "GPU runtime stopped only after its response pipe was closed"
+                                                              : "GPU runtime thread did not stop within 15 s; it may still be inside a CUDA call"));
                 }
-                catch(Exception error) { failures.Add(error); }
-                try { stderrCopy.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult(); }
-                catch(Exception error) { failures.Add(error);process.StandardError.Dispose(); }
+                else if(!cancellationToken.IsCancellationRequested && runtime.ExitCode!=0)failures.Add(new InvalidOperationException("GPU server exit code "+runtime.ExitCode));
             }
-            finally { output.Dispose();stderrLog.Dispose();process.Dispose(); }
+            finally
+            {
+                try { output.Dispose(); } catch(Exception) { }
+            }
+            // A thread that is still alive may still log; keep its log open rather than pull it away.
+            if(stopped) { runtimeLog.Dispose();stderrLog.Dispose(); }
             if(failures.Count==1)throw failures[0];
             if(failures.Count>1)throw new AggregateException("GPU server cleanup failed",failures);
         }

@@ -26,7 +26,7 @@ namespace GRAL_2001
         private readonly List<string> fields=new List<string>();
         internal long BytesSent => server.BytesSent;
         internal long BytesReceived => server.BytesReceived;
-        internal GpuSituationDriver(string python,string script,string manifest,string metricsPath,string stderrPath)
+        internal GpuSituationDriver(string manifest,string metricsPath,string stderrPath)
         {
             using var json=JsonDocument.Parse(File.ReadAllText(manifest));
             var omit=new HashSet<string>{"PS_TimeSerTempValues","PS_TimeSerVelValues","TS_TimeSerTempValues","TS_TimeSerVelValues","TransientDepo","TransientDepoMode","TransientDepoVdep","TransientDepoVsed","VegetationDepoVelFactors","VegetationDepoGasFactor","VegetationDepoPMFactor","Conz4d","SourceGroups"};
@@ -41,7 +41,7 @@ namespace GRAL_2001
             block=Setting("INU_GRAL_GPU_BLOCK",128,128,256);
             if(block!=128 && block!=256)throw new InvalidOperationException("Invalid INU_GRAL_GPU_BLOCK");
             receptors=ReceptorCsr();
-            server=new GpuServerConnection(python,script,stderrPath);
+            server=new GpuServerConnection(manifest,stderrPath);
         }
         // scanAccumulated=false skips the non-finite output scan; Guard uses it after CanRun has already scanned this situation.
         internal static string GetUnsupportedReason(int first,int count,bool scanAccumulated=true)
