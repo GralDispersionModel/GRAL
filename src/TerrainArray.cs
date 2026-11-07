@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
 /// <summary>
 /// Thin wrapper for a terrain following array class
 /// </summary>
-public class TerrainArray
+public struct TerrainArray
 {
     private float[] arr;
     private readonly int Delta;
@@ -32,7 +32,7 @@ public class TerrainArray
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TerrainArray(int lenght, int start)
     {
-        arr = new float[lenght];
+        arr = new float[Math.Max(1, lenght)]; // at least 1 element in the array
         Delta = start;
     }
 
@@ -79,16 +79,27 @@ public class TerrainArray
         {
             return new Vector<float>(arr, index);
         }
-        else if (index < -Vector<float>.Count)
+        else if (index <= -Vector<float>.Count)
         {
             return Vector<float>.Zero;
         }
-        else // index < 0 > - Vector<float>.lenght
+        else if (index < 0)// index < 0 > - Vector<float>.lenght
         {
             Span<float> VectArray = stackalloc float [Vector<float>.Count];
-            for (int _c = 0; _c < Vector<float>.Count + index; ++_c)
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
             {
                 VectArray[_c - index]  = arr[_c];
+            }
+            return new Vector<float>(VectArray);
+        }
+        else // upper end
+        {
+            Span<float> VectArray = stackalloc float[Vector<float>.Count];
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                VectArray[_c - index] = arr[_c];
             }
             return new Vector<float>(VectArray);
         }
@@ -102,17 +113,28 @@ public class TerrainArray
         {
             v.CopyTo(arr, index);
         }
-        else if (index < -(Vector<float>.Count))
+        else if (index <= -(Vector<float>.Count))
         {
             // do nothing in this case
         }
-        else // index < 0 > - Vector<float>.lenght
+        else if (index < 0)// index < 0 > - Vector<float>.lenght
         {
             Span<float> VectArray = stackalloc float [Vector<float>.Count];
             v.CopyTo(VectArray);
-            for (int _c = 0; _c < Vector<float>.Count + index; ++_c)
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
             {
                 arr[_c] = VectArray[_c - index];
+            }
+        }
+        else // upper end
+        {
+            Span<float> VectArray = stackalloc float[Vector<float>.Count];
+            v.CopyTo(VectArray);
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                VectArray[_c - index] = arr[_c];
             }
         }
     }
@@ -125,16 +147,27 @@ public class TerrainArray
         {
             return Vector512.LoadUnsafe<float>(ref MemoryMarshal.GetArrayDataReference(arr), (uint) index);
         }
-        else if (index < -Vector<float>.Count)
+        else if (index <= -Vector<float>.Count)
         {
             return Vector512<float>.Zero;
         }
-        else // index < 0 > - Vector<float>.lenght
+        else if (index < 0) // index < 0 > - Vector<float>.lenght
         {
             Span<float> VectArray = stackalloc float [Vector512<float>.Count];
-            for (int _c = 0; _c < Vector512<float>.Count + index; ++_c)
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
             {
                 VectArray[_c - index]  = arr[_c];
+            }
+            return Vector512.Create(VectArray);
+        }
+        else // upper end
+        {
+            Span<float> VectArray = stackalloc float[Vector512<float>.Count];
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                VectArray[_c - index] = arr[_c];
             }
             return Vector512.Create(VectArray);
         }
@@ -148,15 +181,26 @@ public class TerrainArray
         {
             v.CopyTo(arr, index);
         }
-        else if (index < -(Vector<float>.Count))
+        else if (index <= -(Vector<float>.Count))
         {
             // do nothing in this case
         }
-        else // index < 0 > - Vector<float>.lenght
+        else if (index < 0) // index < 0 > - Vector<float>.lenght
         {
             Span<float> VectArray = stackalloc float [Vector512<float>.Count];
             v.CopyTo(VectArray);
-            for (int _c = 0; _c < Vector512<float>.Count + index; ++_c)
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
+            {
+                arr[_c] = VectArray[_c - index];
+            }
+        }
+        else
+        {
+            Span<float> VectArray = stackalloc float[Vector512<float>.Count];
+            v.CopyTo(VectArray);
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
             {
                 arr[_c] = VectArray[_c - index];
             }
