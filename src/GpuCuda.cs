@@ -316,8 +316,13 @@ namespace GRAL_2001
         // but the hiprtc runtime header that hiprtc always includes needs C++17.
         // GCNPreRAOptimizations miscompiles gral_fresh for gfx1201 with ROCm 10.1 hiprtc: with it, B00 situation 1 differs from
         // the CPU and CUDA outputs by NMAE 1.40 (seed noise is 0.11); without it, by 0.003 (-mllvm -opt-bisect-limit, 2026-11-07).
+        // Without a launch bound the AMDGPU back end must allow 1024-thread blocks, which caps both kernels at 192 VGPRs and
+        // spills gral_fresh heavily (560 B scratch per lane). GpuSituationDriver launches 128 or 256 threads, so a 256 bound
+        // gives the full 256 VGPRs. The raised inline threshold inlines Zeitschleife_IntWindCalculate, which is otherwise a
+        // real call in every time step. Both change code generation only; the GRZ output stays byte-identical (2026-11-07).
         internal static readonly string[] HiprtcOptions = { "-std=c++17", "-ffp-contract=off", "-fhip-fp32-correctly-rounded-divide-sqrt",
-                                                            "-mllvm", "-amdgpu-enable-pre-ra-optimizations=0" };
+                                                            "-mllvm", "-amdgpu-enable-pre-ra-optimizations=0", "--gpu-max-threads-per-block=256",
+                                                            "-mllvm", "-inline-threshold=50000" };
         private readonly List<IntPtr> hiprtcComgr = new List<IntPtr>();
         /// <summary>Code-object manager libraries loaded next to hiprtc; they generate the GPU code, so they enter the module cache key.</summary>
         internal string[] ComgrPaths { get; private set; } = Array.Empty<string>();
@@ -847,13 +852,62 @@ namespace GRAL_2001
         internal const string HipTrapFlag = "gral_hip_trap";
 
         /// <summary>
-        /// The kernel source is CUDA C++; the only construct hiprtc rejects is the PTX trap instruction. On the Windows HIP
-        /// runtime __builtin_trap() ends only the trapping wavefront and the launch still reports success, so each trap first
-        /// sets a device flag; the host checks it after every launch and stops the run, as a CUDA trap does.
+        /// HIP copy of State.DeviceError, DeviceErrorPhase and DeviceErrorParticle (in that order). The HIP source places
+        /// State in constant memory, which the kernel cannot write, so the kernel records errors here instead.
         /// </summary>
-        internal static string HipSource(string source) =>
-            "extern \"C\" {__device__ int " + HipTrapFlag + "=0;}\n" +
-            source.Replace("asm(\"trap;\")", "{atomicExch(&" + HipTrapFlag + ",1);__threadfence();__builtin_trap();}", StringComparison.Ordinal);
+        internal const string HipStatusSymbol = "gral_hip_status";
+
+        private const string StateDeclaration = "extern \"C\" {__device__ State P;}";
+
+        // gfx12 has no FP64 global atomic add, so atomicAdd(double*) is a compare-and-swap loop that serializes on a shared
+        // address; EmissionPerSG takes one add per fresh particle at one address per source group. Lanes of a wavefront that
+        // share the address of the first remaining lane add their values in lane order and issue one atomic. When no lane
+        // shares that address, every remaining lane adds on its own as before. All lanes of a group get the leader's pre-add
+        // value back, unlike atomicAdd; every double atomic_add call in generated.cu discards the return value.
+        private const string HipAtomicAddDouble =
+            "template<class V>__device__ double atomic_add(double* p,V v){\n" +
+            " double x=(double)v;\n" +
+            " unsigned long long a=(unsigned long long)p;\n" +
+            " for(;;){\n" +
+            "  unsigned int lo=__builtin_amdgcn_readfirstlane((unsigned int)a),hi=__builtin_amdgcn_readfirstlane((unsigned int)(a>>32));\n" +
+            "  bool mine=(unsigned int)a==lo&&(unsigned int)(a>>32)==hi;\n" +
+            "  unsigned long long group=__ballot(mine);\n" +
+            "  if(__popcll(group)<2)break;\n" +
+            "  if(mine){\n" +
+            "   int leader=__ffsll((unsigned long long)group)-1;\n" +
+            "   double s=0;\n" +
+            "   for(unsigned long long g=group;g;g&=g-1)s+=__shfl(x,__ffsll((unsigned long long)g)-1);\n" +
+            "   double old=0;\n" +
+            "   if(__lane_id()==leader)old=atomicAdd(p,s);\n" +
+            "   return __shfl(old,leader);\n" +
+            "  }\n" +
+            " }\n" +
+            " return atomicAdd(p,x);\n" +
+            "}\n";
+
+        /// <summary>
+        /// The kernel source is CUDA C++. HIP-only changes (the CUDA source is untouched; only (3) can change results: it adds a
+        /// per-wavefront partial sum once, so a double sum can round differently in the last bits than a one-at-a-time order):
+        /// (1) hiprtc rejects the PTX trap instruction, and on the Windows HIP runtime __builtin_trap() ends only the trapping
+        /// wavefront while the launch still reports success, so each trap first sets a device flag that the host checks after
+        /// every launch; (2) State moves to constant memory, so its uniform fields load through scalar memory instead of one
+        /// vector load and wait per read, and the three error fields are written to HipStatusSymbol; (3) double atomic adds
+        /// are aggregated per wavefront (HipAtomicAddDouble). Throws if the source no longer has the expected State form.
+        /// </summary>
+        internal static string HipSource(string source)
+        {
+            int at = source.IndexOf(StateDeclaration, StringComparison.Ordinal);
+            if (at < 0 || source.IndexOf(StateDeclaration, at + 1, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("HIP source: expected exactly one '" + StateDeclaration + "'");
+            string hip = source.Replace("asm(\"trap;\")", "{atomicExch(&" + HipTrapFlag + ",1);__threadfence();__builtin_trap();}", StringComparison.Ordinal)
+                .Replace(StateDeclaration, "extern \"C\" {__constant__ State P;}", StringComparison.Ordinal)
+                .Replace("&P.DeviceError,", "&" + HipStatusSymbol + "[0],", StringComparison.Ordinal)
+                .Replace("P.DeviceErrorPhase=", HipStatusSymbol + "[1]=", StringComparison.Ordinal)
+                .Replace("P.DeviceErrorParticle=", HipStatusSymbol + "[2]=", StringComparison.Ordinal);
+            if (hip.Contains("P.DeviceError", StringComparison.Ordinal))
+                throw new InvalidOperationException("HIP source: a State.DeviceError access is not in a recognized form");
+            return "extern \"C\" {__device__ int " + HipTrapFlag + "=0;__device__ int " + HipStatusSymbol + "[3];}\n" + HipAtomicAddDouble + hip;
+        }
 
         private byte[] CompileImage(string source, string[] options, string kind, out string compileLog)
         {

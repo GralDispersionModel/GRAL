@@ -61,7 +61,7 @@ namespace GRAL_2001
 
         private GpuCuda cuda;
         private IntPtr module, fnFresh, fnResidual, eventStart, eventEnd;
-        private ulong stateAddress, hipTrapAddress;
+        private ulong stateAddress, hipTrapAddress, hipStatusAddress;
         private readonly Dictionary<string, Buffer> buffers = new Dictionary<string, Buffer>(StringComparer.Ordinal);
         private readonly Dictionary<string, IntPtr> mappedBuffers = new Dictionary<string, IntPtr>(StringComparer.Ordinal);
         private readonly Dictionary<string, byte[]> hostArrays = new Dictionary<string, byte[]>(StringComparer.Ordinal);
@@ -233,7 +233,17 @@ namespace GRAL_2001
                 long bytes;
                 (stateAddress, bytes) = cuda.Global(module, "P");
                 if (bytes != state.Size) throw new InvalidOperationException("State layout size: " + (cuda.Hip ? "HIP " : "CUDA ") + bytes + ", host " + state.Size);
-                if (cuda.Hip) hipTrapAddress = cuda.Global(module, GpuCuda.HipTrapFlag).Address;
+                if (cuda.Hip)
+                {
+                    hipTrapAddress = cuda.Global(module, GpuCuda.HipTrapFlag).Address;
+                    // The HIP kernel writes the three State error fields to a separate symbol in the same order (GpuCuda.HipSource).
+                    var (statusStart, statusSize) = StatusRange();
+                    if (statusSize != 12 || state.Get("DeviceErrorPhase").Offset != statusStart + 4)
+                        throw new InvalidOperationException("State error fields are not three consecutive ints");
+                    long statusBytes;
+                    (hipStatusAddress, statusBytes) = cuda.Global(module, GpuCuda.HipStatusSymbol);
+                    if (statusBytes != 12) throw new InvalidOperationException("HIP status symbol size: " + statusBytes);
+                }
             }
             catch
             {
@@ -1002,15 +1012,31 @@ namespace GRAL_2001
         private void Bind()
         {
             CheckDeviceError();
-            fixed (byte* p = state.Data) cuda.CopyToDevice(stateAddress, p, state.Size, "bind State");
+            fixed (byte* p = state.Data)
+            {
+                cuda.CopyToDevice(stateAddress, p, state.Size, "bind State");
+                // The host error fields are zero here (CheckDeviceError), so this also clears the HIP status symbol.
+                if (cuda.Hip) { var (start, size) = StatusRange(); cuda.CopyToDevice(hipStatusAddress, p + start, size, "bind HIP status"); }
+            }
         }
 
         private void ReadState()
         {
             var clock = Stopwatch.StartNew();
-            fixed (byte* p = state.Data) cuda.CopyToHost(p, stateAddress, state.Size, "read State");
+            fixed (byte* p = state.Data)
+            {
+                cuda.CopyToHost(p, stateAddress, state.Size, "read State");
+                if (cuda.Hip) { var (start, size) = StatusRange(); cuda.CopyToHost(p + start, hipStatusAddress, size, "read HIP status"); }
+            }
             AddMs("state_d2h_ms", clock);
             Add("state_d2h_bytes", state.Size);
+        }
+
+        /// <summary>Byte range of DeviceError..DeviceErrorParticle in the State layout.</summary>
+        private (int Start, int Size) StatusRange()
+        {
+            int start = state.Get("DeviceError").Offset;
+            return (start, state.Get("DeviceErrorParticle").Offset + 4 - start);
         }
 
         private void CheckDeviceError()
@@ -1050,10 +1076,10 @@ namespace GRAL_2001
             Add("kernel_launches", 1);
             metrics["kernel_max_device_ms"] = Math.Max((double)metrics["kernel_max_device_ms"], elapsed);
             lastKernelMs = elapsed;
-            int statusStart = state.Get("DeviceError").Offset;
-            int statusSize = state.Get("DeviceErrorParticle").Offset + 4 - statusStart;
+            var (statusStart, statusSize) = StatusRange();
             var download = Stopwatch.StartNew();
-            fixed (byte* p = state.Data) cuda.CopyToHost(p + statusStart, stateAddress + (ulong)statusStart, statusSize, "read kernel status");
+            fixed (byte* p = state.Data)
+                cuda.CopyToHost(p + statusStart, cuda.Hip ? hipStatusAddress : stateAddress + (ulong)statusStart, statusSize, "read kernel status");
             AddMs("status_d2h_ms", download);
             Add("status_d2h_bytes", statusSize);
             CheckDeviceError();
