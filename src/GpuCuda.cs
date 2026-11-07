@@ -318,8 +318,10 @@ namespace GRAL_2001
         // the CPU and CUDA outputs by NMAE 1.40 (seed noise is 0.11); without it, by 0.003 (-mllvm -opt-bisect-limit, 2026-11-07).
         // Without a launch bound the AMDGPU back end must allow 1024-thread blocks, which caps both kernels at 192 VGPRs and
         // spills gral_fresh heavily (560 B scratch per lane). GpuSituationDriver launches 128 or 256 threads, so a 256 bound
-        // gives the full 256 VGPRs. The raised inline threshold inlines Zeitschleife_IntWindCalculate, which is otherwise a
-        // real call in every time step. Both change code generation only; the GRZ output stays byte-identical (2026-11-07).
+        // gives the full 256 VGPRs. The raised inline threshold inlines Zeitschleife_IntWindCalculate into gral_residual and on
+        // the wet-deposition path of gral_fresh; the per-step call in gral_fresh stays a call because the AMDGPU inliner caps the
+        // basic blocks of the result (amdgpu-inline-max-bb), and raising that cap was not faster on B00 (more spills).
+        // Both options change code generation only; the GRZ output stays byte-identical (2026-11-07).
         internal static readonly string[] HiprtcOptions = { "-std=c++17", "-ffp-contract=off", "-fhip-fp32-correctly-rounded-divide-sqrt",
                                                             "-mllvm", "-amdgpu-enable-pre-ra-optimizations=0", "--gpu-max-threads-per-block=256",
                                                             "-mllvm", "-inline-threshold=50000" };
