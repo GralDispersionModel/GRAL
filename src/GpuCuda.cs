@@ -95,12 +95,49 @@ namespace GRAL_2001
         internal string[] CompileOptions { get; private set; }
         internal double ContextMs { get; private set; }
         internal Dictionary<string, object> DeviceInfo { get; } = new Dictionary<string, object>();
+        /// <summary>True when the AMD HIP runtime and hiprtc stand in for the CUDA driver and NVRTC.</summary>
+        internal bool Hip { get; private set; }
+        /// <summary>AMD GPU architecture name (for example gfx1201); null on the CUDA backend.</summary>
+        internal string ArchName { get; private set; }
+        internal string TargetText => Hip ? ArchName : (BinaryKind == "ptx" ? "compute_" : "sm_") + TargetArch;
+
+        // True only when the NVIDIA driver library is missing or reports no device. Any other CUDA failure is reported,
+        // never bypassed, so a broken NVIDIA driver does not silently move the run to another GPU.
+        private bool cudaAbsent;
+        private const int ErrorNoDevice = 100; // CUDA_ERROR_NO_DEVICE and hipErrorNoDevice
 
         internal GpuCuda(string runtimeDirectory, Action<string> log)
         {
             this.log = log;
-            try { Initialize(runtimeDirectory); }
+            try
+            {
+                string backend = Environment.GetEnvironmentVariable("INU_GPU_BACKEND")?.Trim();
+                if (string.IsNullOrEmpty(backend)) InitializeAutomatic(runtimeDirectory);
+                else if (backend.Equals("cuda", StringComparison.OrdinalIgnoreCase)) Initialize(runtimeDirectory);
+                else if (backend.Equals("hip", StringComparison.OrdinalIgnoreCase)) InitializeHip(runtimeDirectory, automatic: false);
+                else throw new ArgumentException("INU_GPU_BACKEND must be cuda or hip, got '" + backend + "'");
+            }
             catch { Dispose(); throw; }
+        }
+
+        /// <summary>
+        /// Default backend choice: an NVIDIA device runs on CUDA. The AMD HIP runtime is tried only when the NVIDIA driver
+        /// is missing or reports no device; any other CUDA problem is reported as before.
+        /// </summary>
+        private void InitializeAutomatic(string runtimeDirectory)
+        {
+            try { Initialize(runtimeDirectory); }
+            catch (Exception cudaError) when (cudaAbsent && HipRuntimePresent())
+            {
+                // NVIDIA does not support unloading the driver after cuInit, so a loaded nvcuda stays loaded for the process.
+                driver = IntPtr.Zero;
+                log("No NVIDIA device (" + cudaError.Message + "); trying the AMD HIP runtime");
+                try { InitializeHip(runtimeDirectory, automatic: true); }
+                catch (Exception hipError)
+                {
+                    throw new InvalidOperationException("No usable GPU. CUDA: " + cudaError.Message + "; HIP: " + hipError.Message, hipError);
+                }
+            }
         }
 
         private static IntPtr Export(IntPtr library, string name) => NativeLibrary.GetExport(library, name);
@@ -184,15 +221,16 @@ namespace GRAL_2001
             return "this device needs NVRTC 12.x or 13.x";
         }
 
-        private static int DeviceOrdinalSetting(string raw, int count)
+        private static int DeviceOrdinalSetting(string raw, int count, bool hip = false)
         {
+            string api = hip ? "HIP" : "CUDA", visible = hip ? "HIP_VISIBLE_DEVICES" : "CUDA_VISIBLE_DEVICES";
             System.Numerics.BigInteger ordinal;
             if (string.IsNullOrEmpty(raw)) ordinal = 0;
             else if (raw.All(ch => ch >= '0' && ch <= '9')) ordinal = System.Numerics.BigInteger.Parse(raw, System.Globalization.CultureInfo.InvariantCulture);
             else throw new ArgumentException("INU_GPU_DEVICE must be a nonnegative integer, got '" + raw + "'");
-            if (count < 1) throw new InvalidOperationException("No CUDA device is visible (check the NVIDIA driver and CUDA_VISIBLE_DEVICES)");
+            if (count < 1) throw new InvalidOperationException("No " + api + " device is visible (check the " + (hip ? "AMD" : "NVIDIA") + " driver and " + visible + ")");
             if (ordinal >= count)
-                throw new ArgumentException("INU_GPU_DEVICE=" + ordinal + " is out of range: " + count + " CUDA device(s) visible (valid 0.." + (count - 1) + "; CUDA_VISIBLE_DEVICES renumbers devices)");
+                throw new ArgumentException("INU_GPU_DEVICE=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)");
             return (int)ordinal;
         }
 
@@ -201,13 +239,20 @@ namespace GRAL_2001
             // On Windows the driver comes from System32 only, never from the project folder or PATH.
             try { driver = Windows ? NativeLibrary.Load(DriverLibrary, typeof(GpuCuda).Assembly, DllImportSearchPath.System32) : NativeLibrary.Load(DriverLibrary); }
             catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException)
-            { throw new InvalidOperationException("NVIDIA driver library " + DriverLibrary + " could not be loaded (" + error.Message + "); install the NVIDIA display driver", error); }
+            {
+                // A driver library that exists but does not load is a broken driver, not a missing one.
+                cudaAbsent = !Windows || !File.Exists(Path.Combine(Environment.SystemDirectory, DriverLibrary));
+                throw new InvalidOperationException("NVIDIA driver library " + DriverLibrary + " could not be loaded (" + error.Message + "); install the NVIDIA display driver", error);
+            }
             BindDriver();
             var clock = Stopwatch.StartNew();
-            Check(cuInit(0), "cuInit");
+            int initResult = cuInit(0);
+            cudaAbsent = initResult == ErrorNoDevice;
+            Check(initResult, "cuInit");
             int driverVersion, count, device;
             Check(cuDriverGetVersion(&driverVersion), "cuDriverGetVersion");
             Check(cuDeviceGetCount(&count), "cuDeviceGetCount");
+            cudaAbsent = count < 1;
             DeviceOrdinal = DeviceOrdinalSetting(Environment.GetEnvironmentVariable("INU_GPU_DEVICE"), count);
             Check(cuDeviceGet(&device, DeviceOrdinal), "cuDeviceGet");
             byte* nameBuffer = stackalloc byte[256];
@@ -255,6 +300,326 @@ namespace GRAL_2001
                 DriverText(driverVersion) + " (" + driverVersion + "); kernel_exec_timeout=" + (KernelExecTimeout ? 1 : 0) + "; tcc=" +
                 ((bool)DeviceInfo["tcc_driver"] ? 1 : 0) + "; fp32:fp64=" + DeviceInfo["fp32_to_fp64_perf_ratio"] + ":1; compute_mode=" + modeText);
             ContextMs = clock.Elapsed.TotalMilliseconds;
+        }
+
+        // ------------------------------------------------------------------ AMD HIP backend
+        // hipDeviceAttribute_t values of HIP 7.x (hip_runtime_api.h); they differ from the CUDA attribute numbers above.
+        private const int HipAttrCanMapHostMemory = 3, HipAttrComputeMode = 6, HipAttrIntegrated = 16, HipAttrKernelExecTimeout = 18,
+                          HipAttrCcMajor = 23, HipAttrCcMinor = 61, HipAttrSingleToDoublePerfRatio = 77, HipAttrTccDriver = 80;
+        // Only the HIP 7.x runtime is bound: the attribute numbers above were checked against the HIP 7.x header.
+        private static readonly string[] HipRuntimeNames = { "amdhip64_7.dll" };
+        private static readonly Regex HiprtcName = new Regex(@"^hiprtc[0-9]{4}\.dll$", RegexOptions.IgnoreCase);
+        private static readonly Regex GfxName = new Regex(@"^gfx[0-9a-f]+$");
+        /// <summary>AMD architectures whose GPU output was compared with the CPU output; others get a startup warning.</summary>
+        internal static readonly string[] CheckedHipArchs = { "gfx1201" };
+        // hiprtc equivalents of NvrtcOptions: no FMA contraction, IEEE fp32 division and square root. The kernel is C++11,
+        // but the hiprtc runtime header that hiprtc always includes needs C++17.
+        // GCNPreRAOptimizations miscompiles gral_fresh for gfx1201 with ROCm 10.1 hiprtc: with it, B00 situation 1 differs from
+        // the CPU and CUDA outputs by NMAE 1.40 (seed noise is 0.11); without it, by 0.003 (-mllvm -opt-bisect-limit, 2026-11-07).
+        internal static readonly string[] HiprtcOptions = { "-std=c++17", "-ffp-contract=off", "-fhip-fp32-correctly-rounded-divide-sqrt",
+                                                            "-mllvm", "-amdgpu-enable-pre-ra-optimizations=0" };
+        private readonly List<IntPtr> hiprtcComgr = new List<IntPtr>();
+        /// <summary>Code-object manager libraries loaded next to hiprtc; they generate the GPU code, so they enter the module cache key.</summary>
+        internal string[] ComgrPaths { get; private set; } = Array.Empty<string>();
+
+        private static bool HipRuntimePresent()
+        {
+            if (!Windows) return false;
+            string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            // A set INU_GPU_HIP_RUNTIME counts as present, so a wrong value is reported by InitializeHip instead of being ignored.
+            return Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME") is string explicitPath && explicitPath.Length > 0
+                || HipRuntimeNames.Any(n => File.Exists(Path.Combine(system, n)));
+        }
+
+        private void BindHip()
+        {
+            IntPtr d = driver;
+            cuInit = (delegate* unmanaged<uint, int>)Export(d, "hipInit");
+            cuDriverGetVersion = (delegate* unmanaged<int*, int>)Export(d, "hipDriverGetVersion");
+            cuDeviceGetCount = (delegate* unmanaged<int*, int>)Export(d, "hipGetDeviceCount");
+            cuDeviceGet = (delegate* unmanaged<int*, int, int>)Export(d, "hipDeviceGet");
+            cuDeviceGetName = (delegate* unmanaged<byte*, int, int, int>)Export(d, "hipDeviceGetName");
+            cuDeviceTotalMem = (delegate* unmanaged<nuint*, int, int>)Export(d, "hipDeviceTotalMem");
+            cuDeviceGetAttribute = (delegate* unmanaged<int*, int, int, int>)Export(d, "hipDeviceGetAttribute");
+            cuCtxCreate = (delegate* unmanaged<IntPtr*, uint, int, int>)Export(d, "hipCtxCreate");
+            cuCtxDestroy = (delegate* unmanaged<IntPtr, int>)Export(d, "hipCtxDestroy");
+            cuModuleLoadData = (delegate* unmanaged<IntPtr*, void*, int>)Export(d, "hipModuleLoadData");
+            cuModuleUnload = (delegate* unmanaged<IntPtr, int>)Export(d, "hipModuleUnload");
+            cuModuleGetFunction = (delegate* unmanaged<IntPtr*, IntPtr, byte*, int>)Export(d, "hipModuleGetFunction");
+            cuModuleGetGlobal = (delegate* unmanaged<ulong*, nuint*, IntPtr, byte*, int>)Export(d, "hipModuleGetGlobal");
+            cuFuncGetAttribute = (delegate* unmanaged<int*, int, IntPtr, int>)Export(d, "hipFuncGetAttribute");
+            cuMemAlloc = (delegate* unmanaged<ulong*, nuint, int>)Export(d, "hipMalloc");
+            cuMemFree = (delegate* unmanaged<ulong, int>)Export(d, "hipFree");
+            cuMemGetInfo = (delegate* unmanaged<nuint*, nuint*, int>)Export(d, "hipMemGetInfo");
+            cuMemHostAlloc = (delegate* unmanaged<void**, nuint, uint, int>)Export(d, "hipHostMalloc");
+            cuMemFreeHost = (delegate* unmanaged<void*, int>)Export(d, "hipHostFree");
+            cuMemHostGetDevicePointer = (delegate* unmanaged<ulong*, void*, uint, int>)Export(d, "hipHostGetDevicePointer");
+            cuMemsetD8 = (delegate* unmanaged<ulong, byte, nuint, int>)Export(d, "hipMemsetD8");
+            cuMemcpyHtoD = (delegate* unmanaged<ulong, void*, nuint, int>)Export(d, "hipMemcpyHtoD");
+            cuMemcpyDtoH = (delegate* unmanaged<void*, ulong, nuint, int>)Export(d, "hipMemcpyDtoH");
+            // hipCtxSynchronize returns hipErrorNotSupported on Windows; the context is the only one on this thread.
+            cuCtxSynchronize = (delegate* unmanaged<int>)Export(d, "hipDeviceSynchronize");
+            cuLaunchKernel = (delegate* unmanaged<IntPtr, uint, uint, uint, uint, uint, uint, uint, IntPtr, void**, void**, int>)Export(d, "hipModuleLaunchKernel");
+            cuEventCreate = (delegate* unmanaged<IntPtr*, uint, int>)Export(d, "hipEventCreateWithFlags");
+            cuEventRecord = (delegate* unmanaged<IntPtr, IntPtr, int>)Export(d, "hipEventRecord");
+            cuEventSynchronize = (delegate* unmanaged<IntPtr, int>)Export(d, "hipEventSynchronize");
+            cuEventElapsedTime = (delegate* unmanaged<float*, IntPtr, IntPtr, int>)Export(d, "hipEventElapsedTime");
+            cuEventDestroy = (delegate* unmanaged<IntPtr, int>)Export(d, "hipEventDestroy");
+            cuGetErrorName = (delegate* unmanaged<int, byte**, int>)Export(d, "hipDrvGetErrorName");
+        }
+
+        private void BindHiprtc(IntPtr library)
+        {
+            nvrtcCreateProgram = (delegate* unmanaged<IntPtr*, byte*, byte*, int, byte**, byte**, int>)Export(library, "hiprtcCreateProgram");
+            nvrtcCompileProgram = (delegate* unmanaged<IntPtr, int, byte**, int>)Export(library, "hiprtcCompileProgram");
+            nvrtcGetProgramLogSize = (delegate* unmanaged<IntPtr, nuint*, int>)Export(library, "hiprtcGetProgramLogSize");
+            nvrtcGetProgramLog = (delegate* unmanaged<IntPtr, byte*, int>)Export(library, "hiprtcGetProgramLog");
+            nvrtcGetPTXSize = null; nvrtcGetPTX = null;
+            // A code object (ELF) takes the CUBIN slot of CompileImage.
+            nvrtcGetCUBINSize = (delegate* unmanaged<IntPtr, nuint*, int>)Export(library, "hiprtcGetCodeSize");
+            nvrtcGetCUBIN = (delegate* unmanaged<IntPtr, byte*, int>)Export(library, "hiprtcGetCode");
+            nvrtcDestroyProgram = (delegate* unmanaged<IntPtr*, int>)Export(library, "hiprtcDestroyProgram");
+        }
+
+        private int? OptionalAttribute(int code, int device)
+        {
+            int value;
+            return cuDeviceGetAttribute(&value, code, device) == 0 ? value : null;
+        }
+
+        private static string HipVersionText(int version) => (version / 10000000) + "." + (version / 100000 % 100) + "." + (version % 100000);
+
+        /// <summary>gcnArchName of hipDeviceProp_tR0600 (char[256] at byte 1160 of the 1472-byte structure in the HIP 7.x header).</summary>
+        private string HipArchName(int ordinal)
+        {
+            const int Offset = 1160, Length = 256;
+            if (!TryExport(driver, "hipGetDevicePropertiesR0600", out IntPtr address)) throw new EntryPointNotFoundException("hipGetDevicePropertiesR0600");
+            var properties = (delegate* unmanaged<byte*, int, int>)address;
+            // Larger than the structure, so a runtime that writes a few more bytes cannot overrun the buffer.
+            var buffer = new byte[4096];
+            fixed (byte* b = buffer) Check(properties(b, ordinal), "hipGetDevicePropertiesR0600");
+            int end = Array.IndexOf(buffer, (byte)0, Offset, Length);
+            // Feature suffixes such as ":sramecc+:xnack-" are not part of the offload architecture.
+            string text = Encoding.ASCII.GetString(buffer, Offset, (end < 0 ? Offset + Length : end) - Offset).Split(':')[0];
+            if (!GfxName.IsMatch(text)) throw new InvalidOperationException("HIP device " + ordinal + " reports no gfx architecture name ('" + text + "')");
+            return text;
+        }
+
+        /// <summary>Default HIP device: the first discrete GPU, so an integrated Radeon does not take the run by accident.</summary>
+        private int DefaultHipOrdinal(int count, bool automatic)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int handle;
+                if (cuDeviceGet(&handle, i) == 0 && OptionalAttribute(HipAttrIntegrated, handle) != 1) return i;
+            }
+            if (automatic)
+                throw new InvalidOperationException("Only integrated AMD GPUs are visible; set INU_GPU_BACKEND=hip (and INU_GPU_DEVICE) to run on one");
+            return 0;
+        }
+
+        private void InitializeHip(string runtimeDirectory, bool automatic)
+        {
+            // The HIP path was built and tested on Windows only (AMD Adrenalin driver runtime + hiprtc).
+            if (!Windows) throw new PlatformNotSupportedException("The HIP backend is implemented for Windows only; use INU_GPU_BACKEND=cuda or the CPU path");
+            Hip = true;
+            string explicitRuntime = Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME");
+            string loaded = null;
+            if (explicitRuntime != null && explicitRuntime.Length > 0)
+            {
+                if (!Path.IsPathFullyQualified(explicitRuntime)) throw new ArgumentException("INU_GPU_HIP_RUNTIME must be an absolute path");
+                if (!File.Exists(explicitRuntime)) throw new FileNotFoundException("INU_GPU_HIP_RUNTIME points to a missing file: " + explicitRuntime);
+                driver = NativeLibrary.Load(explicitRuntime);
+                loaded = explicitRuntime;
+            }
+            else
+            {
+                // As for nvcuda.dll: the AMD display driver installs the HIP runtime in System32.
+                foreach (string runtimeName in HipRuntimeNames)
+                {
+                    try { driver = NativeLibrary.Load(runtimeName, typeof(GpuCuda).Assembly, DllImportSearchPath.System32); loaded = runtimeName; break; }
+                    catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException) { }
+                }
+                if (driver == IntPtr.Zero) throw new InvalidOperationException("AMD HIP runtime (" + string.Join(", ", HipRuntimeNames) + ") not found in System32; install the AMD Adrenalin driver");
+            }
+            BindHip();
+            var clock = Stopwatch.StartNew();
+            Check(cuInit(0), "hipInit");
+            int driverVersion, count, device;
+            Check(cuDriverGetVersion(&driverVersion), "hipDriverGetVersion");
+            // hipGetDeviceCount answers hipErrorNoDevice (100) instead of a zero count when no AMD GPU is visible.
+            int countResult = cuDeviceGetCount(&count);
+            if (countResult == ErrorNoDevice) count = 0;
+            else Check(countResult, "hipGetDeviceCount");
+            string rawOrdinal = Environment.GetEnvironmentVariable("INU_GPU_DEVICE");
+            DeviceOrdinal = string.IsNullOrEmpty(rawOrdinal) && count > 0 ? DefaultHipOrdinal(count, automatic) : DeviceOrdinalSetting(rawOrdinal, count, hip: true);
+            Check(cuDeviceGet(&device, DeviceOrdinal), "hipDeviceGet");
+            byte* nameBuffer = stackalloc byte[256];
+            Check(cuDeviceGetName(nameBuffer, 256, device), "hipDeviceGetName");
+            string name = Marshal.PtrToStringUTF8((IntPtr)nameBuffer) ?? "?";
+            nuint total;
+            Check(cuDeviceTotalMem(&total, device), "hipDeviceTotalMem");
+            ArchName = HipArchName(DeviceOrdinal);
+            int ccMajor = Attribute(HipAttrCcMajor, device, "compute capability major");
+            int ccMinor = Attribute(HipAttrCcMinor, device, "compute capability minor");
+            DeviceArch = 0;
+            CanMapHostMemory = Attribute(HipAttrCanMapHostMemory, device, "canMapHostMemory") != 0;
+            int computeMode = Attribute(HipAttrComputeMode, device, "compute mode");
+            KernelExecTimeout = Attribute(HipAttrKernelExecTimeout, device, "kernel exec timeout") != 0;
+            string modeText = computeMode switch { 0 => "default", 2 => "prohibited", 3 => "exclusive_process", _ => computeMode.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+            DeviceInfo["backend"] = "hip";
+            DeviceInfo["ordinal"] = DeviceOrdinal;
+            DeviceInfo["device_count"] = count;
+            DeviceInfo["name"] = name;
+            DeviceInfo["arch"] = ArchName;
+            DeviceInfo["compute_capability"] = ccMajor + "." + ccMinor;
+            DeviceInfo["total_memory_bytes"] = (long)total;
+            DeviceInfo["driver_version"] = driverVersion;
+            // The key keeps its CUDA name so existing log readers work; the value is the HIP runtime version.
+            DeviceInfo["driver_cuda"] = "HIP " + HipVersionText(driverVersion);
+            DeviceInfo["hip_runtime_library"] = loaded;
+            DeviceInfo["compute_mode"] = modeText;
+            DeviceInfo["kernel_exec_timeout"] = KernelExecTimeout;
+            // NVIDIA-only attributes: the AMD runtime answers hipErrorInvalidValue, so they are reported as absent.
+            DeviceInfo["tcc_driver"] = OptionalAttribute(HipAttrTccDriver, device) is int tcc && tcc != 0;
+            DeviceInfo["fp32_to_fp64_perf_ratio"] = OptionalAttribute(HipAttrSingleToDoublePerfRatio, device);
+            DeviceInfo["can_map_host_memory"] = CanMapHostMemory;
+            DeviceInfo["platform"] = Windows ? "win32" : OperatingSystem.IsLinux() ? "linux" : RuntimeInformation.OSDescription;
+            DeviceInfo["arch_checked"] = CheckedHipArchs.Contains(ArchName);
+            if (computeMode == 2)
+                throw new InvalidOperationException("HIP device " + DeviceOrdinal + " (" + name + ") is in prohibited compute mode; select another device with INU_GPU_DEVICE");
+            // hipCtxCreate makes the context current; hipSetDevice keeps the runtime's per-thread device in step on multi-GPU machines.
+            if (TryExport(driver, "hipSetDevice", out IntPtr setDevice)) Check(((delegate* unmanaged<int, int>)setDevice)(DeviceOrdinal), "hipSetDevice");
+            IntPtr ctx;
+            // 8 = hipDeviceMapHost, the same value as CU_CTX_MAP_HOST.
+            Check(cuCtxCreate(&ctx, 8, device), "hipCtxCreate");
+            context = ctx;
+            SelectHiprtc(HiprtcCandidates(Environment.GetEnvironmentVariable("INU_GPU_HIPRTC_DIR"), runtimeDirectory));
+            DeviceInfo["nvrtc_version"] = "hiprtc " + NvrtcVersion.Major + "." + NvrtcVersion.Minor;
+            DeviceInfo["nvrtc_path"] = NvrtcPath;
+            DeviceInfo["hiprtc_comgr"] = ComgrPaths;
+            DeviceInfo["target_arch"] = ArchName;
+            DeviceInfo["binary_kind"] = BinaryKind;
+            log("HIP device " + DeviceOrdinal + " " + ArchName + "; hiprtc " + NvrtcVersion.Major + "." + NvrtcVersion.Minor + " (" + NvrtcPath + "); " + name + "; " +
+                ((long)total / (1024 * 1024)) + " MiB; HIP runtime " + HipVersionText(driverVersion) + " (" + loaded + "); kernel_exec_timeout=" + (KernelExecTimeout ? 1 : 0) +
+                "; fp32:fp64=" + (DeviceInfo["fp32_to_fp64_perf_ratio"] is int ratio ? ratio + ":1" : "n/a") + "; compute_mode=" + modeText);
+            if (!CheckedHipArchs.Contains(ArchName))
+                log("Warning: " + ArchName + " has not been compared with the CPU path; only " + string.Join(", ", CheckedHipArchs) + " has");
+            ContextMs = clock.Elapsed.TotalMilliseconds;
+        }
+
+        /// <summary>hiprtc libraries to try: INU_GPU_HIPRTC_DIR alone when set; otherwise the runtime folder's <c>hiprtc</c> subfolder, then HIP_PATH.</summary>
+        internal static List<string> HiprtcCandidates(string explicitDirectory, string runtimeDirectory)
+        {
+            var directories = new List<string>();
+            if (explicitDirectory != null)
+            {
+                if (explicitDirectory.Length == 0 || !Path.IsPathFullyQualified(explicitDirectory)) throw new ArgumentException("INU_GPU_HIPRTC_DIR must be a nonempty absolute path");
+                directories.Add(explicitDirectory);
+            }
+            else
+            {
+                if (runtimeDirectory != null) directories.Add(Path.Combine(runtimeDirectory, "hiprtc"));
+                if (Environment.GetEnvironmentVariable("HIP_PATH") is string root && root.Length > 0 && Path.IsPathFullyQualified(root)) directories.Add(Path.Combine(root, "bin"));
+            }
+            var result = new List<string>();
+            foreach (string directory in directories)
+            {
+                string[] files;
+                try { files = Directory.Exists(directory) ? Directory.GetFiles(directory, "hiprtc*.dll") : Array.Empty<string>(); }
+                catch (Exception error) when (error is UnauthorizedAccessException || error is IOException) { continue; }
+                result.AddRange(files.Where(p => HiprtcName.IsMatch(Path.GetFileName(p))).OrderByDescending(p => p, StringComparer.Ordinal));
+            }
+            if (result.Count == 0)
+                throw new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) + "; install the HIP SDK or the ROCm Python " +
+                                                "packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll");
+            return result;
+        }
+
+        /// <summary>First hiprtc whose code object the HIP runtime accepts, probed with a tiny module.</summary>
+        private void SelectHiprtc(List<string> candidates)
+        {
+            var failures = new List<string>();
+            foreach (string path in candidates)
+            {
+                IntPtr library = IntPtr.Zero, builtins = IntPtr.Zero;
+                var comgr = new List<IntPtr>();
+                void ReleaseCandidate()
+                {
+                    Release(ref library, ref builtins);
+                    foreach (IntPtr handle in comgr) NativeLibrary.Free(handle);
+                    comgr.Clear();
+                }
+                int major, minor;
+                string folder = Path.GetDirectoryName(path);
+                string builtinsPath = Path.Combine(folder, "hiprtc-builtins" + Path.GetFileName(path).Substring("hiprtc".Length));
+                string[] comgrPaths = Array.Empty<string>();
+                try
+                {
+                    // hiprtc needs the code-object manager (amd_comgr.dll, or amd_comgr_N.dll in the HIP SDK) from its own folder.
+                    comgrPaths = Directory.GetFiles(folder, "amd_comgr*.dll").OrderBy(p => p, StringComparer.Ordinal).ToArray();
+                    if (comgrPaths.Length == 0) throw new FileNotFoundException("amd_comgr*.dll not found next to " + path);
+                    if (!File.Exists(builtinsPath)) throw new FileNotFoundException("Matching hiprtc builtins not found: " + builtinsPath);
+                    // hiprtc finds comgr and its builtins by name; loading them by full path first makes that lookup use this folder.
+                    foreach (string comgrPath in comgrPaths) comgr.Add(NativeLibrary.Load(comgrPath));
+                    builtins = NativeLibrary.Load(builtinsPath);
+                    library = NativeLibrary.Load(path);
+                    var version = (delegate* unmanaged<int*, int*, int>)Export(library, "hiprtcVersion");
+                    int rc = version(&major, &minor);
+                    if (rc != 0) throw new InvalidOperationException("hiprtcVersion failed: " + rc);
+                    BindHiprtc(library);
+                }
+                catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException || error is EntryPointNotFoundException ||
+                                              error is IOException || error is UnauthorizedAccessException || error is InvalidOperationException)
+                {
+                    failures.Add(path + ": " + error.Message);
+                    ReleaseCandidate();
+                    continue;
+                }
+                // INU_GPU_HIPRTC_EXTRA (space separated) appends diagnostic compiler options; it also enters the module cache key.
+                string extra = Environment.GetEnvironmentVariable("INU_GPU_HIPRTC_EXTRA");
+                string[] options = new[] { "--offload-arch=" + ArchName }.Concat(HiprtcOptions)
+                    .Concat(string.IsNullOrWhiteSpace(extra) ? Array.Empty<string>() : extra.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToArray();
+                byte[] image;
+                int load;
+                try
+                {
+                    image = CompileImage("extern \"C\" __global__ void probe() {}", options, "hsaco", out _);
+                    IntPtr module;
+                    fixed (byte* data = image) load = cuModuleLoadData(&module, data);
+                    if (load == 0) Check(cuModuleUnload(module), "hipModuleUnload compatibility probe");
+                }
+                catch (Exception error) when (error is InvalidOperationException || error is GpuCudaException)
+                {
+                    failures.Add(path + ": probe failed: " + error.Message);
+                    ReleaseCandidate();
+                    continue;
+                }
+                catch
+                {
+                    ReleaseCandidate();
+                    throw;
+                }
+                // As for CUDA: only an image the runtime cannot use moves on to the next hiprtc; any other code is reported.
+                // HIP uses the same numbers (hipErrorInvalidImage 200, hipErrorNoBinaryForGpu 209, hipErrorInvalidKernelFile 218).
+                if (load != 0 && RejectedImageCodes.Contains(load))
+                {
+                    failures.Add(path + ": hiprtc " + major + "." + minor + " output rejected by the HIP runtime (" + load + ")");
+                    ReleaseCandidate();
+                    continue;
+                }
+                if (load != 0)
+                {
+                    ReleaseCandidate();
+                    Check(load, "hipModuleLoadData compatibility probe");
+                }
+                nvrtc = library; nvrtcBuiltins = builtins; hiprtcComgr.AddRange(comgr);
+                NvrtcPath = path; NvrtcBuiltinsPath = builtinsPath; NvrtcVersion = (major, minor); ComgrPaths = comgrPaths;
+                SupportedArchs = null; TargetArch = 0; BinaryKind = "hsaco";
+                CompileOptions = options;
+                return;
+            }
+            throw new InvalidOperationException("No compatible hiprtc toolchain for " + ArchName + ": " + string.Join("; ", failures));
         }
 
         internal int[] SupportedArchs { get; private set; }
@@ -474,8 +839,21 @@ namespace GRAL_2001
             return (result != 0 ? result : 209, null);
         }
 
-        /// <summary>Compile with the selected options; returns PTX text with its trailing NUL, or CUBIN bytes.</summary>
-        internal byte[] CompileImage(string source, out string compileLog) => CompileImage(source, CompileOptions, BinaryKind, out compileLog);
+        /// <summary>Compile with the selected options; returns PTX text with its trailing NUL, or CUBIN or HIP code-object bytes.</summary>
+        internal byte[] CompileImage(string source, out string compileLog) =>
+            CompileImage(Hip ? HipSource(source) : source, CompileOptions, BinaryKind, out compileLog);
+
+        /// <summary>Device flag that the HIP source sets before each trap; the host reads it after every launch.</summary>
+        internal const string HipTrapFlag = "gral_hip_trap";
+
+        /// <summary>
+        /// The kernel source is CUDA C++; the only construct hiprtc rejects is the PTX trap instruction. On the Windows HIP
+        /// runtime __builtin_trap() ends only the trapping wavefront and the launch still reports success, so each trap first
+        /// sets a device flag; the host checks it after every launch and stops the run, as a CUDA trap does.
+        /// </summary>
+        internal static string HipSource(string source) =>
+            "extern \"C\" {__device__ int " + HipTrapFlag + "=0;}\n" +
+            source.Replace("asm(\"trap;\")", "{atomicExch(&" + HipTrapFlag + ",1);__threadfence();__builtin_trap();}", StringComparison.Ordinal);
 
         private byte[] CompileImage(string source, string[] options, string kind, out string compileLog)
         {
@@ -484,7 +862,7 @@ namespace GRAL_2001
             IntPtr prog;
             int rc;
             fixed (byte* s = src, p = program) rc = nvrtcCreateProgram(&prog, s, p, 0, null, null);
-            if (rc != 0) throw new InvalidOperationException("nvrtcCreateProgram: " + rc);
+            if (rc != 0) throw new InvalidOperationException((Hip ? "hiprtcCreateProgram: " : "nvrtcCreateProgram: ") + rc);
             var handles = new List<GCHandle>();
             try
             {
@@ -502,15 +880,16 @@ namespace GRAL_2001
                 fixed (byte* l = logBytes) nvrtcGetProgramLog(prog, l);
                 int end = Array.IndexOf(logBytes, (byte)0);
                 compileLog = Encoding.UTF8.GetString(logBytes, 0, end >= 0 ? end : logBytes.Length);
-                if (rc != 0) throw new InvalidOperationException("nvrtcCompileProgram: " + rc + "; " + compileLog);
+                if (rc != 0) throw new InvalidOperationException((Hip ? "hiprtcCompileProgram: " : "nvrtcCompileProgram: ") + rc + "; " + compileLog);
                 var sizeFn = kind == "ptx" ? nvrtcGetPTXSize : nvrtcGetCUBINSize;
                 var dataFn = kind == "ptx" ? nvrtcGetPTX : nvrtcGetCUBIN;
                 nuint size;
                 rc = sizeFn(prog, &size);
-                if (rc != 0) throw new InvalidOperationException("nvrtcGet" + kind.ToUpperInvariant() + "Size: " + rc);
+                string getter = Hip ? "hiprtcGetCode" : "nvrtcGet" + kind.ToUpperInvariant();
+                if (rc != 0) throw new InvalidOperationException(getter + "Size: " + rc);
                 var image = new byte[(long)size];
                 fixed (byte* i = image) rc = dataFn(prog, i);
-                if (rc != 0) throw new InvalidOperationException("nvrtcGet" + kind.ToUpperInvariant() + ": " + rc);
+                if (rc != 0) throw new InvalidOperationException(getter + ": " + rc);
                 return image;
             }
             finally
@@ -532,7 +911,7 @@ namespace GRAL_2001
             IntPtr module;
             int rc;
             fixed (byte* data = image) rc = cuModuleLoadData(&module, data);
-            Check(rc, "cuModuleLoadData " + BinaryKind + " (driver must support the NVRTC output)");
+            Check(rc, Hip ? "hipModuleLoadData hsaco (the HIP runtime must accept the hiprtc output)" : "cuModuleLoadData " + BinaryKind + " (driver must support the NVRTC output)");
             modules.Add(module);
             return module;
         }
@@ -654,6 +1033,8 @@ namespace GRAL_2001
             modules.Clear();
             if (context != IntPtr.Zero) { cuCtxDestroy(context); context = IntPtr.Zero; }
             Release(ref nvrtc, ref nvrtcBuiltins);
+            foreach (IntPtr handle in hiprtcComgr) NativeLibrary.Free(handle);
+            hiprtcComgr.Clear();
             NativeLibrary.Free(driver);
             driver = IntPtr.Zero;
         }

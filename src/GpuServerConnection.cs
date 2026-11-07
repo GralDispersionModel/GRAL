@@ -68,6 +68,14 @@ namespace GRAL_2001
             {
                 if(!reply.RootElement.TryGetProperty("probe",out var probe))throw new InvalidDataException("GPU server did not answer the startup probe");
                 string Text(string name) => probe.TryGetProperty(name,out var value) ? value.ToString() : "?";
+                if(Text("backend")=="hip")
+                {
+                    Console.WriteLine("GPU device "+Text("ordinal")+": "+Text("name")+", "+Text("arch")+", "+Text("total_memory_mib")+" MiB, "+Text("driver_cuda")+
+                                      ", "+Text("nvrtc_version")+" "+Text("binary_kind")+" "+Text("target")+", kernel_exec_timeout="+Text("kernel_exec_timeout"));
+                    if(Text("arch_checked")!="True")
+                        Console.WriteLine("GPU warning: "+Text("arch")+" output has not been compared with the CPU path; check a test case against a CPU run before relying on it");
+                }
+                else
                 Console.WriteLine("GPU device "+Text("ordinal")+": "+Text("name")+", CC "+Text("compute_capability")+", "+Text("total_memory_mib")+" MiB, driver CUDA "+Text("driver_cuda")+
                                   ", NVRTC "+Text("nvrtc_version")+" "+Text("binary_kind")+" "+Text("target")+", kernel_exec_timeout="+Text("kernel_exec_timeout")+", tcc="+Text("tcc_driver"));
             }

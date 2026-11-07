@@ -61,7 +61,7 @@ namespace GRAL_2001
 
         private GpuCuda cuda;
         private IntPtr module, fnFresh, fnResidual, eventStart, eventEnd;
-        private ulong stateAddress;
+        private ulong stateAddress, hipTrapAddress;
         private readonly Dictionary<string, Buffer> buffers = new Dictionary<string, Buffer>(StringComparer.Ordinal);
         private readonly Dictionary<string, IntPtr> mappedBuffers = new Dictionary<string, IntPtr>(StringComparer.Ordinal);
         private readonly Dictionary<string, byte[]> hostArrays = new Dictionary<string, byte[]>(StringComparer.Ordinal);
@@ -150,15 +150,23 @@ namespace GRAL_2001
             {
                 if (GpuModuleCache.Directory() != null)
                 {
+                    // On HIP the key covers the source as compiled (after HipSource) and the comgr libraries that generate the code.
                     var identity = new Dictionary<string, object>
                     {
-                        {"schema", GpuModuleCache.Schema}, {"source_sha256", GpuModuleCache.Digest(Encoding.UTF8.GetBytes(source))},
+                        {"schema", GpuModuleCache.Schema}, {"source_sha256", GpuModuleCache.Digest(Encoding.UTF8.GetBytes(cuda.Hip ? GpuCuda.HipSource(source) : source))},
                         {"manifest_sha256", GpuModuleCache.Digest(manifestBytes)}, {"state_size", state.Size}, {"state_alignment", 8},
                         {"fields", state.Fields.Select(f => new object[] { f.Name, f.Cpp, f.Offset, f.Size }).ToArray()},
                         {"options", cuda.CompileOptions}, {"program", GpuCuda.NvrtcProgram}, {"nvrtc_version", new[] { cuda.NvrtcVersion.Major, cuda.NvrtcVersion.Minor }},
                         {"binary_kind", cuda.BinaryKind}, {"nvrtc_sha256", GpuModuleCache.Digest(File.ReadAllBytes(cuda.NvrtcPath))},
                         {"nvrtc_builtins_sha256", GpuModuleCache.Digest(File.ReadAllBytes(cuda.NvrtcBuiltinsPath))}
                     };
+                    if (cuda.Hip)
+                    {
+                        identity["comgr_sha256"] = cuda.ComgrPaths.Select(p => GpuModuleCache.Digest(File.ReadAllBytes(p))).ToArray();
+                        // hiprtc and comgr also read these variables themselves; each can change the generated code.
+                        identity["hip_compiler_environment"] = new[] { "HIPRTC_COMPILE_OPTIONS_APPEND", "HIPRTC_LINK_OPTIONS_APPEND", "AMD_COMGR_DRIVER_OPTIONS_APPEND", "HIP_DEVICE_LIB_PATH" }
+                            .Select(n => n + "=" + (Environment.GetEnvironmentVariable(n) ?? "")).ToArray();
+                    }
                     (cachePath, key) = GpuModuleCache.CachePath(identity);
                     if (cachePath != null) { string status; (image, status) = GpuModuleCache.Read(cachePath, key, cuda.BinaryKind); metrics["cache_status"] = status; }
                     else metrics["cache_status"] = key;
@@ -167,7 +175,7 @@ namespace GRAL_2001
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is NotSupportedException)
             {
                 metrics["cache_status"] = "identity_error";
-                log("PTX cache identity error: " + error.Message);
+                log((cuda.Hip ? "hsaco" : "PTX") + " cache identity error: " + error.Message);
             }
             metrics["cache_read_ms"] = readClock.Elapsed.TotalMilliseconds;
             if (image != null)
@@ -176,7 +184,7 @@ namespace GRAL_2001
                 catch (Exception error) when (module == IntPtr.Zero)
                 {
                     metrics["cache_status"] = "hit_rejected";
-                    log("PTX cache entry rejected: " + error.Message);
+                    log((cuda.Hip ? "hsaco" : "PTX") + " cache entry rejected: " + error.Message);
                     image = null;
                 }
             }
@@ -190,7 +198,7 @@ namespace GRAL_2001
                 WriteDiagnostic("server_compile.log", compileLog);
                 if (cachePath != null) metrics["cache_write_status"] = GpuModuleCache.Write(cachePath, key, image, cuda.BinaryKind);
             }
-            else WriteDiagnostic("server_compile.log", "Module cache hit; NVRTC compile skipped.\n");
+            else WriteDiagnostic("server_compile.log", cuda.Hip ? "Module cache hit; hiprtc compile skipped.\n" : "Module cache hit; NVRTC compile skipped.\n");
             WriteDiagnostic("state_layout.json", state.LayoutJson());
             Canceled();
             PrewarmKernels();
@@ -224,7 +232,8 @@ namespace GRAL_2001
                 fnResidual = cuda.Function(module, "gral_residual");
                 long bytes;
                 (stateAddress, bytes) = cuda.Global(module, "P");
-                if (bytes != state.Size) throw new InvalidOperationException("State layout size: CUDA " + bytes + ", host " + state.Size);
+                if (bytes != state.Size) throw new InvalidOperationException("State layout size: " + (cuda.Hip ? "HIP " : "CUDA ") + bytes + ", host " + state.Size);
+                if (cuda.Hip) hipTrapAddress = cuda.Global(module, GpuCuda.HipTrapFlag).Address;
             }
             catch
             {
@@ -265,7 +274,7 @@ namespace GRAL_2001
         {
             var info = new Dictionary<string, object>(cuda.DeviceInfo);
             info["total_memory_mib"] = (long)cuda.DeviceInfo["total_memory_bytes"] / (1024 * 1024);
-            info["target"] = (cuda.BinaryKind == "ptx" ? "compute_" : "sm_") + cuda.TargetArch;
+            info["target"] = cuda.TargetText;
             info["device_free_bytes"] = metrics["device_free_bytes"];
             info["device_budget_bytes"] = deviceBudget;
             info["adaptive_launch"] = adaptiveLaunch;
@@ -1020,6 +1029,15 @@ namespace GRAL_2001
             throw new InvalidOperationException("GPU " + detail + "; phase=" + I("DeviceErrorPhase") + ", particle=" + particle + "; whole run aborted; results unavailable");
         }
 
+        // A HIP trap ends only its wavefront and the launch still succeeds; see GpuCuda.HipSource.
+        private void CheckHipTrap()
+        {
+            int trapped;
+            cuda.CopyToHost(&trapped, hipTrapAddress, sizeof(int), "read HIP trap flag");
+            if (trapped != 0)
+                throw new InvalidOperationException("GPU kernel reached a trap (Math.Abs of int.MinValue or Math.Sign of NaN, which throw on the CPU); whole run aborted; results unavailable");
+        }
+
         private double Launch(IntPtr function, long count, void** args, int block)
         {
             var clock = Stopwatch.StartNew();
@@ -1039,6 +1057,7 @@ namespace GRAL_2001
             AddMs("status_d2h_ms", download);
             Add("status_d2h_bytes", statusSize);
             CheckDeviceError();
+            if (cuda.Hip) CheckHipTrap();
             double total = clock.Elapsed.TotalMilliseconds;
             kernelTotalMs += total;
             return total;
@@ -1312,7 +1331,7 @@ namespace GRAL_2001
             finally
             {
                 try { cuda?.Dispose(); }
-                catch (Exception error) { log("CUDA cleanup failed: " + error.Message); }
+                catch (Exception error) { log((cuda?.Hip == true ? "HIP" : "CUDA") + " cleanup failed: " + error.Message); }
                 try { output.Dispose(); } catch (IOException) { }
                 try { input.Dispose(); } catch (IOException) { }
             }

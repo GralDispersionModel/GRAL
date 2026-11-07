@@ -78,7 +78,7 @@ namespace GRAL_2001
         {
             if (image.Length <= 1 || image.Length > MaxImage) return false;
             if (kind == "ptx") return image[^1] == 0 && Array.IndexOf(image, (byte)0) == image.Length - 1;
-            return kind == "cubin" && image.Length >= 4 && image[0] == 0x7f && image[1] == (byte)'E' && image[2] == (byte)'L' && image[3] == (byte)'F';
+            return (kind == "cubin" || kind == "hsaco") && image.Length >= 4 && image[0] == 0x7f && image[1] == (byte)'E' && image[2] == (byte)'L' && image[3] == (byte)'F';
         }
 
         internal static (byte[] Image, string Status) Read(string path, string key, string kind)
@@ -109,7 +109,7 @@ namespace GRAL_2001
 
         internal static string Write(string path, string key, byte[] image, string kind)
         {
-            if ((kind != "ptx" && kind != "cubin") || !ValidImage(image, kind)) return "write_error";
+            if ((kind != "ptx" && kind != "cubin" && kind != "hsaco") || !ValidImage(image, kind)) return "write_error";
             string temp = null;
             try
             {
