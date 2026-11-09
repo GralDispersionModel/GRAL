@@ -2,6 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -62,6 +63,26 @@ namespace GRAL_2001
         private GpuCuda cuda;
         private IntPtr module, fnFresh, fnResidual, eventStart, eventEnd;
         private ulong stateAddress, hipTrapAddress, hipStatusAddress;
+        // Run-configuration specialization (HIP): the specialized State fields per step, the kernel source, the general code
+        // object and the key of the loaded module ("" = general kernel).
+        private static readonly string[] SpecializationSteps = { "flags", "ints", "grid", "depo", "src" };
+        private static readonly string[] SpecializedInts = { "ISTATIONAER", "IStatistics", "LogLevel", "Topo" };
+        private static readonly string[] SpecializedGridInts = { "GrammSouth", "GrammWest", "IKOOAGRAL", "JKOOAGRAL", "NII", "NJJ", "NKK",
+                                                                 "NKK_Transient", "NS", "NX", "NXL", "NY", "NYL", "ReceptorNumber", "TS_Count" };
+        private const int MaxSpecializedImages = 6;
+        private readonly List<string> boolFlags = new List<string>();
+        private readonly HashSet<string> intScalars = new HashSet<string>(StringComparer.Ordinal);
+        private string[] specializedBools = Array.Empty<string>(), specializedInts = Array.Empty<string>(), specializedGridInts = Array.Empty<string>();
+        private readonly HashSet<string> specializationSteps = new HashSet<string>(StringComparer.Ordinal);
+        private string generatedSource, loadedSpecialization = "";
+        private byte[] generalImage;
+        private bool specialize;
+        // Source type shared by every used particle of the last fresh launch range: 0-255, MixedSourceTypes, or -1 (not known yet).
+        private int freshSourceType = -1;
+        private const int MixedSourceTypes = -2;
+        private readonly HashSet<string> failedSpecializations = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, byte[]> specializedImages = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        private Dictionary<string, object> toolchainDigests;
         private readonly Dictionary<string, Buffer> buffers = new Dictionary<string, Buffer>(StringComparer.Ordinal);
         private readonly Dictionary<string, IntPtr> mappedBuffers = new Dictionary<string, IntPtr>(StringComparer.Ordinal);
         private readonly Dictionary<string, byte[]> hostArrays = new Dictionary<string, byte[]>(StringComparer.Ordinal);
@@ -103,7 +124,12 @@ namespace GRAL_2001
                 string name = f.GetProperty("name").GetString(), cpp = f.GetProperty("cpp").GetString();
                 bool constant = f.GetProperty("constant").GetBoolean();
                 if (cpp.StartsWith("Arr<", StringComparison.Ordinal)) arrayCpp[name] = cpp;
-                else if (!constant) { inputScalars.Add(name); requiredInitScalars.Add(name); }
+                else if (!constant)
+                {
+                    inputScalars.Add(name); requiredInitScalars.Add(name);
+                    if (cpp == "bool") boolFlags.Add(name);
+                    if (cpp == "int") intScalars.Add(name);
+                }
                 if (f.TryGetProperty("wire_dtype", out var wire) && wire.ValueKind == JsonValueKind.String) wireDtypes[name] = wire.GetString();
             }
             foreach (var (name, cpp) in new[] { ("GridRecStart", "Arr<int,1>"), ("GridRecList", "Arr<int,1>"), ("Trace", "Arr<double,2>"),
@@ -115,6 +141,12 @@ namespace GRAL_2001
                     doubleStorage.Add(pair.Key);
             foreach (string name in new[] { "RnGSeed1", "RnGSeed2", "GridRecRow", "TraceEnabled" }) inputScalars.Add(name);
             foreach (string name in new[] { "RnGSeed1", "RnGSeed2", "GridRecRow" }) requiredInitScalars.Add(name);
+            // TraceEnabled is a host-only State bool; it gates the trace stores in every loop step.
+            specializedBools = boolFlags.Concat(state.Has("TraceEnabled") ? new[] { "TraceEnabled" } : Array.Empty<string>())
+                .Distinct(StringComparer.Ordinal).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            // Run constants only: IWET (situation index) and MetProfileNumb (per situation) are never specialized.
+            specializedInts = SpecializedInts.Where(intScalars.Contains).ToArray();
+            specializedGridInts = SpecializedGridInts.Where(intScalars.Contains).ToArray();
         }
 
         // ------------------------------------------------------------------ startup
@@ -127,6 +159,26 @@ namespace GRAL_2001
             Canceled();
             cuda = new GpuCuda(runtimeDirectory, log);
             Canceled();
+            // HIP only; the CUDA path compiles one general kernel. Read before the first compile, so a wrong value fails early.
+            // INU_GPU_SPECIALIZE (any case): unset, 1 or on = all steps; 0 or off = general kernel; a comma list of steps (flags,
+            // ints, grid, depo, src) enables only those.
+            if (cuda.Hip)
+            {
+                string setting = (Environment.GetEnvironmentVariable("INU_GPU_SPECIALIZE") ?? "").Trim().ToLowerInvariant();
+                string usage = " (use 0, off, 1, on or a list of " + string.Join(", ", SpecializationSteps) + ")";
+                if (setting.Length == 0 || setting == "1" || setting == "on") specializationSteps.UnionWith(SpecializationSteps);
+                else if (setting != "0" && setting != "off")
+                {
+                    foreach (string step in setting.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        if (!SpecializationSteps.Contains(step, StringComparer.Ordinal))
+                            throw new ArgumentException("INU_GPU_SPECIALIZE: unknown step '" + step + "'" + usage);
+                        specializationSteps.Add(step);
+                    }
+                    if (specializationSteps.Count == 0) throw new ArgumentException("INU_GPU_SPECIALIZE: no step in '" + setting + "'" + usage);
+                }
+            }
+            specialize = specializationSteps.Count > 0;
             metrics["pipe_read_wait_ms"] = 0.0; metrics["h2d_ms"] = 0.0; metrics["d2h_ms"] = 0.0; metrics["kernel_device_ms"] = 0.0;
             metrics["kernel_launches"] = 0L; metrics["kernel_max_device_ms"] = 0.0; metrics["buffer_allocation_count"] = 0L; metrics["buffer_reuse_count"] = 0L;
             metrics["buffer_free_count"] = 0L; metrics["device_buffer_bytes"] = 0L; metrics["peak_device_buffer_bytes"] = 0L; metrics["zero_fill_bytes"] = 0L;
@@ -143,6 +195,7 @@ namespace GRAL_2001
             metrics["host"] = ".NET " + Environment.Version;
             string sourcePath = Path.Combine(runtimeDirectory, "generated.cu");
             string source = File.ReadAllText(sourcePath, Encoding.UTF8);
+            generatedSource = source;
             string cachePath = null, key = null;
             byte[] image = null;
             var readClock = Stopwatch.StartNew();
@@ -150,24 +203,7 @@ namespace GRAL_2001
             {
                 if (GpuModuleCache.Directory() != null)
                 {
-                    // On HIP the key covers the source as compiled (after HipSource) and the comgr libraries that generate the code.
-                    var identity = new Dictionary<string, object>
-                    {
-                        {"schema", GpuModuleCache.Schema}, {"source_sha256", GpuModuleCache.Digest(Encoding.UTF8.GetBytes(cuda.Hip ? GpuCuda.HipSource(source) : source))},
-                        {"manifest_sha256", GpuModuleCache.Digest(manifestBytes)}, {"state_size", state.Size}, {"state_alignment", 8},
-                        {"fields", state.Fields.Select(f => new object[] { f.Name, f.Cpp, f.Offset, f.Size }).ToArray()},
-                        {"options", cuda.CompileOptions}, {"program", GpuCuda.NvrtcProgram}, {"nvrtc_version", new[] { cuda.NvrtcVersion.Major, cuda.NvrtcVersion.Minor }},
-                        {"binary_kind", cuda.BinaryKind}, {"nvrtc_sha256", GpuModuleCache.Digest(File.ReadAllBytes(cuda.NvrtcPath))},
-                        {"nvrtc_builtins_sha256", GpuModuleCache.Digest(File.ReadAllBytes(cuda.NvrtcBuiltinsPath))}
-                    };
-                    if (cuda.Hip)
-                    {
-                        identity["comgr_sha256"] = cuda.ComgrPaths.Select(p => GpuModuleCache.Digest(File.ReadAllBytes(p))).ToArray();
-                        // hiprtc and comgr also read these variables themselves; each can change the generated code.
-                        identity["hip_compiler_environment"] = new[] { "HIPRTC_COMPILE_OPTIONS_APPEND", "HIPRTC_LINK_OPTIONS_APPEND", "AMD_COMGR_DRIVER_OPTIONS_APPEND", "HIP_DEVICE_LIB_PATH" }
-                            .Select(n => n + "=" + (Environment.GetEnvironmentVariable(n) ?? "")).ToArray();
-                    }
-                    (cachePath, key) = GpuModuleCache.CachePath(identity);
+                    (cachePath, key) = GpuModuleCache.CachePath(ModuleIdentity(cuda.Hip ? GpuCuda.HipSource(source) : source));
                     if (cachePath != null) { string status; (image, status) = GpuModuleCache.Read(cachePath, key, cuda.BinaryKind); metrics["cache_status"] = status; }
                     else metrics["cache_status"] = key;
                 }
@@ -202,11 +238,261 @@ namespace GRAL_2001
             WriteDiagnostic("state_layout.json", state.LayoutJson());
             Canceled();
             PrewarmKernels();
+            generalImage = image;
+            if (cuda.Hip)
+            {
+                metrics["specialization"] = specialize ? string.Join(",", SpecializationSteps.Where(specializationSteps.Contains)) : "disabled";
+                metrics["specialization_flags"] = ""; metrics["specialization_status"] = "general"; metrics["specialization_switches"] = 0L;
+                metrics["specialization_failures"] = 0L; metrics["specialization_ms"] = 0.0;
+            }
             eventStart = cuda.CreateEvent();
             eventEnd = cuda.CreateEvent();
             startupMs = start.Elapsed.TotalMilliseconds;
             RefreshMemoryBudget();
             ConfigureLaunchSizing();
+        }
+
+        /// <summary>Module cache identity of a kernel source as it is compiled (after GpuCuda.HipSource on HIP).</summary>
+        private Dictionary<string, object> ModuleIdentity(string compiledSource)
+        {
+            // The compiler libraries are hashed once per process (amd_comgr.dll alone is about 120 MB).
+            toolchainDigests ??= new Dictionary<string, object>
+            {
+                {"nvrtc_sha256", GpuModuleCache.Digest(File.ReadAllBytes(cuda.NvrtcPath))},
+                {"nvrtc_builtins_sha256", GpuModuleCache.Digest(File.ReadAllBytes(cuda.NvrtcBuiltinsPath))},
+                {"comgr_sha256", cuda.Hip ? cuda.ComgrPaths.Select(p => GpuModuleCache.Digest(File.ReadAllBytes(p))).ToArray() : null}
+            };
+            // On HIP the key covers the source as compiled (after HipSource) and the comgr libraries that generate the code.
+            var identity = new Dictionary<string, object>
+            {
+                {"schema", GpuModuleCache.Schema}, {"source_sha256", GpuModuleCache.Digest(Encoding.UTF8.GetBytes(compiledSource))},
+                {"manifest_sha256", GpuModuleCache.Digest(manifestBytes)}, {"state_size", state.Size}, {"state_alignment", 8},
+                {"fields", state.Fields.Select(f => new object[] { f.Name, f.Cpp, f.Offset, f.Size }).ToArray()},
+                {"options", cuda.CompileOptions}, {"program", GpuCuda.NvrtcProgram}, {"nvrtc_version", new[] { cuda.NvrtcVersion.Major, cuda.NvrtcVersion.Minor }},
+                {"binary_kind", cuda.BinaryKind}, {"nvrtc_sha256", toolchainDigests["nvrtc_sha256"]},
+                {"nvrtc_builtins_sha256", toolchainDigests["nvrtc_builtins_sha256"]}
+            };
+            if (cuda.Hip)
+            {
+                identity["comgr_sha256"] = toolchainDigests["comgr_sha256"];
+                // hiprtc and comgr also read these variables themselves; each can change the generated code.
+                identity["hip_compiler_environment"] = new[] { "HIPRTC_COMPILE_OPTIONS_APPEND", "HIPRTC_LINK_OPTIONS_APPEND", "AMD_COMGR_DRIVER_OPTIONS_APPEND", "HIP_DEVICE_LIB_PATH" }
+                    .Select(n => n + "=" + (Environment.GetEnvironmentVariable(n) ?? "")).ToArray();
+            }
+            return identity;
+        }
+
+        /// <summary>
+        /// One specialization of the kernel for the current State values: literals for run-constant scalar fields (GpuCuda.Specialize),
+        /// the AdaptiveRoughnessMax test, the dry-deposition reads when deposition is off, and the fresh source-type load when
+        /// every used particle of the last fresh range has one type (a mixed range keeps the load: one entry per source type
+        /// split the launches and was slower on B00). Key lists every specialized value; it names the code object.
+        /// </summary>
+        private sealed class SpecializationPlan
+        {
+            internal readonly List<string> Key = new List<string>();
+            internal readonly List<KeyValuePair<string, string>> Literals = new List<KeyValuePair<string, string>>();
+            internal bool? RoughnessPositive;
+            internal bool NoDryDeposition;
+            internal int SourceType = -1;
+            internal string Name => string.Join(",", Key);
+        }
+
+        private SpecializationPlan PlanSpecialization(bool withSourceType)
+        {
+            var plan = new SpecializationPlan();
+            void Literal(string name, string text, string keyValue) { plan.Literals.Add(new KeyValuePair<string, string>(name, text)); plan.Key.Add(name + "=" + keyValue); }
+            static string IntText(int v) => v == int.MinValue ? "(-2147483647-1)" : "(" + v.ToString(CultureInfo.InvariantCulture) + ")";
+            if (specializationSteps.Contains("flags"))
+                foreach (string name in specializedBools) { bool v = B(name); Literal(name, v ? "true" : "false", v ? "1" : "0"); }
+            if (specializationSteps.Contains("ints"))
+            {
+                foreach (string name in specializedInts) Literal(name, IntText(I(name)), I(name).ToString(CultureInfo.InvariantCulture));
+                if (state.Has("AdaptiveRoughnessMax"))
+                {
+                    plan.RoughnessPositive = state.GetReal("AdaptiveRoughnessMax") > 0;
+                    plan.Key.Add("AdaptiveRoughnessMax>0=" + (plan.RoughnessPositive.Value ? "1" : "0"));
+                }
+            }
+            if (specializationSteps.Contains("grid"))
+                foreach (string name in specializedGridInts) Literal(name, IntText(I(name)), I(name).ToString(CultureInfo.InvariantCulture));
+            // Guard() accepts no nonzero dry-deposition mode without DepositionExist, so the mode reads are 0 for every launch.
+            if (specializationSteps.Contains("depo") && state.Has("DepositionExist") && !B("DepositionExist"))
+            {
+                plan.NoDryDeposition = true;
+                plan.Key.Add("DryDepositionModes=0");
+            }
+            if (withSourceType && specializationSteps.Contains("src") && freshSourceType >= 0)
+            {
+                plan.SourceType = freshSourceType;
+                plan.Key.Add("FreshSourceType=" + freshSourceType.ToString(CultureInfo.InvariantCulture));
+            }
+            return plan;
+        }
+
+        private static long ReadParticle(byte[] data, long index, int width) => width switch
+        {
+            1 => data[index],
+            2 => BinaryPrimitives.ReadInt16LittleEndian(data.AsSpan((int)(2 * index))),
+            4 => BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan((int)(4 * index))),
+            8 => BinaryPrimitives.ReadInt64LittleEndian(data.AsSpan((int)(8 * index))),
+            _ => throw new ArgumentException("Unsupported particle array width " + width)
+        };
+
+        /// <summary>
+        /// Source type shared by every used particle (ParticleSource != 0) in [first, first + count), or MixedSourceTypes.
+        /// A range without used particles keeps the previous value: the kernel returns before the source-type load for them.
+        /// </summary>
+        private int UniformSourceType(long first, long count)
+        {
+            byte[] types = hostArrays["SourceType"], sources = hostArrays["ParticleSource"];
+            int typeWidth = DtypeSize("SourceType"), sourceWidth = DtypeSize("ParticleSource");
+            long found = -1;
+            for (long i = first; i < first + count; i++)
+            {
+                if (ReadParticle(sources, i, sourceWidth) == 0) continue;
+                long type = ReadParticle(types, i, typeWidth);
+                if (type < 0 || type > 255) return MixedSourceTypes;
+                if (found < 0) found = type;
+                else if (found != type) return MixedSourceTypes;
+            }
+            return found < 0 ? freshSourceType : (int)found;
+        }
+
+        /// <summary>
+        /// HIP: run the kernel compiled for the current run-configuration values (PlanSpecialization), so the compiler drops
+        /// the code of features this run does not use. Called before every State upload, so the loaded kernel always matches
+        /// the values of the next launch; if a value changes between situations, the kernel for the new values is loaded. Each
+        /// key is compiled once per process (and kept in the module cache); after MaxSpecializedImages keys, new source-type
+        /// variants are no longer built. If a specialized kernel cannot be built or loaded, that key runs on the general
+        /// kernel. Invariant: loadedSpecialization names the loaded code object.
+        /// </summary>
+        private void EnsureSpecialized()
+        {
+            if (!specialize) return;
+            var plan = PlanSpecialization(withSourceType: true);
+            // Past the cap, a single-source-type variant that is not built yet is not compiled; the run-constant kernel without
+            // the source-type step is used instead.
+            if (plan.SourceType >= 0 && !specializedImages.ContainsKey(plan.Name) && specializedImages.Count >= MaxSpecializedImages)
+                plan = PlanSpecialization(withSourceType: false);
+            string key = plan.Name;
+            string target = failedSpecializations.Contains(key) ? "" : key;
+            if (target == loadedSpecialization) return;
+            var clock = Stopwatch.StartNew();
+            // SwitchModule restores the previous module when it fails, so a different handle after an error means a new
+            // code object was loaded before the error (for example in the module-cache write).
+            IntPtr entryModule = module;
+            string status = "general";
+            try
+            {
+                if (target.Length == 0) SwitchModule(generalImage);
+                else status = LoadSpecialized(plan);
+                loadedSpecialization = target;
+                metrics["specialization_switches"] = (long)metrics["specialization_switches"] + 1;
+            }
+            catch (Exception error) when (!(error is OperationCanceledException) && target.Length > 0)
+            {
+                // Return to the general kernel if the loaded code object is specialized for other values or was loaded
+                // during this call (a failure of that switch stops the run).
+                failedSpecializations.Add(key);
+                metrics["specialization_failures"] = (long)metrics["specialization_failures"] + 1;
+                log("GPU kernel specialization for " + key + " failed; using the general kernel: " + error.Message);
+                status = "failed";
+                if (loadedSpecialization.Length > 0 || module != entryModule)
+                {
+                    SwitchModule(generalImage);
+                    loadedSpecialization = "";
+                    metrics["specialization_switches"] = (long)metrics["specialization_switches"] + 1;
+                }
+            }
+            metrics["specialization_flags"] = loadedSpecialization; metrics["specialization_status"] = status;
+            metrics["specialization_ms"] = (double)metrics["specialization_ms"] + clock.Elapsed.TotalMilliseconds;
+        }
+
+        /// <summary>Builds (memory, module cache or hiprtc) and loads the kernel for one plan; returns how it was obtained.</summary>
+        private string LoadSpecialized(SpecializationPlan plan)
+        {
+            string flags = plan.Name;
+            if (specializedImages.TryGetValue(flags, out byte[] known))
+            {
+                SwitchModule(known);
+                return "memory";
+            }
+            string source = GpuCuda.Specialize(generatedSource, plan.Literals);
+            if (plan.RoughnessPositive.HasValue) source = GpuCuda.SpecializeAdaptiveRoughness(source, plan.RoughnessPositive.Value);
+            if (plan.NoDryDeposition) source = GpuCuda.SpecializeNoDryDeposition(source);
+            if (plan.SourceType >= 0) source = GpuCuda.SpecializeSourceType(source, plan.SourceType);
+            string cachePath = null, key = null;
+            byte[] image = null;
+            try
+            {
+                if (GpuModuleCache.Directory() != null)
+                {
+                    (cachePath, key) = GpuModuleCache.CachePath(ModuleIdentity(GpuCuda.HipSource(source)));
+                    if (cachePath != null) (image, _) = GpuModuleCache.Read(cachePath, key, cuda.BinaryKind);
+                }
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is NotSupportedException)
+            {
+                log("hsaco cache identity error for the specialized kernel: " + error.Message);
+                cachePath = null; image = null;
+            }
+            string status = "cache_hit";
+            if (image != null)
+            {
+                try { SwitchModule(image); }
+                catch (Exception error) when (!(error is OperationCanceledException))
+                {
+                    log("hsaco cache entry for the specialized kernel rejected: " + error.Message);
+                    image = null;
+                }
+            }
+            if (image == null)
+            {
+                status = "compiled";
+                image = cuda.CompileImage(source, out string compileLog);
+                WriteDiagnostic("server_compile_specialized.log", "flags: " + flags + "\n" + compileLog);
+                SwitchModule(image);
+                if (cachePath != null) metrics["specialization_cache_write_status"] = GpuModuleCache.Write(cachePath, key, image, cuda.BinaryKind);
+            }
+            specializedImages[flags] = image;
+            return status;
+        }
+
+        /// <summary>
+        /// Loads another code object of the same kernel source, validates and prewarms it, and only then releases the previous
+        /// one. On any failure the previous code object, its handles and the kernel resources stay in use.
+        /// </summary>
+        private void SwitchModule(byte[] image)
+        {
+            IntPtr oldModule = module, oldFresh = fnFresh, oldResidual = fnResidual;
+            ulong oldState = stateAddress, oldTrap = hipTrapAddress, oldStatus = hipStatusAddress;
+            var oldResources = new Dictionary<string, Dictionary<string, int>>(kernelResources);
+            try
+            {
+                LoadAndValidate(image);
+                PrewarmKernels(recordStartupMetrics: false);
+            }
+            catch
+            {
+                if (module != IntPtr.Zero && module != oldModule)
+                {
+                    IntPtr failed = module;
+                    module = IntPtr.Zero;
+                    try { cuda.UnloadModule(failed); }
+                    catch (GpuCudaException unload) { log("Could not unload the rejected GPU module: " + unload.Message); }
+                }
+                module = oldModule; fnFresh = oldFresh; fnResidual = oldResidual;
+                stateAddress = oldState; hipTrapAddress = oldTrap; hipStatusAddress = oldStatus;
+                kernelResources.Clear();
+                foreach (var pair in oldResources) kernelResources[pair.Key] = pair.Value;
+                throw;
+            }
+            if (oldModule != IntPtr.Zero)
+            {
+                try { cuda.UnloadModule(oldModule); }
+                catch (GpuCudaException unload) { log("Could not unload the previous GPU module: " + unload.Message); }
+            }
         }
 
         private void WriteDiagnostic(string name, string text)
@@ -255,27 +541,35 @@ namespace GRAL_2001
             finally { metrics["post_load_abi_ms"] = (double)metrics["post_load_abi_ms"] + clock.Elapsed.TotalMilliseconds; }
         }
 
-        private void PrewarmKernels()
+        private void PrewarmKernels(bool recordStartupMetrics = true)
         {
             // Launch the entry points with no active particles before field allocation to fix their resource footprint.
+            // A module switch (run-configuration specialization) prewarms again but keeps the startup metrics.
             var clock = Stopwatch.StartNew();
-            metrics["kernel_prewarm_count"] = 0L;
-            metrics["device_free_before_prewarm_bytes"] = cuda.MemoryInfo().Free;
+            if (recordStartupMetrics)
+            {
+                metrics["kernel_prewarm_count"] = 0L;
+                metrics["device_free_before_prewarm_bytes"] = cuda.MemoryInfo().Free;
+            }
             int zero0 = 0, zero1 = 0;
             ulong* pointers = stackalloc ulong[ResidualArrays.Length];
             void** args = stackalloc void*[2 + ResidualArrays.Length];
             args[0] = &zero0; args[1] = &zero1;
             for (int i = 0; i < ResidualArrays.Length; i++) { pointers[i] = 0; args[2 + i] = &pointers[i]; }
-            foreach (var (phase, function) in new[] { ("fresh", fnFresh), ("residual", fnResidual) })
+            var entries = new List<(string, IntPtr)> { ("fresh", fnFresh), ("residual", fnResidual) };
+            // Describe only the entry points of the loaded module (SwitchModule keeps its own copy for a rollback).
+            kernelResources.Clear();
+            foreach (var (phase, function) in entries)
             {
                 var attributes = cuda.FunctionAttributes(function);
                 kernelResources[phase] = new Dictionary<string, int> { { "max_threads_per_block", attributes.MaxThreadsPerBlock }, { "local_size_bytes", attributes.LocalSizeBytes }, { "registers", attributes.Registers } };
                 uint block = (uint)Math.Min(32, attributes.MaxThreadsPerBlock);
                 cuda.Launch(function, 1, block, args, "prewarm " + phase);
                 cuda.Synchronize("synchronize prewarm " + phase);
-                metrics["kernel_prewarm_count"] = (long)metrics["kernel_prewarm_count"] + 1;
+                if (recordStartupMetrics) metrics["kernel_prewarm_count"] = (long)metrics["kernel_prewarm_count"] + 1;
             }
             metrics["kernel_resources"] = kernelResources;
+            if (!recordStartupMetrics) return;
             metrics["device_free_after_prewarm_bytes"] = cuda.MemoryInfo().Free;
             metrics["kernel_prewarm_ms"] = clock.Elapsed.TotalMilliseconds;
         }
@@ -1009,9 +1303,10 @@ namespace GRAL_2001
 
         // ------------------------------------------------------------------ execution
 
-        private void Bind()
+        private void Bind(bool specializeKernel = true)
         {
             CheckDeviceError();
+            if (specializeKernel) EnsureSpecialized();
             fixed (byte* p = state.Data)
             {
                 cuda.CopyToDevice(stateAddress, p, state.Size, "bind State");
@@ -1140,6 +1435,7 @@ namespace GRAL_2001
             void** args = stackalloc void*[2 + ResidualArrays.Length];
             args[0] = &a0; args[1] = &a1;
             for (int i = 0; i < ResidualArrays.Length; i++) { pointers[i] = 0; args[2 + i] = &pointers[i]; }
+            if (phase == "fresh" && count > 0 && specialize && specializationSteps.Contains("src")) freshSourceType = UniformSourceType(first, count);
             long capacity = count > 0 ? PrepareParticleWindows(phase == "fresh" ? ParticleArrays : ResidualArrays, count, phase == "fresh") : 0;
             for (long offset = 0; offset < count; offset += Math.Max(1, capacity))
             {
@@ -1326,7 +1622,8 @@ namespace GRAL_2001
                             CheckInitFields(header);
                             Receive(header, "init");
                             Guard();
-                            Bind();
+                            // No kernel runs after init; the first execute loads the kernel for its own launch values.
+                            Bind(specializeKernel: false);
                             WriteFrame(new Dictionary<string, object> { { "status", "ok" }, { "state_bytes", (long)state.Size }, { "payload_bytes", 0L }, { "startup_ms", startupMs }, { "metrics_cumulative", new Dictionary<string, object>(metrics) } });
                         }
                         else if (command == "execute") WriteFrame(Execute(header));

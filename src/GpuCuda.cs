@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -886,6 +887,58 @@ namespace GRAL_2001
             " }\n" +
             " return atomicAdd(p,x);\n" +
             "}\n";
+
+        /// <summary>
+        /// Replaces every read of the given scalar State fields (`P.Name`) with a literal of the host value, so the compiler
+        /// removes the branches of features that are off and folds run constants. The State layout is unchanged; the host still
+        /// uploads the fields. Assignments (`P.Name = ...`) are left alone; the generated kernel has none for these fields, and
+        /// any other write form fails to compile, which falls back to the general kernel.
+        /// </summary>
+        internal static string Specialize(string source, IEnumerable<KeyValuePair<string, string>> literals)
+        {
+            foreach (var (name, literal) in literals)
+                source = Regex.Replace(source, @"(?<![\w.])P\." + Regex.Escape(name) + @"\b(?!\s*=(?!=))", literal, RegexOptions.CultureInvariant);
+            return source;
+        }
+
+        /// <summary>Replaces each `P.AdaptiveRoughnessMax > 0` test by its host value; the kernel reads the field nowhere else.</summary>
+        internal static string SpecializeAdaptiveRoughness(string source, bool positive)
+        {
+            const string test = "P.AdaptiveRoughnessMax > 0";
+            if (!source.Contains(test, StringComparison.Ordinal)) throw new InvalidOperationException("Specialization: no AdaptiveRoughnessMax test");
+            source = source.Replace(test, positive ? "true" : "false", StringComparison.Ordinal);
+            if (Regex.IsMatch(source, @"(?<![\w.])P\.AdaptiveRoughnessMax\b", RegexOptions.CultureInvariant))
+                throw new InvalidOperationException("Specialization: AdaptiveRoughnessMax is read in another form");
+            return source;
+        }
+
+        /// <summary>
+        /// Without DepositionExist the host accepts no nonzero dry-deposition mode (GpuRuntimeServer.Guard, GpuSituationDriver),
+        /// so the fresh mode read becomes 0 and the residual mode test becomes false; the deposition code drops out.
+        /// </summary>
+        internal static string SpecializeNoDryDeposition(string source)
+        {
+            int fresh = 0, residual = 0;
+            source = Regex.Replace(source, @"(?<![\w.])P\.ParticleMode\[ParticleIndex\(nteil\)\]", _ => { fresh++; return "0"; }, RegexOptions.CultureInvariant);
+            source = Regex.Replace(source, @"(?<![\w.])P\.TransientDepoMode != nullptr", _ => { residual++; return "false"; }, RegexOptions.CultureInvariant);
+            if (fresh != 1 || residual != 1 || Regex.IsMatch(source, @"(?<![\w.])P\.ParticleMode\b", RegexOptions.CultureInvariant))
+                throw new InvalidOperationException("Specialization: unexpected deposition-mode reads " + fresh + "/" + residual);
+            return source;
+        }
+
+        /// <summary>
+        /// When every used particle of the launch has the same source type, the load of that type in Zeitschleife_Calculate
+        /// (after its unused-slot return) becomes the value. The read in Zeitschleife_IntStandCalculate stays: the residual
+        /// kernel calls that function too, with particle index 0, so a literal there would change residual particles.
+        /// </summary>
+        internal static string SpecializeSourceType(string source, int type)
+        {
+            int count = 0;
+            source = Regex.Replace(source, @"(\bSourceType_\d+) = P\.SourceType\[ParticleIndex\(nteil\)\];",
+                m => { count++; return m.Groups[1].Value + " = " + type.ToString(CultureInfo.InvariantCulture) + ";"; }, RegexOptions.CultureInvariant);
+            if (count != 1) throw new InvalidOperationException("Specialization: expected one fresh source-type load, found " + count);
+            return source;
+        }
 
         /// <summary>
         /// The kernel source is CUDA C++. HIP-only changes (the CUDA source is untouched; only (3) can change results: it adds a
