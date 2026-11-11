@@ -7,8 +7,9 @@ namespace GRAL_2001
     // GRAL --gpu-check: checks the GPU runtime files and starts the GPU backend as a GPU run would (driver, device, runtime
     // compiler, probe compile). Prints one line "GRAL_GPU_CHECK {json}" with a status such as ok, no_manifest, no_driver,
     // no_device, only_integrated, no_nvrtc, no_hiprtc, nvrtc_rejected, hiprtc_rejected or invalid_setting. Settings that only
-    // a run reads (INU_GPU_SPECIALIZE, INU_GPU_REPRODUCIBLE_SUMS, chunk and block size) are not checked. Reads no project
-    // files and writes nothing; exit code 0 means that the GPU backend starts.
+    // the runtime reads during a run (specialization, reproducible sums, chunk and block size, kernel-time limit, memory
+    // budgets, module cache) are not checked. Reads no project files and writes nothing; exit code 0 means that the GPU
+    // backend starts.
     internal static class GpuCheck
     {
         internal const string Argument="--gpu-check";
