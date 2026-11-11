@@ -22,7 +22,8 @@ With `INU_GPU_BACKEND` unset, GRAL uses CUDA. Only when the NVIDIA driver librar
 - NVRTC, the CUDA runtime compiler (the NVRTC library and its matching `nvrtc-builtins` library). GRAL looks in this order:
   1. `INU_GPU_NVRTC_DIR`, when set (only there);
   2. the `nvrtc` folder next to `fields_manifest.json`, either with the two libraries copied in or filled with `pip install --target <runtime>\nvrtc nvidia-cuda-nvrtc-cu12`;
-  3. the CUDA toolkit in `CUDA_PATH`, then the other installed toolkits in `CUDA_PATH_V*` (newest first). Entries that are not absolute paths are skipped.
+  3. the CUDA toolkit in `CUDA_PATH`, then the other installed toolkits in `CUDA_PATH_V*` (newest first). Entries that are not absolute paths are skipped;
+  4. the per-user folder `%LOCALAPPDATA%\GRAL\GpuToolchain\nvrtc` (Windows), which a front end can fill without administrator rights.
   CUDA 13.x NVRTC no longer compiles for Maxwell, Pascal and Volta (compute capability below 7.5); use NVRTC 12.x for those cards.
 - Windows x64, which is the tested platform. The Linux code path (`libcuda.so.1`, `libnvrtc.so`, `CUDA_HOME`) is untested.
 
@@ -34,7 +35,8 @@ With `INU_GPU_BACKEND` unset, GRAL uses CUDA. Only when the NVIDIA driver librar
 - hiprtc, the HIP runtime compiler: `hiprtcNNNN.dll` with its `hiprtc-builtinsNNNN.dll` and the code-object manager (`amd_comgr.dll` or `amd_comgr_N.dll`) in the same folder. GRAL looks in this order:
   1. `INU_GPU_HIPRTC_DIR`, when set (only there);
   2. the `hiprtc` folder next to `fields_manifest.json`;
-  3. `%HIP_PATH%\bin`, which the AMD HIP SDK installer sets.
+  3. `%HIP_PATH%\bin`, which the AMD HIP SDK installer sets;
+  4. the per-user folder `%LOCALAPPDATA%\GRAL\GpuToolchain\hiprtc`.
 
   The ROCm Python packages also contain hiprtc, for example `pip install --index-url https://stable.repo.amd.com/rocm/whl-next/ "rocm[libraries,devel,device-gfx1201]"` for RDNA4; the libraries are in `Lib\site-packages\_rocm_sdk_core\bin` of that environment.
 - Tested with a Radeon RX 9070 XT (gfx1201), the HIP runtime 7.12 of driver 32.0.32015.12012 and `hiprtc0716.dll` from ROCm 10.1 (its `hiprtcVersion` reports 9.0). Other AMD GPUs have not been tried; on any architecture other than gfx1201, GRAL prints `GPU warning: ...` at startup, so compare a test case with a CPU run before relying on the results.
@@ -45,22 +47,23 @@ At startup the runtime reads the compute capability of the selected device, asks
 
 ## Running GRAL on the GPU
 
-Copy `fields_manifest.json` and `generated.cu` from `gpu/runtime` to a folder (add the `nvrtc` or `hiprtc` folder there if you use one) and set:
-
-| Variable | Value |
-|---|---|
-| `INU_GPU_EXPERIMENTAL` | `1` to request the GPU; anything else keeps the CPU |
-| `INU_GPU_MANIFEST` | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
-| `INU_GPU_METRICS` | JSON-lines file for per-situation metrics |
-| `INU_GPU_STDERR` | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
+The build copies `fields_manifest.json` and `generated.cu` to `gpu\runtime` next to `GRAL.dll`, so one setting is enough:
 
 ```powershell
 $env:INU_GPU_EXPERIMENTAL = '1'
-$env:INU_GPU_MANIFEST = 'D:\gral_gpu\runtime\fields_manifest.json'
-$env:INU_GPU_METRICS  = 'D:\gral_gpu\logs\gpu_metrics.jsonl'
-$env:INU_GPU_STDERR   = 'D:\gral_gpu\logs\gpu_runtime.log'
 dotnet GRAL.dll D:\project\Computation
 ```
+
+| Variable | Default | Effect |
+|---|---|---|
+| `INU_GPU_EXPERIMENTAL` | unset | `1` requests the GPU; anything else keeps the CPU |
+| `INU_GPU_MANIFEST` | `fields_manifest.json` next to GRAL, else in its `gpu\runtime` folder (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
+| `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it | JSON-lines file for per-situation metrics |
+| `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
+
+Missing folders in the two log paths are created.
+
+`GRAL.exe --gpu-check` (or `dotnet GRAL.dll --gpu-check`) starts the backend as a GPU run would, with the same settings and search order: driver, device, runtime compiler and a probe compile. It reads no project and writes no file, and prints one line, `GRAL_GPU_CHECK {...}`, with a `status` (`ok`, `no_driver`, `driver_error`, `no_device`, `only_integrated`, `no_nvrtc`, `no_hiprtc`, `toolchain_rejected`, `invalid_setting`, `no_manifest` or `failed`), the error `message` and the device fields. The exit code is 0 when the status is `ok` and 2 otherwise.
 
 Optional settings:
 

@@ -28,7 +28,22 @@ namespace GRAL_2001
             lastFallbackReason=reason;
             return false;
         }
-        private static string Required(string name) => Environment.GetEnvironmentVariable(name) ?? throw new InvalidOperationException("Missing "+name);
+        // Unset settings get defaults, so INU_GPU_EXPERIMENTAL=1 is the only setting a normal run needs.
+        private static string Setting(string name,string fallback)
+        {
+            string value=Environment.GetEnvironmentVariable(name);
+            return string.IsNullOrEmpty(value) ? fallback : value;
+        }
+        // INU_GPU_MANIFEST, else the runtime files shipped with this GRAL build: next to the executable, then in its gpu\runtime folder.
+        internal static string ManifestPath()
+        {
+            string value=Environment.GetEnvironmentVariable("INU_GPU_MANIFEST");
+            if(!string.IsNullOrEmpty(value)) return value;
+            foreach(string folder in new[]{AppContext.BaseDirectory,Path.Combine(AppContext.BaseDirectory,"gpu","runtime")})
+                if(File.Exists(Path.Combine(folder,"fields_manifest.json")) && File.Exists(Path.Combine(folder,"generated.cu"))) return Path.Combine(folder,"fields_manifest.json");
+            throw GpuCuda.Status(new FileNotFoundException("INU_GPU_MANIFEST is not set, and fields_manifest.json with generated.cu is neither next to GRAL nor in its "+
+                                                           Path.Combine("gpu","runtime")+" folder"),"no_manifest");
+        }
         // Starts the server and runs its startup probe at the first GPU-eligible situation.
         private static bool Start()
         {
@@ -50,8 +65,9 @@ namespace GRAL_2001
         }
         private static GpuSituationDriver CreateDriver()
         {
-            string metrics=GpuLogFiles.Claim(Required("INU_GPU_METRICS"),out metricsLock);
-            try { return new GpuSituationDriver(Required("INU_GPU_MANIFEST"),metrics,Required("INU_GPU_STDERR")); }
+            // Default logs go to the working directory, which is the Computation folder when GRAL is started with the project path.
+            string metrics=GpuLogFiles.Claim(Setting("INU_GPU_METRICS","GRAL_GPU_metrics.jsonl"),out metricsLock);
+            try { return new GpuSituationDriver(ManifestPath(),metrics,Setting("INU_GPU_STDERR","GRAL_GPU_runtime.log")); }
             catch { ReleaseMetricsLock(); throw; }
         }
         private static void ReleaseMetricsLock()

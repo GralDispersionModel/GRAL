@@ -141,6 +141,20 @@ namespace GRAL_2001
             }
         }
 
+        /// <summary>Marks a startup error with a short status for <c>GRAL --gpu-check</c> (no_driver, no_device, no_nvrtc, ...).</summary>
+        internal static T Status<T>(T error, string status) where T : Exception
+        {
+            error.Data["GpuStatus"] = status;
+            return error;
+        }
+
+        /// <summary>Per-user folder for a runtime compiler (nvrtc or hiprtc) that GRAL itself never writes; searched last.</summary>
+        internal static string UserToolchainFolder(string name)
+        {
+            string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return root.Length > 0 && Path.IsPathFullyQualified(root) ? Path.Combine(root, "GRAL", "GpuToolchain", name) : null;
+        }
+
         private static IntPtr Export(IntPtr library, string name) => NativeLibrary.GetExport(library, name);
         private static bool TryExport(IntPtr library, string name, out IntPtr address) => NativeLibrary.TryGetExport(library, name, out address);
 
@@ -229,7 +243,7 @@ namespace GRAL_2001
             if (string.IsNullOrEmpty(raw)) ordinal = 0;
             else if (raw.All(ch => ch >= '0' && ch <= '9')) ordinal = System.Numerics.BigInteger.Parse(raw, System.Globalization.CultureInfo.InvariantCulture);
             else throw new ArgumentException("INU_GPU_DEVICE must be a nonnegative integer, got '" + raw + "'");
-            if (count < 1) throw new InvalidOperationException("No " + api + " device is visible (check the " + (hip ? "AMD" : "NVIDIA") + " driver and " + visible + ")");
+            if (count < 1) throw Status(new InvalidOperationException("No " + api + " device is visible (check the " + (hip ? "AMD" : "NVIDIA") + " driver and " + visible + ")"), "no_device");
             if (ordinal >= count)
                 throw new ArgumentException("INU_GPU_DEVICE=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)");
             return (int)ordinal;
@@ -243,7 +257,8 @@ namespace GRAL_2001
             {
                 // A driver library that exists but does not load is a broken driver, not a missing one.
                 cudaAbsent = !Windows || !File.Exists(Path.Combine(Environment.SystemDirectory, DriverLibrary));
-                throw new InvalidOperationException("NVIDIA driver library " + DriverLibrary + " could not be loaded (" + error.Message + "); install the NVIDIA display driver", error);
+                throw Status(new InvalidOperationException("NVIDIA driver library " + DriverLibrary + " could not be loaded (" + error.Message + "); install the NVIDIA display driver", error),
+                             cudaAbsent ? "no_driver" : "driver_error");
             }
             BindDriver();
             var clock = Stopwatch.StartNew();
@@ -422,7 +437,7 @@ namespace GRAL_2001
                 if (cuDeviceGet(&handle, i) == 0 && OptionalAttribute(HipAttrIntegrated, handle) != 1) return i;
             }
             if (automatic)
-                throw new InvalidOperationException("Only integrated AMD GPUs are visible; set INU_GPU_BACKEND=hip (and INU_GPU_DEVICE) to run on one");
+                throw Status(new InvalidOperationException("Only integrated AMD GPUs are visible; set INU_GPU_BACKEND=hip (and INU_GPU_DEVICE) to run on one"), "only_integrated");
             return 0;
         }
 
@@ -448,7 +463,7 @@ namespace GRAL_2001
                     try { driver = NativeLibrary.Load(runtimeName, typeof(GpuCuda).Assembly, DllImportSearchPath.System32); loaded = runtimeName; break; }
                     catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException) { }
                 }
-                if (driver == IntPtr.Zero) throw new InvalidOperationException("AMD HIP runtime (" + string.Join(", ", HipRuntimeNames) + ") not found in System32; install the AMD Adrenalin driver");
+                if (driver == IntPtr.Zero) throw Status(new InvalidOperationException("AMD HIP runtime (" + string.Join(", ", HipRuntimeNames) + ") not found in System32; install the AMD Adrenalin driver"), "no_driver");
             }
             BindHip();
             var clock = Stopwatch.StartNew();
@@ -529,6 +544,7 @@ namespace GRAL_2001
             {
                 if (runtimeDirectory != null) directories.Add(Path.Combine(runtimeDirectory, "hiprtc"));
                 if (Environment.GetEnvironmentVariable("HIP_PATH") is string root && root.Length > 0 && Path.IsPathFullyQualified(root)) directories.Add(Path.Combine(root, "bin"));
+                if (UserToolchainFolder("hiprtc") is string user) directories.Add(user);
             }
             var result = new List<string>();
             foreach (string directory in directories)
@@ -539,8 +555,8 @@ namespace GRAL_2001
                 result.AddRange(files.Where(p => HiprtcName.IsMatch(Path.GetFileName(p))).OrderByDescending(p => p, StringComparer.Ordinal));
             }
             if (result.Count == 0)
-                throw new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) + "; install the HIP SDK or the ROCm Python " +
-                                                "packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll");
+                throw Status(new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) + "; install the HIP SDK or the ROCm Python " +
+                                                       "packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll"), explicitDirectory == null ? "no_hiprtc" : "invalid_setting");
             return result;
         }
 
@@ -627,7 +643,7 @@ namespace GRAL_2001
                 CompileOptions = options;
                 return;
             }
-            throw new InvalidOperationException("No compatible hiprtc toolchain for " + ArchName + ": " + string.Join("; ", failures));
+            throw Status(new InvalidOperationException("No compatible hiprtc toolchain for " + ArchName + ": " + string.Join("; ", failures)), "toolchain_rejected");
         }
 
         internal int[] SupportedArchs { get; private set; }
@@ -680,6 +696,7 @@ namespace GRAL_2001
                     if (Windows) { directories.Add(Path.Combine(root, "bin", "x64")); directories.Add(Path.Combine(root, "bin")); }
                     else { directories.Add(Path.Combine(root, "lib64")); directories.Add(Path.Combine(root, "lib")); directories.Add(Path.Combine(root, "targets", "x86_64-linux", "lib")); }
                 }
+                if (Windows && UserToolchainFolder("nvrtc") is string user) directories.Add(user);
             }
             var result = new List<string>();
             var seen = new HashSet<string>(Windows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
@@ -694,10 +711,11 @@ namespace GRAL_2001
             if (result.Count == 0)
             {
                 if (explicitDirectory != null) throw new FileNotFoundException("INU_GPU_NVRTC_DIR contains no NVRTC library: " + explicitDirectory);
-                throw new FileNotFoundException("NVRTC library not found in " + (runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ") +
-                                                "CUDA_PATH or CUDA_PATH_V*; copy the NVRTC libraries (or pip install --target that folder nvidia-cuda-nvrtc-cu12), " +
-                                                "install the CUDA toolkit, or set INU_GPU_NVRTC_DIR" +
-                                                (ignored.Count > 0 ? " (ignored because not absolute: " + string.Join(", ", ignored) + ")" : ""));
+                throw Status(new FileNotFoundException("NVRTC library not found in " + (runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ") +
+                                                       "CUDA_PATH or CUDA_PATH_V*" + (Windows && UserToolchainFolder("nvrtc") is string user ? " or " + user : "") +
+                                                       "; copy the NVRTC libraries (or pip install --target that folder nvidia-cuda-nvrtc-cu12), " +
+                                                       "install the CUDA toolkit, or set INU_GPU_NVRTC_DIR" +
+                                                       (ignored.Count > 0 ? " (ignored because not absolute: " + string.Join(", ", ignored) + ")" : "")), "no_nvrtc");
             }
             return result;
         }
@@ -797,8 +815,8 @@ namespace GRAL_2001
                 CompileOptions = OptionsFor(target, kind);
                 return;
             }
-            throw new InvalidOperationException("No compatible NVRTC toolchain: " + string.Join("; ", failures) + "; " + NvrtcRequirement(DeviceArch) +
-                                                " and an NVIDIA driver at least as new as that NVRTC");
+            throw Status(new InvalidOperationException("No compatible NVRTC toolchain: " + string.Join("; ", failures) + "; " + NvrtcRequirement(DeviceArch) +
+                                                       " and an NVIDIA driver at least as new as that NVRTC"), "toolchain_rejected");
         }
 
         private static void Release(ref IntPtr library, ref IntPtr builtins)

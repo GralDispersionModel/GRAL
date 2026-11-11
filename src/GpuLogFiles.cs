@@ -11,6 +11,7 @@ namespace GRAL_2001
             // Windows: FileShare.Read keeps the log readable during the run and still blocks a second writer.
             // Linux: share modes are advisory only, so FileShare.None is used to make a second process fail over to its own file.
             FileShare share=Program.RunOnUnix ? FileShare.None : FileShare.Read;
+            CreateFolder(path);
             try { actualPath=path;return new FileStream(path,FileMode.Append,FileAccess.Write,share); }
             catch(IOException) when(File.Exists(path))
             {
@@ -22,6 +23,7 @@ namespace GRAL_2001
         // Claims path for this process with a lock file that disappears when the process ends; returns the path to write.
         internal static string Claim(string path,out FileStream lockFile)
         {
+            CreateFolder(path);
             lockFile=TryLock(path);
             if(lockFile!=null)return path;
             string unique=UniquePath(path);
@@ -35,6 +37,8 @@ namespace GRAL_2001
             try { return new FileStream(lockPath,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None,1,FileOptions.DeleteOnClose); }
             catch(IOException) when(File.Exists(lockPath)) { return null; }
         }
+        // A log path in a folder that does not exist yet is created rather than failing the GPU start.
+        private static void CreateFolder(string path) => Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
         internal static string UniquePath(string path)
         {
             string folder=Path.GetDirectoryName(Path.GetFullPath(path));

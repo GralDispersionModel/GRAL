@@ -54,6 +54,11 @@ namespace GRAL_2001
 
         static void Main(string[] args)
         {
+            // Readiness check of the GPU path for the GUI, before any banner or project file
+            if (args.Length == 1 && args[0] == GpuCheck.Argument)
+            {
+                Environment.Exit(GpuCheck.Run());
+            }
             int p = (int)Environment.OSVersion.Platform;
             if ((p == 4) || (p == 6) || (p == 128))
             {
