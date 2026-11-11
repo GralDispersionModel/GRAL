@@ -468,7 +468,10 @@ namespace GRAL_2001
             }
             BindHip();
             var clock = Stopwatch.StartNew();
-            Check(cuInit(0), "hipInit");
+            // hipInit answers hipErrorNoDevice (100) when the HIP runtime is installed but no AMD GPU is visible.
+            int initResult = cuInit(0);
+            if (initResult == ErrorNoDevice) throw Status(new InvalidOperationException("The AMD HIP runtime reports no device (check the AMD driver and HIP_VISIBLE_DEVICES)"), "no_device");
+            Check(initResult, "hipInit");
             int driverVersion, count, device;
             Check(cuDriverGetVersion(&driverVersion), "hipDriverGetVersion");
             // hipGetDeviceCount answers hipErrorNoDevice (100) instead of a zero count when no AMD GPU is visible.
