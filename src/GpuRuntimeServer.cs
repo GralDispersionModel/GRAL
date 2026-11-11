@@ -63,6 +63,16 @@ namespace GRAL_2001
         private GpuCuda cuda;
         private IntPtr module, fnFresh, fnResidual, eventStart, eventEnd;
         private ulong stateAddress, hipTrapAddress, hipStatusAddress;
+        // Reproducible sums (fixed random seeds; generated.cu, GRAL_REPRO_SUMS): the slot order of the kernel's acc_add<slot>
+        // calls, the per-slot integer word buffers (three 64-bit words per element), the address of the kernel's gral_repro
+        // constant and the finalize entry point of the loaded module.
+        private static readonly string[] ReproSlots = { "Conz3dDouble", "Conz3dp", "Conz3dm", "Conz5d", "ConzSsum", "Depo_conz", "ReceptorConc", "EmissionPerSG" };
+        private const string ReproDefine = "#define GRAL_REPRO_SUMS 0";
+        private const int ReproConstantBytes = 8 * 8 * 2;
+        private bool reproSums;
+        private ulong reproAddress;
+        private IntPtr fnReproFinalize;
+        private readonly long[] reproWordElements = new long[ReproSlots.Length];
         // Run-configuration specialization (HIP): the specialized State fields per step, the kernel source, the general code
         // object and the key of the loaded module ("" = general kernel).
         private static readonly string[] SpecializationSteps = { "flags", "ints", "grid", "depo", "src" };
@@ -179,6 +189,14 @@ namespace GRAL_2001
                 }
             }
             specialize = specializationSteps.Count > 0;
+            // INU_GPU_REPRODUCIBLE_SUMS: unset or 1 = order-independent sums when the run uses fixed random seeds (in.dat
+            // "Use fixed random seed value" = 1); 0 = the atomic floating-point sums of a native-seed run.
+            string reproSetting = (Environment.GetEnvironmentVariable("INU_GPU_REPRODUCIBLE_SUMS") ?? "").Trim();
+            if (reproSetting.Length > 0 && reproSetting != "0" && reproSetting != "1")
+                throw new ArgumentException("INU_GPU_REPRODUCIBLE_SUMS: use 0 or 1, not '" + reproSetting + "'");
+            reproSums = Program.UseFixedRndSeedVal && reproSetting != "0";
+            metrics["reproducible_sums"] = reproSums;
+            metrics["repro_finalize_ms"] = 0.0; metrics["repro_word_bytes"] = 0L;
             metrics["pipe_read_wait_ms"] = 0.0; metrics["h2d_ms"] = 0.0; metrics["d2h_ms"] = 0.0; metrics["kernel_device_ms"] = 0.0;
             metrics["kernel_launches"] = 0L; metrics["kernel_max_device_ms"] = 0.0; metrics["buffer_allocation_count"] = 0L; metrics["buffer_reuse_count"] = 0L;
             metrics["buffer_free_count"] = 0L; metrics["device_buffer_bytes"] = 0L; metrics["peak_device_buffer_bytes"] = 0L; metrics["zero_fill_bytes"] = 0L;
@@ -195,6 +213,13 @@ namespace GRAL_2001
             metrics["host"] = ".NET " + Environment.Version;
             string sourcePath = Path.Combine(runtimeDirectory, "generated.cu");
             string source = File.ReadAllText(sourcePath, Encoding.UTF8);
+            if (reproSums)
+            {
+                int define = source.IndexOf(ReproDefine, StringComparison.Ordinal);
+                if (define < 0 || source.IndexOf(ReproDefine, define + 1, StringComparison.Ordinal) >= 0)
+                    throw new InvalidOperationException("generated.cu: expected exactly one '" + ReproDefine + "'");
+                source = source.Replace(ReproDefine, "#define GRAL_REPRO_SUMS 1", StringComparison.Ordinal);
+            }
             generatedSource = source;
             string cachePath = null, key = null;
             byte[] image = null;
@@ -465,8 +490,8 @@ namespace GRAL_2001
         /// </summary>
         private void SwitchModule(byte[] image)
         {
-            IntPtr oldModule = module, oldFresh = fnFresh, oldResidual = fnResidual;
-            ulong oldState = stateAddress, oldTrap = hipTrapAddress, oldStatus = hipStatusAddress;
+            IntPtr oldModule = module, oldFresh = fnFresh, oldResidual = fnResidual, oldFinalize = fnReproFinalize;
+            ulong oldState = stateAddress, oldTrap = hipTrapAddress, oldStatus = hipStatusAddress, oldRepro = reproAddress;
             var oldResources = new Dictionary<string, Dictionary<string, int>>(kernelResources);
             try
             {
@@ -482,8 +507,8 @@ namespace GRAL_2001
                     try { cuda.UnloadModule(failed); }
                     catch (GpuCudaException unload) { log("Could not unload the rejected GPU module: " + unload.Message); }
                 }
-                module = oldModule; fnFresh = oldFresh; fnResidual = oldResidual;
-                stateAddress = oldState; hipTrapAddress = oldTrap; hipStatusAddress = oldStatus;
+                module = oldModule; fnFresh = oldFresh; fnResidual = oldResidual; fnReproFinalize = oldFinalize;
+                stateAddress = oldState; hipTrapAddress = oldTrap; hipStatusAddress = oldStatus; reproAddress = oldRepro;
                 kernelResources.Clear();
                 foreach (var pair in oldResources) kernelResources[pair.Key] = pair.Value;
                 throw;
@@ -519,6 +544,13 @@ namespace GRAL_2001
                 long bytes;
                 (stateAddress, bytes) = cuda.Global(module, "P");
                 if (bytes != state.Size) throw new InvalidOperationException("State layout size: " + (cuda.Hip ? "HIP " : "CUDA ") + bytes + ", host " + state.Size);
+                if (reproSums)
+                {
+                    fnReproFinalize = cuda.Function(module, "gral_repro_finalize");
+                    long reproBytes;
+                    (reproAddress, reproBytes) = cuda.Global(module, "gral_repro");
+                    if (reproBytes != ReproConstantBytes) throw new InvalidOperationException("gral_repro size: " + reproBytes + ", host " + ReproConstantBytes);
+                }
                 if (cuda.Hip)
                 {
                     hipTrapAddress = cuda.Global(module, GpuCuda.HipTrapFlag).Address;
@@ -1313,6 +1345,69 @@ namespace GRAL_2001
                 // The host error fields are zero here (CheckDeviceError), so this also clears the HIP status symbol.
                 if (cuda.Hip) { var (start, size) = StatusRange(); cuda.CopyToDevice(hipStatusAddress, p + start, size, "bind HIP status"); }
             }
+            if (reproSums) BindReproSums();
+        }
+
+        /// <summary>Current address of a slot's word buffer (SpillForWindow can move it to mapped host memory).</summary>
+        private ulong ReproWords(int slot) => buffers["_repro_" + ReproSlots[slot]].Pointer;
+
+        /// <summary>Writes the word buffers and the bound output arrays to the loaded module's gral_repro constant.</summary>
+        private void BindReproSums()
+        {
+            byte* data = stackalloc byte[ReproConstantBytes];
+            var span = new Span<byte>(data, ReproConstantBytes);
+            for (int s = 0; s < ReproSlots.Length; s++)
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(span.Slice(8 * s), reproWordElements[s] > 0 ? ReproWords(s) : 0);
+                BinaryPrimitives.WriteUInt64LittleEndian(span.Slice(64 + 8 * s), reproWordElements[s] > 0 ? state.GetPointer(ReproSlots[s]) : 0);
+            }
+            cuda.CopyToDevice(reproAddress, data, ReproConstantBytes, "bind gral_repro");
+        }
+
+        /// <summary>
+        /// After every init: gives every bound output array a zeroed buffer of three 64-bit words per element, placed by the
+        /// memory manager like the other device arrays. The words are zero between a result and the next init
+        /// (gral_repro_finalize clears what it adds).
+        /// </summary>
+        private void PrepareReproSums()
+        {
+            if (!B("UseFixedRndSeedVal")) throw new InvalidOperationException("Reproducible sums require fixed random seeds");
+            for (int s = 0; s < ReproSlots.Length; s++)
+            {
+                string name = ReproSlots[s], key = "_repro_" + name;
+                long elements = 0;
+                if (descriptors.TryGetValue(name, out var d) && !d.IsNull && d.Bytes > 0 && state.GetPointer(name) != 0)
+                    elements = d.Bytes / GpuStateLayout.SizeOfDtype(d.Dtype);
+                if (elements == reproWordElements[s]) continue;
+                Release(key);
+                metrics["repro_word_bytes"] = (long)metrics["repro_word_bytes"] - 24 * reproWordElements[s];
+                reproWordElements[s] = 0;
+                if (elements == 0) continue;
+                Memory(key, 24 * elements);
+                Zero(key, 24 * elements);
+                reproWordElements[s] = elements;
+                metrics["repro_word_bytes"] = (long)metrics["repro_word_bytes"] + 24 * elements;
+            }
+        }
+
+        /// <summary>Adds each slot's integer totals once to its output array (in device memory or mapped host memory).</summary>
+        private void FinalizeReproSums()
+        {
+            var clock = Stopwatch.StartNew();
+            ulong words = 0, output = 0, count = 0;
+            int single = 0;
+            void** args = stackalloc void*[4];
+            args[0] = &words; args[1] = &output; args[2] = &count; args[3] = &single;
+            for (int s = 0; s < ReproSlots.Length; s++)
+            {
+                if (reproWordElements[s] == 0) continue;
+                string name = ReproSlots[s];
+                words = ReproWords(s); output = state.GetPointer(name);
+                count = (ulong)reproWordElements[s];
+                single = doubleStorage.Contains(name) || GpuStateLayout.SizeOfDtype(descriptors[name].Dtype) == 8 ? 0 : 1;
+                Launch(fnReproFinalize, reproWordElements[s], args, 256);
+            }
+            metrics["repro_finalize_ms"] = (double)metrics["repro_finalize_ms"] + clock.Elapsed.TotalMilliseconds;
         }
 
         private void ReadState()
@@ -1338,7 +1433,13 @@ namespace GRAL_2001
         {
             int error = I("DeviceError");
             if (error == 0) return;
-            string detail = error switch { 2 => "droplet state invalid", 3 => "wet-deposition droplet did not reach ground (updraft >= fall speed)", _ => "nonfinite trajectory" };
+            string detail = error switch
+            {
+                2 => "droplet state invalid", 3 => "wet-deposition droplet did not reach ground (updraft >= fall speed)",
+                5 => "reproducible sums: an addend is not finite or its magnitude is 2^62 or more (INU_GPU_REPRODUCIBLE_SUMS=0 turns reproducible sums off)",
+                6 => "reproducible sums: a total exceeds the 64-bit integer range (INU_GPU_REPRODUCIBLE_SUMS=0 turns reproducible sums off)",
+                _ => "nonfinite trajectory"
+            };
             long particle = I("DeviceErrorParticle");
             if (I("DeviceErrorPhase") == 2 && particle < 0)
             {
@@ -1508,6 +1609,7 @@ namespace GRAL_2001
         {
             CheckDeviceError();
             if (executionFailed) throw new InvalidOperationException("Failed GPU execution; partial results unavailable");
+            if (reproSums) FinalizeReproSums();
             var traceOutputs = new[] { "Trace", "StepTrace", "ResidualTrace" }.Where(n => B("TraceEnabled") && state.GetPointer(n) != 0);
             var outputs = (I("ISTATIONAER") == 0 ? Outputs : Outputs.Where(n => n != "Conz5d" && n != "EmissionPerSG")).ToList();
             if (B("DepositionExist") || B("WetDeposition")) outputs.Add("Depo_conz");
@@ -1622,6 +1724,7 @@ namespace GRAL_2001
                             CheckInitFields(header);
                             Receive(header, "init");
                             Guard();
+                            if (reproSums) PrepareReproSums();
                             // No kernel runs after init; the first execute loads the kernel for its own launch values.
                             Bind(specializeKernel: false);
                             WriteFrame(new Dictionary<string, object> { { "status", "ok" }, { "state_bytes", (long)state.Size }, { "payload_bytes", 0L }, { "startup_ms", startupMs }, { "metrics_cumulative", new Dictionary<string, object>(metrics) } });

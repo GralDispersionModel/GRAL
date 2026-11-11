@@ -230,6 +230,50 @@ __device__ bool CheckParticleFinite(double x,double y,float z,float t,float dt,i
 // GPU-only bound for the wet-deposition droplet drift loop (no CPU equivalent); code 3 aborts the run instead of stalling the kernel.
 #define GRAL_DROP_DRIFT_MAX_ITER 1000000u
 __device__ void RecordDeviceError(int code,int phase,int id){if(atomicCAS(&P.DeviceError,0,code)==0){P.DeviceErrorPhase=phase;P.DeviceErrorParticle=id;}}
+// Reproducible sums (fixed random seeds only). The host replaces the 0 below by 1 before compiling a run that uses fixed
+// seeds. Each addend is split into three integers in fixed units of 1, 2^-32 and 2^-64 and added with integer atomics, so
+// the totals do not depend on the order of the additions or on the launch sizes. When a middle or low word passes
+// +-2^62, the thread that passed it moves 2^62 of it into the next word, which keeps the represented total exact.
+// gral_repro_finalize adds each total once to its output array and clears the words before the result is read.
+// Slots: 0 Conz3dDouble, 1 Conz3dp, 2 Conz3dm, 3 Conz5d, 4 ConzSsum, 5 Depo_conz, 6 ReceptorConc, 7 EmissionPerSG.
+// Device errors: 5 = addend not finite or |addend| >= 2^62; 6 = total outside the 64-bit high word.
+#define GRAL_REPRO_SUMS 0
+#if GRAL_REPRO_SUMS
+struct ReproSums{unsigned long long words[8];unsigned long long base[8];};
+extern "C" {__constant__ ReproSums gral_repro;}
+__device__ void repro_word(unsigned long long* w,int k,long long v){
+ const long long T=4611686018427387904ll;
+ while(v!=0){
+  long long old=(long long)atomicAdd(w+k,(unsigned long long)v);
+  long long sum=(long long)((unsigned long long)old+(unsigned long long)v);
+  if(((old^sum)&(v^sum))<0){RecordDeviceError(6,0,0);return;}
+  // Headroom for the carries that gral_repro_finalize can still move into the high word (at most 2^30 + 1).
+  if(k==0){if(sum>=9223372034707292160ll||sum<=-9223372034707292160ll)RecordDeviceError(6,0,0);return;}
+  if(old<T&&sum>=T){atomicAdd(w+k,(unsigned long long)(-T));k--;v=1073741824ll;}
+  else if(old>-T&&sum<=-T){atomicAdd(w+k,(unsigned long long)T);k--;v=-1073741824ll;}
+  else return;
+ }
+}
+template<int S,class T,class V>__device__ void acc_add(T* p,V v){
+ double a=(double)(T)v;
+ if(!(fabs(a)<4611686018427387904.0)){RecordDeviceError(5,0,0);return;}
+ double h=trunc(a);double r=(a-h)*4294967296.0;double m=trunc(r);double l=rint((r-m)*4294967296.0);
+ unsigned long long* w=(unsigned long long*)gral_repro.words[S]+3ull*(unsigned long long)(p-(T*)gral_repro.base[S]);
+ repro_word(w,0,(long long)h);repro_word(w,1,(long long)m);repro_word(w,2,(long long)l);
+}
+extern "C" __global__ void gral_repro_finalize(unsigned long long* words,void* out,unsigned long long n,int single){
+ unsigned long long i=(unsigned long long)blockIdx.x*blockDim.x+threadIdx.x;
+ if(i>=n)return;
+ long long h=(long long)words[3*i],m=(long long)words[3*i+1],l=(long long)words[3*i+2];
+ if((h|m|l)==0)return;
+ long long c=l>>32;l-=c*4294967296ll;m+=c;c=m>>32;m-=c*4294967296ll;h+=c;
+ double v=(double)h+((double)m+(double)l*2.3283064365386963e-10)*2.3283064365386963e-10;
+ if(single){float* o=(float*)out;o[i]=(float)((double)o[i]+v);}else{double* o=(double*)out;o[i]+=v;}
+ words[3*i]=0;words[3*i+1]=0;words[3*i+2]=0;
+}
+#else
+template<int S,class T,class V>__device__ __forceinline__ void acc_add(T* p,V v){atomic_add(p,v);}
+#endif
 __device__ int ParticleIndex(int index){return index==0?0:index-P.ParticleWindowFirst+1;}
 __device__ Tuple2<float,float> Zeitschleife_IntStandCalculate(int nteil,float Roughness,float DiffBuilding,float windge,float sigmauHurley);
 __device__ void TransientConcentration_Conz5dZeitschleife(int reflexion_flag,float zcoord_nteil,float AHint,double masse,double Area_cart,float idt,double xsi,double eta,int SG_nteil);
@@ -298,7 +342,7 @@ IndexI3d_10 = cs_cast<int>((xsi / P.DXK)) + 1;
 IndexJ3d_11 = cs_cast<int>((eta / P.DYK)) + 1;
 conz5d_L_12 = P.Conz5d[IndexI3d_10][IndexJ3d_11][IndexK3d_9];
 {
-atomic_add(&(conz5d_L_12[SG_nteil]),(float)((masse * P.GridVolume * P.TAUS / (Area_cart * P.DZK_Trans[IndexK3d_9]))));
+acc_add<3>(&(conz5d_L_12[SG_nteil]),(float)((masse * P.GridVolume * P.TAUS / (Area_cart * P.DZK_Trans[IndexK3d_9]))));
 }
 }
 }
@@ -314,7 +358,7 @@ IndexI3d_10 = cs_cast<int>((xsi / P.DXK)) + 1;
 IndexJ3d_11 = cs_cast<int>((eta / P.DYK)) + 1;
 conz5d_L_12 = P.Conz5d[IndexI3d_10][IndexJ3d_11][IndexK3d_9];
 {
-atomic_add(&(conz5d_L_12[SG_nteil]),(float)((mass_real * P.TAUS / (Area_cart * P.DZK_Trans[IndexK3d_9]))));
+acc_add<3>(&(conz5d_L_12[SG_nteil]),(float)((mass_real * P.TAUS / (Area_cart * P.DZK_Trans[IndexK3d_9]))));
 }
 }
 }
@@ -806,7 +850,7 @@ goto REMOVE_PARTICLE;
 }
 if (Deposition_type_13 < (2)) {
 {
-atomic_add(&(P.EmissionPerSG[SG_nteil_11]),masse_10);
+acc_add<7>(&(P.EmissionPerSG[SG_nteil_11]),masse_10);
 }
 }
 }
@@ -1561,7 +1605,7 @@ jk_234 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_235 = P.Depo_conz[ik_233][jk_234];
 conc_236 = masse_10 * Pd1_232 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_235[SG_nteil_11]),conc_236);
+acc_add<5>(&(depo_L_235[SG_nteil_11]),conc_236);
 }
 masse_10 -= masse_10 * Pd1_232;
 depo_reflection_counter_166 = -2;
@@ -1613,7 +1657,7 @@ jk_239 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_240 = P.Depo_conz[ik_238][jk_239];
 conc_241 = masse_10 * Pd1_237 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_240[SG_nteil_11]),conc_241);
+acc_add<5>(&(depo_L_240[SG_nteil_11]),conc_241);
 }
 masse_10 -= masse_10 * Pd1_237;
 depo_reflection_counter_166 = -2;
@@ -1665,7 +1709,7 @@ jk_244 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_245 = P.Depo_conz[ik_243][jk_244];
 conc_246 = masse_10 * Pd1_242 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_245[SG_nteil_11]),conc_246);
+acc_add<5>(&(depo_L_245[SG_nteil_11]),conc_246);
 }
 masse_10 -= masse_10 * Pd1_242;
 depo_reflection_counter_166 = -2;
@@ -1783,7 +1827,7 @@ jk_259 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_260 = P.Depo_conz[ik_258][jk_259];
 conc_261 = masse_10 * Pd1_257 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_260[SG_nteil_11]),conc_261);
+acc_add<5>(&(depo_L_260[SG_nteil_11]),conc_261);
 }
 masse_10 -= masse_10 * Pd1_257;
 depo_reflection_counter_166 = -2;
@@ -1799,7 +1843,7 @@ jk_264 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_265 = P.Depo_conz[ik_263][jk_264];
 conc_266 = masse_10 * Pd1_262 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_265[SG_nteil_11]),conc_266);
+acc_add<5>(&(depo_L_265[SG_nteil_11]),conc_266);
 }
 masse_10 -= masse_10 * Pd1_262;
 depo_reflection_counter_166 = -2;
@@ -1817,7 +1861,7 @@ jk_270 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_271 = P.Depo_conz[ik_269][jk_270];
 conc_272 = masse_10 * Pd1_268 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_271[SG_nteil_11]),conc_272);
+acc_add<5>(&(depo_L_271[SG_nteil_11]),conc_272);
 }
 masse_10 -= masse_10 * Pd1_268;
 depo_reflection_counter_166 = -2;
@@ -1950,7 +1994,7 @@ jk_280 = cs_cast<int>((eta_98 * ConcGridYRez_48)) + 1;
 depo_L_281 = P.Depo_conz[ik_279][jk_280];
 conc_282 = masse_10 * Pd1_278 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_281[SG_nteil_11]),conc_282);
+acc_add<5>(&(depo_L_281[SG_nteil_11]),conc_282);
 }
 masse_10 -= masse_10 * Pd1_278;
 depo_reflection_counter_166 = -2;
@@ -2017,7 +2061,7 @@ if (!P.WetDopoDropDrift) {
 depo_L_291 = P.Depo_conz[iko_283][jko_284];
 conc_292 = epsilonW_Masse_289 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_291[SG_nteil_11]),conc_292);
+acc_add<5>(&(depo_L_291[SG_nteil_11]),conc_292);
 }
 } else {
 
@@ -2071,7 +2115,7 @@ depoEpsilonW_298 = 0;
 depo_L_313 = P.Depo_conz[depoiko_311][depojko_312];
 conc_314 = depoEpsilonW_298 * area_rez_fac_16;
 {
-atomic_add(&(depo_L_313[SG_nteil_11]),conc_314);
+acc_add<5>(&(depo_L_313[SG_nteil_11]),conc_314);
 }
 }
 }
@@ -2110,7 +2154,7 @@ if ((kko_63[II_319] == 0) && (reflexion_flag_66 == (0))) {
 conz3d_L_320 = P.Conz3dDouble[iko_283][jko_284][II_319];
 conc_321 = masse_10 * idt_86;
 {
-atomic_add(&(conz3d_L_320[SG_nteil_11]),conc_321);
+acc_add<0>(&(conz3d_L_320[SG_nteil_11]),conc_321);
 }
 }
 }
@@ -2122,7 +2166,7 @@ TransientGridY_71 = cs_cast<int>((eta_98 * FFGridYRez_44)) + 1;
 conzsum_L_322 = P.ConzSsum[TransientGridX_70][TransientGridY_71];
 conc_323 = masse_10 * P.GridVolume * idt_86 / (Area_cart_74 * P.DZK_Trans[TransientGridZ_72]);
 {
-atomic_add(&(conzsum_L_322[TransientGridZ_72]),conc_323);
+acc_add<4>(&(conzsum_L_322[TransientGridZ_72]),conc_323);
 }
 }
 }
@@ -2136,7 +2180,7 @@ if ((kko_63[II_326] == 0) && (reflexion_flag_66 == (0))) {
 conz3dp_L_327 = P.Conz3dp[iko_283][jko_284][II_326];
 conc_328 = masse_10 * idt_86;
 {
-atomic_add(&(conz3dp_L_327[SG_nteil_11]),(float)(conc_328));
+acc_add<1>(&(conz3dp_L_327[SG_nteil_11]),(float)(conc_328));
 }
 }
 }
@@ -2149,7 +2193,7 @@ if ((kko_63[II_331] == 0) && (reflexion_flag_66 == (0))) {
 conz3dm_L_332 = P.Conz3dm[iko_283][jko_284][II_331];
 conc_333 = masse_10 * idt_86;
 {
-atomic_add(&(conz3dm_L_332[SG_nteil_11]),(float)(conc_333));
+acc_add<2>(&(conz3dm_L_332[SG_nteil_11]),(float)(conc_333));
 }
 }
 }
@@ -2215,7 +2259,7 @@ recconc_335 = ReceptorConcentration_65[ii_334];
 if (recconc_335 > 0) {
 recmit_L_336 = P.ReceptorConc[ii_334];
 {
-atomic_add(&(recmit_L_336[SG_nteil_11]),recconc_335);
+acc_add<6>(&(recmit_L_336[SG_nteil_11]),recconc_335);
 atomic_max(&(P.ReceptorParticleMaxConc[ii_334][SG_nteil_11]),recconc_335);
 }
 }
@@ -2929,7 +2973,7 @@ jk_149 = cs_cast<int>((eta_74 * ConcGridYRez_32)) + 1;
 depo_L_150 = P.Depo_conz[ik_148][jk_149];
 conc_151 = masse_18 * Pd1_147 * area_rez_fac_24;
 {
-atomic_add(&(depo_L_150[SG_nteil_20]),conc_151);
+acc_add<5>(&(depo_L_150[SG_nteil_20]),conc_151);
 }
 masse_18 -= masse_18 * Pd1_147;
 depo_reflection_counter_102 = -2;
@@ -2945,7 +2989,7 @@ jk_154 = cs_cast<int>((eta_74 * ConcGridYRez_32)) + 1;
 depo_L_155 = P.Depo_conz[ik_153][jk_154];
 conc_156 = masse_18 * Pd1_152 * area_rez_fac_24;
 {
-atomic_add(&(depo_L_155[SG_nteil_20]),conc_156);
+acc_add<5>(&(depo_L_155[SG_nteil_20]),conc_156);
 }
 masse_18 -= masse_18 * Pd1_152;
 depo_reflection_counter_102 = -2;
@@ -2963,7 +3007,7 @@ jk_160 = cs_cast<int>((eta_74 * ConcGridYRez_32)) + 1;
 depo_L_161 = P.Depo_conz[ik_159][jk_160];
 conc_162 = masse_18 * Pd1_158 * area_rez_fac_24;
 {
-atomic_add(&(depo_L_161[SG_nteil_20]),conc_162);
+acc_add<5>(&(depo_L_161[SG_nteil_20]),conc_162);
 }
 masse_18 -= masse_18 * Pd1_158;
 depo_reflection_counter_102 = -2;
@@ -3092,7 +3136,7 @@ jk_170 = cs_cast<int>((eta_74 * ConcGridYRez_32)) + 1;
 depo_L_171 = P.Depo_conz[ik_169][jk_170];
 conc_172 = masse_18 * Pd1_168 * area_rez_fac_24;
 {
-atomic_add(&(depo_L_171[SG_nteil_20]),conc_172);
+acc_add<5>(&(depo_L_171[SG_nteil_20]),conc_172);
 }
 masse_18 -= masse_18 * Pd1_168;
 depo_reflection_counter_102 = -2;
@@ -3158,7 +3202,7 @@ if (!P.WetDopoDropDrift) {
 depo_L_181 = P.Depo_conz[iko_173][jko_174];
 conc_182 = epsilonW_Masse_179 * area_rez_fac_24;
 {
-atomic_add(&(depo_L_181[SG_nteil_20]),conc_182);
+acc_add<5>(&(depo_L_181[SG_nteil_20]),conc_182);
 }
 } else {
 
@@ -3212,7 +3256,7 @@ depoEpsilonW_188 = 0;
 depo_L_203 = P.Depo_conz[depoiko_201][depojko_202];
 conc_204 = depoEpsilonW_188 * area_rez_fac_24;
 {
-atomic_add(&(depo_L_203[SG_nteil_20]),conc_204);
+acc_add<5>(&(depo_L_203[SG_nteil_20]),conc_204);
 }
 }
 }
@@ -3251,7 +3295,7 @@ if ((kko_45[II_209] == 0) && (reflexion_flag_49 == (0))) {
 conz3d_L_210 = P.Conz3dDouble[iko_173][jko_174][II_209];
 conc_211 = masse_18 * idt_62;
 {
-atomic_add(&(conz3d_L_210[SG_nteil_20]),conc_211);
+acc_add<0>(&(conz3d_L_210[SG_nteil_20]),conc_211);
 }
 }
 }
@@ -3262,7 +3306,7 @@ TransientGridY_54 = cs_cast<int>((eta_74 * FFGridYRez_28)) + 1;
 conzsum_L_212 = P.ConzSsum[TransientGridX_53][TransientGridY_54];
 conc_213 = mass_real_19 * idt_62 / (Area_cart_17 * P.DZK_Trans[TransientGridZ_55]);
 {
-atomic_add(&(conzsum_L_212[TransientGridZ_55]),conc_213);
+acc_add<4>(&(conzsum_L_212[TransientGridZ_55]),conc_213);
 }
 }
 if (P.Odour == true) {
@@ -3275,7 +3319,7 @@ if ((kko_45[II_216] == 0) && (reflexion_flag_49 == (0))) {
 conz3dp_L_217 = P.Conz3dp[iko_173][jko_174][II_216];
 conc_218 = masse_18 * idt_62;
 {
-atomic_add(&(conz3dp_L_217[SG_nteil_20]),(float)(conc_218));
+acc_add<1>(&(conz3dp_L_217[SG_nteil_20]),(float)(conc_218));
 }
 }
 }
@@ -3288,7 +3332,7 @@ if ((kko_45[II_221] == 0) && (reflexion_flag_49 == (0))) {
 conz3dm_L_222 = P.Conz3dm[iko_173][jko_174][II_221];
 conc_223 = masse_18 * idt_62;
 {
-atomic_add(&(conz3dm_L_222[SG_nteil_20]),(float)(conc_223));
+acc_add<2>(&(conz3dm_L_222[SG_nteil_20]),(float)(conc_223));
 }
 }
 }
@@ -3302,7 +3346,7 @@ recconc_225 = ReceptorConcentration_47[ii_224];
 if (recconc_225 > 0) {
 recmit_L_226 = P.ReceptorConc[ii_224];
 {
-atomic_add(&(recmit_L_226[SG_nteil_20]),recconc_225);
+acc_add<6>(&(recmit_L_226[SG_nteil_20]),recconc_225);
 atomic_max(&(P.ReceptorParticleMaxConc[ii_224][SG_nteil_20]),recconc_225);
 }
 }
