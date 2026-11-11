@@ -264,6 +264,7 @@ namespace GRAL_2001
             var clock = Stopwatch.StartNew();
             int initResult = cuInit(0);
             cudaAbsent = initResult == ErrorNoDevice;
+            if (cudaAbsent) throw Status(new InvalidOperationException("The NVIDIA driver reports no CUDA device (check CUDA_VISIBLE_DEVICES)"), "no_device");
             Check(initResult, "cuInit");
             int driverVersion, count, device;
             Check(cuDriverGetVersion(&driverVersion), "cuDriverGetVersion");
@@ -451,7 +452,7 @@ namespace GRAL_2001
             if (explicitRuntime != null && explicitRuntime.Length > 0)
             {
                 if (!Path.IsPathFullyQualified(explicitRuntime)) throw new ArgumentException("INU_GPU_HIP_RUNTIME must be an absolute path");
-                if (!File.Exists(explicitRuntime)) throw new FileNotFoundException("INU_GPU_HIP_RUNTIME points to a missing file: " + explicitRuntime);
+                if (!File.Exists(explicitRuntime)) throw Status(new FileNotFoundException("INU_GPU_HIP_RUNTIME points to a missing file: " + explicitRuntime), "invalid_setting");
                 driver = NativeLibrary.Load(explicitRuntime);
                 loaded = explicitRuntime;
             }
@@ -531,7 +532,7 @@ namespace GRAL_2001
             ContextMs = clock.Elapsed.TotalMilliseconds;
         }
 
-        /// <summary>hiprtc libraries to try: INU_GPU_HIPRTC_DIR alone when set; otherwise the runtime folder's <c>hiprtc</c> subfolder, then HIP_PATH.</summary>
+        /// <summary>hiprtc libraries to try: INU_GPU_HIPRTC_DIR alone when set; otherwise the runtime folder's <c>hiprtc</c> subfolder, then HIP_PATH, then %LOCALAPPDATA%\GRAL\GpuToolchain\hiprtc.</summary>
         internal static List<string> HiprtcCandidates(string explicitDirectory, string runtimeDirectory)
         {
             var directories = new List<string>();
@@ -643,14 +644,15 @@ namespace GRAL_2001
                 CompileOptions = options;
                 return;
             }
-            throw Status(new InvalidOperationException("No compatible hiprtc toolchain for " + ArchName + ": " + string.Join("; ", failures)), "toolchain_rejected");
+            throw Status(new InvalidOperationException("No compatible hiprtc toolchain for " + ArchName + ": " + string.Join("; ", failures)), "hiprtc_rejected");
         }
 
         internal int[] SupportedArchs { get; private set; }
 
         /// <summary>
         /// NVRTC libraries to try, newest name first within each directory: INU_GPU_NVRTC_DIR alone when set; otherwise the
-        /// runtime folder's <c>nvrtc</c> subfolder (also as a pip <c>--target</c> install of the NVRTC wheel), then the CUDA toolkits.
+        /// runtime folder's <c>nvrtc</c> subfolder (also as a pip <c>--target</c> install of the NVRTC wheel), then the CUDA toolkits, then (Windows)
+        /// %LOCALAPPDATA%\GRAL\GpuToolchain\nvrtc.
         /// </summary>
         internal static List<string> NvrtcCandidates(string explicitDirectory, string runtimeDirectory)
         {
@@ -710,7 +712,7 @@ namespace GRAL_2001
             }
             if (result.Count == 0)
             {
-                if (explicitDirectory != null) throw new FileNotFoundException("INU_GPU_NVRTC_DIR contains no NVRTC library: " + explicitDirectory);
+                if (explicitDirectory != null) throw Status(new FileNotFoundException("INU_GPU_NVRTC_DIR contains no NVRTC library: " + explicitDirectory), "invalid_setting");
                 throw Status(new FileNotFoundException("NVRTC library not found in " + (runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ") +
                                                        "CUDA_PATH or CUDA_PATH_V*" + (Windows && UserToolchainFolder("nvrtc") is string user ? " or " + user : "") +
                                                        "; copy the NVRTC libraries (or pip install --target that folder nvidia-cuda-nvrtc-cu12), " +
@@ -816,7 +818,7 @@ namespace GRAL_2001
                 return;
             }
             throw Status(new InvalidOperationException("No compatible NVRTC toolchain: " + string.Join("; ", failures) + "; " + NvrtcRequirement(DeviceArch) +
-                                                       " and an NVIDIA driver at least as new as that NVRTC"), "toolchain_rejected");
+                                                       " and an NVIDIA driver at least as new as that NVRTC"), "nvrtc_rejected");
         }
 
         private static void Release(ref IntPtr library, ref IntPtr builtins)

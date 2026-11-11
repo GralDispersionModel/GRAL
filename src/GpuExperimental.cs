@@ -34,12 +34,12 @@ namespace GRAL_2001
             string value=Environment.GetEnvironmentVariable(name);
             return string.IsNullOrEmpty(value) ? fallback : value;
         }
-        // INU_GPU_MANIFEST, else the runtime files shipped with this GRAL build: next to the executable, then in its gpu\runtime folder.
+        // INU_GPU_MANIFEST, else the runtime files shipped with this GRAL build: in its gpu\runtime folder, which the build writes, then next to the executable.
         internal static string ManifestPath()
         {
             string value=Environment.GetEnvironmentVariable("INU_GPU_MANIFEST");
             if(!string.IsNullOrEmpty(value)) return value;
-            foreach(string folder in new[]{AppContext.BaseDirectory,Path.Combine(AppContext.BaseDirectory,"gpu","runtime")})
+            foreach(string folder in new[]{Path.Combine(AppContext.BaseDirectory,"gpu","runtime"),AppContext.BaseDirectory})
                 if(File.Exists(Path.Combine(folder,"fields_manifest.json")) && File.Exists(Path.Combine(folder,"generated.cu"))) return Path.Combine(folder,"fields_manifest.json");
             throw GpuCuda.Status(new FileNotFoundException("INU_GPU_MANIFEST is not set, and fields_manifest.json with generated.cu is neither next to GRAL nor in its "+
                                                            Path.Combine("gpu","runtime")+" folder"),"no_manifest");

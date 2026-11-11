@@ -57,13 +57,25 @@ dotnet GRAL.dll D:\project\Computation
 | Variable | Default | Effect |
 |---|---|---|
 | `INU_GPU_EXPERIMENTAL` | unset | `1` requests the GPU; anything else keeps the CPU |
-| `INU_GPU_MANIFEST` | `fields_manifest.json` next to GRAL, else in its `gpu\runtime` folder (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
+| `INU_GPU_MANIFEST` | `fields_manifest.json` in GRAL's `gpu\runtime` folder, which the build writes, else next to GRAL (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
 | `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it | JSON-lines file for per-situation metrics |
 | `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
 
 Missing folders in the two log paths are created.
 
-`GRAL.exe --gpu-check` (or `dotnet GRAL.dll --gpu-check`) starts the backend as a GPU run would, with the same settings and search order: driver, device, runtime compiler and a probe compile. It reads no project and writes no file, and prints one line, `GRAL_GPU_CHECK {...}`, with a `status` (`ok`, `no_driver`, `driver_error`, `no_device`, `only_integrated`, `no_nvrtc`, `no_hiprtc`, `toolchain_rejected`, `invalid_setting`, `no_manifest` or `failed`), the error `message` and the device fields. The exit code is 0 when the status is `ok` and 2 otherwise.
+`GRAL.exe --gpu-check` (or `dotnet GRAL.dll --gpu-check`) checks that the manifest and `generated.cu` exist and that the manifest can be read, then starts the backend as a GPU run would, with the same settings and search order: driver, device, runtime compiler and a probe compile. Settings that only a run reads (`INU_GPU_SPECIALIZE`, `INU_GPU_REPRODUCIBLE_SUMS`, `INU_GRAL_GPU_CHUNK`, `INU_GRAL_GPU_BLOCK`) are not checked. It reads no project and writes no file, and prints one line, `GRAL_GPU_CHECK {...}`, with a `status`, the error `message` and the device fields. The exit code is 0 when the status is `ok` and 2 otherwise. The statuses are:
+
+| Status | Meaning |
+|---|---|
+| `ok` | the GPU backend starts |
+| `no_manifest` | the runtime files are missing or the manifest cannot be read |
+| `no_driver`, `driver_error` | no NVIDIA driver or HIP 7 runtime, or a driver library that does not load |
+| `no_device` | the driver reports no device |
+| `only_integrated` | only integrated AMD GPUs are visible and `INU_GPU_BACKEND` is not `hip` |
+| `no_nvrtc`, `no_hiprtc` | no runtime compiler was found |
+| `nvrtc_rejected`, `hiprtc_rejected` | runtime compilers were found, but none compiles for the device |
+| `invalid_setting` | an `INU_GPU_*` value is invalid |
+| `failed` | any other startup error |
 
 Optional settings:
 
