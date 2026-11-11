@@ -65,7 +65,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L Version 26.01             < <   +";
+            string Info =     "+  > >         G R A L Version 27.01Beta1        < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -86,6 +86,9 @@ namespace GRAL_2001
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("");
 
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(cancelApp);
+            
             ShowCopyright(args);
 
             // write zipped files?
@@ -431,6 +434,11 @@ namespace GRAL_2001
                     ThreadWriteGffFiles = null; // Release ressources				
                 }
 
+                if (CancelToken.IsCancellationRequested)
+                {
+                    goto FinishGral;
+                }
+
                 //Next weather situation
                 IWET++;
                 IDISP = IWET;
@@ -629,6 +637,10 @@ namespace GRAL_2001
                         }
                         ThreadWrite2DConcentrationFiles = null; // Release ressources				
                     }
+                    if (CancelToken.IsCancellationRequested)
+                    {
+                        goto FinishGral;
+                    }
 
                     if (FirstLoop)
                     {
@@ -682,9 +694,10 @@ namespace GRAL_2001
                         // calculate wet deposition parameter
                         if (IWET < WetDepoPrecipLst.Count)
                         {
-                            if (WetDepoPrecipLst[IWET] > 0)
+                            if (WetDepoPrecipLst[IWET - 1] > 0)
                             {
-                                WetDepoRW = Wet_Depo_CW * Math.Pow(WetDepoPrecipLst[IWET], WedDepoAlphaW);
+                                WetDepoPrecipitation = WetDepoPrecipLst[IWET - 1];
+                                WetDepoRW = Wet_Depo_CW * Math.Pow(WetDepoPrecipitation, WedDepoAlphaW);
                                 WetDepoRW = Math.Max(0, Math.Min(1, WetDepoRW));
                             }
                             else
@@ -700,14 +713,20 @@ namespace GRAL_2001
                         // start the calculation for transient particle from all cells
                         ParallelTransientParticleDriver(0, cellNr);
                     } // non-steady-state particles
-
+                    if (CancelToken.IsCancellationRequested)
+                    {
+                        goto FinishGral;
+                    }
                     Console.WriteLine();
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
                     ParallelParticleDriver(1, NTEILMAX + 1);
                     Console.WriteLine();
-
+                    if (CancelToken.IsCancellationRequested)
+                    {
+                        goto FinishGral;
+                    }
                     // Wait until conz4d file is written
                     if (ThreadWriteConz4dFile != null) // if Thread has been started -> wait until GFF--WriteThread has been finished
                     {
@@ -785,7 +804,7 @@ namespace GRAL_2001
                     }
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
             } // loop for all meteorological situations
-
+FinishGral:
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == Consts.TransientMode)
             {
@@ -835,13 +854,27 @@ namespace GRAL_2001
                 SyncWithMutex.Dispose();
             }
 
-            ProgramWriters.LogfileGralCoreWrite("GRAL simulations finished at: " + DateTime.Now.ToString());
+            if (Program.CancelToken.IsCancellationRequested)
+            {
+                ProgramWriters.LogfileGralCoreWrite("GRAL simulations cancelled at: " + DateTime.Now.ToString());    
+            }
+            else
+            {
+                ProgramWriters.LogfileGralCoreWrite("GRAL simulations finished at: " + DateTime.Now.ToString());
+            }
             ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
 
             if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
             {
                 Console.WriteLine();
-                Console.WriteLine("GRAL simulations finished. Press any key to continue...");
+                if (Program.CancelToken.IsCancellationRequested)
+                {
+                    Console.WriteLine("GRAL simulations cancelled. Press any key to continue...");
+                }
+                else
+                {
+                    Console.WriteLine("GRAL simulations finished. Press any key to continue...");
+                }
                 Program.CleanUpMemory();
                 Console.ReadKey(true); 	// wait for a key input
             }

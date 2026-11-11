@@ -13,26 +13,27 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// Thin wrapper for a terrain following array class
 /// </summary>
-public class TerrainArray
+public struct TerrainArray
 {
     private float[] arr;
     private readonly int Delta;
-    private float[] VectArray =new float[Vector<float>.Count];
-
+    
     /// <summary>
     /// Init a terrain following array
     /// </summary>
     /// <param name="lenght">Lenght of the array starting at the terrain</param>
-    /// <param name="nkk">Total lenght of the array starting at the bottom of the domain</param>
+    /// <param name="start">Index of the vertical flow field grid where the terrain starts</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TerrainArray(int lenght, int nkk)
+    public TerrainArray(int lenght, int start)
     {
-        arr = new float[lenght];
-        Delta = arr.Length - nkk;
+        arr = new float[Math.Max(1, lenght)]; // at least 1 element in the array
+        Delta = start;
     }
 
     // Enable validation of input
@@ -46,14 +47,11 @@ public class TerrainArray
     /// <param name="index">Absolute index starting at the bottom of the domain</param>
     public float this[int index]
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get 
         {
-            index += Delta; 
-            if (index < 0)
-            {
-                return 0;
-            }
-            else if (index < arr.Length)
+            index -= Delta; 
+            if (index >= 0 && index < arr.Length) //.Net11+ should remove bound checks after this check
             {
                 return arr[index];
             }
@@ -62,9 +60,10 @@ public class TerrainArray
                 return 0;
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            index += Delta; 
+            index -= Delta; 
             if (index >= 0 && index < arr.Length)
             {
                 arr[index] = value;
@@ -75,22 +74,32 @@ public class TerrainArray
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Vector<float> GetVector(int index)
     {
-        index += Delta;
-        if (index >= 0)
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector<float>.Count)
         {
             return new Vector<float>(arr, index);
         }
-        else if (index < -(Vector<float>.Count))
+        else if (index <= -Vector<float>.Count)
         {
             return Vector<float>.Zero;
         }
-        else
+        else if (index < 0)// index < 0 > - Vector<float>.lenght
         {
-            Array.Clear(VectArray);
-            int _off = Math.Abs(index);
-            for (int _c = 0; _c < index + Vector<float>.Count; _c++)
+            Span<float> VectArray = stackalloc float [Vector<float>.Count];
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
             {
-                VectArray[_off + _c] = arr[_c];
+                VectArray[_c - index]  = arr[_c];
+            }
+            return new Vector<float>(VectArray);
+        }
+        else // upper end
+        {
+            Span<float> VectArray = stackalloc float[Vector<float>.Count];
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                VectArray[_c - index] = arr[_c];
             }
             return new Vector<float>(VectArray);
         }
@@ -99,23 +108,103 @@ public class TerrainArray
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void SetVector(Vector<float> v, int index)
     {
-        index += Delta;
-        if (index >= 0)
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector<float>.Count)
         {
             v.CopyTo(arr, index);
         }
-        else if (index < -(Vector<float>.Count))
+        else if (index <= -(Vector<float>.Count))
         {
             // do nothing in this case
         }
-        else
+        else if (index < 0)// index < 0 > - Vector<float>.lenght
         {
+            Span<float> VectArray = stackalloc float [Vector<float>.Count];
             v.CopyTo(VectArray);
-            int _off = Math.Abs(index);
-            for (int _c = 0; _c < index + Vector<float>.Count; _c++)
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
             {
-                arr[_c] = VectArray[_off + _c];
+                arr[_c] = VectArray[_c - index];
+            }
+        }
+        else // upper end
+        {
+            Span<float> VectArray = stackalloc float[Vector<float>.Count];
+            v.CopyTo(VectArray);
+            int _l = Math.Min(arr.Length, Vector<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                VectArray[_c - index] = arr[_c];
             }
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public Vector512<float> GetVector512(int index)
+    {
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector512<float>.Count)
+        {
+            return Vector512.LoadUnsafe<float>(ref MemoryMarshal.GetArrayDataReference(arr), (uint) index);
+        }
+        else if (index <= -Vector<float>.Count)
+        {
+            return Vector512<float>.Zero;
+        }
+        else if (index < 0) // index < 0 > - Vector<float>.lenght
+        {
+            Span<float> VectArray = stackalloc float [Vector512<float>.Count];
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
+            {
+                VectArray[_c - index]  = arr[_c];
+            }
+            return Vector512.Create(VectArray);
+        }
+        else // upper end
+        {
+            Span<float> VectArray = stackalloc float[Vector512<float>.Count];
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                VectArray[_c - index] = arr[_c];
+            }
+            return Vector512.Create(VectArray);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public void SetVector512(Vector512<float> v, int index)
+    {
+        index -= Delta;
+        if (index >= 0 && index < arr.Length - Vector512<float>.Count)
+        {
+            v.CopyTo(arr, index);
+        }
+        else if (index <= -(Vector<float>.Count))
+        {
+            // do nothing in this case
+        }
+        else if (index < 0) // index < 0 > - Vector<float>.lenght
+        {
+            Span<float> VectArray = stackalloc float [Vector512<float>.Count];
+            v.CopyTo(VectArray);
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = 0; _c < _l; ++_c)
+            {
+                arr[_c] = VectArray[_c - index];
+            }
+        }
+        else
+        {
+            Span<float> VectArray = stackalloc float[Vector512<float>.Count];
+            v.CopyTo(VectArray);
+            int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
+            for (int _c = index; _c < _l; ++_c)
+            {
+                arr[_c] = VectArray[_c - index];
+            }
+        }
+    }
+
 }

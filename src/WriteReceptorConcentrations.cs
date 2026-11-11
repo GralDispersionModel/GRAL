@@ -31,85 +31,20 @@ namespace GRAL_2001
                 try
                 {
                     CultureInfo ic = CultureInfo.InvariantCulture;
-                    List<string> content = new List<string>();
-                    List<string> header = new List<string>();
+                    string[] header = ReceptorConcentrationCreateMeteoHeader();
 
-                    // read existing header and concentration data
-                    if (File.Exists("ReceptorConcentrations.dat" /*&& Program.IWET > 1*/))
-                    {
-                        using (FileStream wr = new FileStream("ReceptorConcentrations.dat", FileMode.Open, FileAccess.Read, FileShare.Read))
-                        {
-                            using (StreamReader read = new StreamReader(wr))
-                            {
-                                // Read header
-                                for (int ianz = 0; ianz < 6; ianz++)
-                                {
-                                    try
-                                    {
-                                        //header.Add(read.ReadLine()); // add existing data
-                                        read.ReadLine();
-                                    }
-                                    catch
-                                    {
-                                        //header.Add(" "); // add space in the case of an error
-                                    }
-                                }
-
-                                while (!read.EndOfStream)
-                                {
-                                    try
-                                    {
-                                        content.Add(read.ReadLine()); // add existing data
-                                    }
-                                    catch
-                                    {
-                                        content.Add(" ");
-                                    }
-                                }                                
-                            }
-                        }
-                    }
-
-
-                    // create a new header
-                    string[] headerLine = ReceptorConcentrationCreateMeteoHeader();
-                    for (int i = 0; i < 6; i++)
-                    {
-                        header.Add(headerLine[i]);
-                    }
-
-                    // Fill missing lines in the file
-                    {
-                        int i = content.Count;
-                        for (; i < Program.IWET; i++)
-                        {
-                            content.Add(" ");
-                        }
-                    }
                     // new line
-                    string newLine = string.Empty;
+                    StringBuilder newLine = new StringBuilder();
                     for (int iq = 0; iq < Program.SourceGroups.Count; iq++)
                     {
                         //write.Write("NQI " + NQi[iq].ToString(ic) + " ");
                         for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                         {
-                            newLine += Program.ReceptorConc[ianz][iq].ToString(ic) + "\t";
+                            newLine.Append(Program.ReceptorConc[ianz][iq].ToString(ic)).Append("\t");
                         }
                     }
-                    content[Program.IWET - 1] = newLine;
-
-                    using (StreamWriter write = new StreamWriter("ReceptorConcentrations.dat", false))
-                    {
-                        for (int i = 0; i < 6; i++)
-                        {
-                            write.WriteLine(header[i]);
-                        }
-
-                        for (int ianz = 0; ianz < content.Count; ianz++)
-                        {
-                            write.WriteLine(content[ianz]);
-                        }                
-                    }
+                    RewriteReceptorHistory("ReceptorConcentrations.dat", header,
+                        new UTF8Encoding(false), Program.IWET, newLine.ToString(), null, false);
 
                 }
                 catch (Exception exc)
@@ -137,56 +72,17 @@ namespace GRAL_2001
             if (Program.ReceptorsAvailable)
             {
                 StringBuilder StB = new StringBuilder();
-                List<string> inhalt = new List<string>();
                 try
                 {
                     CultureInfo ic = CultureInfo.InvariantCulture;
                     string[] header = new string[5];
                     
-                    // Read the entire file (if a calculation has been restarted)
-                    if (File.Exists("Receptor_Timeseries_Transient.txt") /*&& Program.IWET > 1*/)
+                    // Only the fixed header is retained; history rows are copied when publishing.
+                    if (File.Exists("Receptor_Timeseries_Transient.txt"))
                     {
-                        try
-                        {
-                            using (StreamReader read = new StreamReader("Receptor_Timeseries_Transient.txt"))
-                            {
-                                for (int i = 0; i < header.Length; i++)
-                                {
-                                    header[i] = read.ReadLine(); // read header
-                                }
-                                //read the entire file
-                                while(!read.EndOfStream)
-                                {
-                                    try
-                                    {
-                                        string lineString = read.ReadLine();
-                                        if (!lineString.StartsWith("Est. statistical error"))
-                                        {
-                                            inhalt.Add(lineString);
-                                        }
-                                    }
-                                    catch
-                                    {
-                                        inhalt.Add(" ");
-                                    }
-                                }
-                            }
-                        }
-                        catch
-                        {
-                        }
+                        using (StreamReader read = new StreamReader("Receptor_Timeseries_Transient.txt"))
+                            for (int i = 0; i < header.Length; i++) header[i] = read.ReadLine();
                     }
-                    // Fill missing lines in the file
-                    {
-                        int i = inhalt.Count;
-                        for (; i < Program.IWET; i++)
-                        {
-                            inhalt.Add(" ");
-                        }
-                    }
-
-                    // write the new time series 
-                    using (StreamWriter write = new StreamWriter("Receptor_Timeseries_Transient.txt", false, System.Text.Encoding.Unicode))
                     {
                         // write header
                         if (string.IsNullOrEmpty(header[0]) || string.IsNullOrEmpty(header[4])) //create new header
@@ -241,11 +137,6 @@ namespace GRAL_2001
                                 }
                                 catch { }
                             }
-                        }
-
-                        for (int i = 0; i < header.Length; i++)
-                        {
-                            write.WriteLine(header[i]);
                         }
 
                         // write new line
@@ -342,25 +233,11 @@ namespace GRAL_2001
                                 }
                                 catch { }
                             }
-                            // new line
-                            inhalt[Program.IWET - 1] = StB.ToString();
-
-                            // restore file
-                            for (int ianz = 0; ianz < inhalt.Count; ianz++)
-                            {
-                                write.WriteLine(inhalt[ianz]);
-                            }
+                            RewriteReceptorHistory("Receptor_Timeseries_Transient.txt", header,
+                                Encoding.Unicode, Program.IWET, StB.ToString(), null, true);
                         }
                         else if (mode == 1) // write statistical error
                         {
-                            // restore file
-                            for (int ianz = 0; ianz < inhalt.Count; ianz++)
-                            {
-                                write.WriteLine(inhalt[ianz]);
-                            }
-
-                            // write empty line 
-                            write.WriteLine("");
 
                             StB.Clear();
                             // write new line with statistical error
@@ -388,7 +265,8 @@ namespace GRAL_2001
                                     StB.Append("\t");
                                 }
                             }
-                            write.WriteLine(StB.ToString());
+                            RewriteReceptorHistory("Receptor_Timeseries_Transient.txt", header,
+                                Encoding.Unicode, Program.IWET, null, StB.ToString(), true);
                         }
                         
                     }
@@ -400,11 +278,52 @@ namespace GRAL_2001
                 finally
                 {
                     StB = null;
-                    inhalt.Clear();
-                    inhalt.TrimExcess();
                 }
             }
         }//receptor timeseries
+
+        // Keep only one old row in memory and retain the original on read/write failure.
+        // The temporary file shares the destination directory, so publication stays on one volume.
+        internal static void RewriteReceptorHistory(string path, string[] header, Encoding encoding,
+            int row, string replacement, string statistics, bool filterStatistics)
+        {
+            if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
+            string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                using (StreamReader read = File.Exists(path) ? new StreamReader(path) : null)
+                using (StreamWriter write = new StreamWriter(new FileStream(temporary,
+                    FileMode.CreateNew, FileAccess.Write, FileShare.None), encoding))
+                {
+                    foreach (string line in header) write.WriteLine(line);
+                    if (read != null)
+                        for (int i = 0; i < header.Length; i++) read.ReadLine();
+                    int count = 0;
+                    string previous;
+                    while (read != null && (previous = read.ReadLine()) != null)
+                    {
+                        if (filterStatistics && previous.StartsWith("Est. statistical error")) continue;
+                        count++;
+                        write.WriteLine(count == row && replacement != null ? replacement : previous);
+                    }
+                    while (count < row)
+                    {
+                        count++;
+                        write.WriteLine(count == row && replacement != null ? replacement : " ");
+                    }
+                    if (statistics != null)
+                    {
+                        write.WriteLine("");
+                        write.WriteLine(statistics);
+                    }
+                }
+                File.Move(temporary, path, true);
+            }
+            finally
+            {
+                if (File.Exists(temporary)) File.Delete(temporary);
+            }
+        }
 
         /// <summary>
         ///Output of microscale flow-field at receptors points into GRAL_Meteozeitreihe.dat

@@ -312,6 +312,10 @@ namespace GRAL_2001
                 LogfileGralCoreWrite(err);
                 err = "Wet deposition CW " + Program.Wet_Depo_CW.ToString() + " 1/s      AlphaW " + Program.WedDepoAlphaW.ToString();
                 LogfileGralCoreWrite(err);
+                if (Program.WetDopoDropDrift)
+                {
+                    LogfileGralCoreWrite("Wet deposition drop drift considered");
+                }
             }
 
             err = "Starting computation with weather situation: " + Program.IWET.ToString();

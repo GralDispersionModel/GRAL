@@ -41,14 +41,13 @@ namespace GRAL_2001
             double Vol_ratio = Program.DXK * Program.DYK * Program.DZK_Trans[k] / Program.GridVolume; // volume of this transient grid cell
             double masse = TransConcentration * Vol_ratio / Program.TAUS;     //mass related to the concentration grid
             
-            // how many particles (on average) were summed in this cell?
-            int transConcentrationFactor = (int)(masse / Program.ParticleMassMean);
-            // Split one transient particle into sub-particles if more than 10 average particles have been summed - reduce stat. error
-            int transParticlesSplit = transConcentrationFactor / 10 + 1;
+            // Split summed transient particles; limit the count before converting to Int32.
+            int transParticlesSplit = (int)Math.Min(100000,
+                Math.Floor(Math.Floor(masse / Program.ParticleMassMean) / 10) + 1);
 
             if (transParticlesSplit <= 1)
             {
-                ParticleDriver(i, j, k, SG, TransConcentration);
+                ParticleDriver(i, j, k, SG, TransConcentration, 0);
             }
             else
             {
@@ -56,7 +55,7 @@ namespace GRAL_2001
                 float transConcSplit = TransConcentration / transParticlesSplit;
                 for (int p = 0; p < transParticlesSplit; p++)
                 {
-                    ParticleDriver(i, j, k, SG, transConcSplit);
+                    ParticleDriver(i, j, k, SG, transConcSplit, p);
                 }
             }
         }
@@ -69,8 +68,9 @@ namespace GRAL_2001
         /// <param name="k">z grid position within the transient concentration grid</param>
         /// <param name="SG">Source group</param>
         /// <param name="TransConcentration">Concentration of the transient concentration cell [i][j][k]</param>
+        /// <param name="splitIndex">Index of the sub-particle released from this cell</param>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration)
+        private static void ParticleDriver(int i, int j, int k, int SG, float TransConcentration, int splitIndex)
         {
             //random number generator seeds
             int rnd = (Environment.TickCount + i + j) & Int32.MaxValue;
@@ -81,6 +81,7 @@ namespace GRAL_2001
                 m_w = Program.RnGSeed.Seed1 + (uint)(i + j);
                 m_z = Program.RnGSeed.Seed2 + (uint)(i * 2);
             }
+            ResidualSeeds(i, j, k, SG, splitIndex, ref m_w, ref m_z);
             float zahl1 = 0;
             uint u_rg = 0;
             float u1_rg = 0;
@@ -145,11 +146,18 @@ namespace GRAL_2001
             int IFQ = Program.TS_Count;
             //Program.Sourcetype[0] = 3; 
             float blh = Program.BdLayHeight;
+            float blhRez = 1/blh;
+            float blhRez2 = 1 / Program.Pow2(blh);
+            float cachedObLength = float.NaN, cachedUstern = float.NaN, cachedVariance = 0;
             int IKOOAGRAL = Program.IKOOAGRAL;
             int JKOOAGRAL = Program.JKOOAGRAL;
 
             Span<int> kko = stackalloc int[Program.NS];
-            Span<double> ReceptorConcentration = stackalloc double[Program.ReceptorNumber + 1];
+            // Small receptor sets need no per-particle heap allocation; cap stack use at 2 KiB.
+            int receptorCount = Program.ReceptorNumber == 0 ? 0 : Program.ReceptorNumber + 1;
+            Span<double> ReceptorConcentration = receptorCount <= 256
+                ? stackalloc double[receptorCount] : new double[receptorCount];
+            ReceptorConcentration.Clear();
             float a3 = 1.1F;
 
             int reflexion_flag = Consts.ParticleNotReflected ;
@@ -367,9 +375,9 @@ namespace GRAL_2001
                 depo_reflection_counter++;
                 float W0int = 0; float varw2 = 0; float skew = 0; float curt = 0; float dskew = 0;
                 float wstern = Ustern * 2.9F;
-                float vert_blh = PartHeightAboveBuilding / blh;
+                float vert_blh = PartHeightAboveBuilding * blhRez;
                 float hterm = (1 - vert_blh);
-                float varwu = 0; float dvarw = 0; float dcurt = 0;
+                float dvarw = 0; float dcurt = 0;
 
                 if (ObLength >= 0)
                 {
@@ -394,7 +402,13 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        varw = Program.Pow2(Ustern) * Program.Pow2(1.15F + 0.1F * MathF.Pow(blh / (-ObLength), 0.67F)) * Program.Pow2(Program.StdDeviationW);
+                        if (ObLength != cachedObLength || Ustern != cachedUstern)
+                        {
+                            cachedVariance = Program.Pow2(Ustern) * Program.Pow2(1.15F + 0.1F * MathF.Pow(blh / (-ObLength), 0.67F)) * Program.Pow2(Program.StdDeviationW);
+                            cachedObLength = ObLength;
+                            cachedUstern = Ustern;
+                        }
+                        varw = cachedVariance;
                     }
                     varw2 = Program.Pow2(varw);
 
@@ -405,8 +419,8 @@ namespace GRAL_2001
                     }
                     else
                     {
-                        skew = a3 * PartHeightAboveBuilding * Program.Pow2(hterm) * Program.Pow3(wstern) / blh;
-                        dskew = a3 * Program.Pow3(wstern) / blh * Program.Pow2(hterm) - 2 * a3 * Program.Pow3(wstern) * PartHeightAboveBuilding * hterm / Program.Pow2(blh);
+                        skew = a3 * PartHeightAboveBuilding * Program.Pow2(hterm) * Program.Pow3(wstern) * blhRez;
+                        dskew = a3 * Program.Pow3(wstern) * blhRez * Program.Pow2(hterm) - 2 * a3 * Program.Pow3(wstern) * PartHeightAboveBuilding * hterm * blhRez2;
                     }
 
                     if (PartHeightAboveBuilding < Program.BdLayH10)
@@ -1064,12 +1078,101 @@ namespace GRAL_2001
 
                     masse -= epsilonW_Masse;
 
-                    double[] depo_L = Program.Depo_conz[iko][jko];
-                    double conc = epsilonW_Masse * area_rez_fac;
-                    lock (depo_L)
+                    if (!Program.WetDopoDropDrift) // default deposition on the position of the particle
                     {
-                        depo_L[SG_nteil] += conc;
+                        double[] depo_L = Program.Depo_conz[iko][jko];
+                        double conc = epsilonW_Masse * area_rez_fac;
+                        lock (depo_L)
+                        {
+                            depo_L[SG_nteil] += conc;
+                        }
                     }
+                    else // consider the drop drift 
+                    {
+                        // find the index for the drop data
+                        int dropDataIndex;
+                        for (dropDataIndex = 0; dropDataIndex < Program.WetDepoDropVelocity.GetLength(1); dropDataIndex++)
+                        {
+                            if (Program.WetDepoDropVelocity[dropDataIndex, 0] >= Program.WetDepoPrecipitation)
+                            {
+                                break;
+                            }
+                        }
+                        //loop for 4 drop size classes
+                        for (int dropSizeClass = 1; dropSizeClass < 5; dropSizeClass++)
+                        {
+                            // random number from 0.5 to 1 -> create a variation of the drop velocity
+                            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                            u_rg = (m_z << 16) + m_w;
+                            float u_random = (float)(0.5F + u_rg * 1.16415321772724E-10);
+
+                            double depoX = xcoord_nteil, depoY = ycoord_nteil,
+                                   depoEpsilonW = epsilonW_Masse * Program.WetDepoDropVelocity[dropDataIndex, 4 + dropSizeClass] * 0.01F,
+                                   depoCellH = Program.DZK[IndexK];
+                            int depoIndexK = IndexK, depoFFX = FFCellX, depoFFY = FFCellY;
+
+                            float depo1stCell = Program.DZK[1];
+                            if (Program.BuildingsExist == false) //flat terrain, no buildings
+                            {
+                                depoCellH = 2;
+                                depo1stCell = 2;
+                            }
+
+                            float depoVelVertical = Program.WetDepoDropVelocity[dropDataIndex, dropSizeClass] * u_random, depoTime = (float)depoCellH * 4 / depoVelVertical,
+                                  depoU = UXint, depoV = UYint, depoZ = UZint, depoZcoord = zcoord_nteil, depoAH = AHint;
+
+                            //track drops until they reach the ground
+                            while (depoZcoord > depoAH)
+                            {
+                                // new coordinates and flow field grid indices
+                                depoZcoord += depoZ * depoTime - (float)depoCellH * 4;
+                                if (depoZcoord > depo1stCell)
+                                {
+                                    depoX += depoTime * depoU;
+                                    depoY += depoTime * depoV;
+                                    depoFFX = (int)((depoX - IKOOAGRAL) * FFGridXRez) + 1;
+                                    depoFFY = (int)((depoY - JKOOAGRAL) * FFGridYRez) + 1;
+                                    if ((depoFFX < 1) || (depoFFX > Program.NII) || (depoFFY < 1) || (depoFFY > Program.NJJ))
+                                    {
+                                        depoEpsilonW = 0;
+                                        break;
+                                    }
+                                    depoAH = Program.AHK[depoFFX][depoFFY];
+                                    (depoU, depoV, depoZ, depoIndexK) = Zeitschleife.IntWindCalculate(depoFFX, depoFFY, depoAH, depoX, depoY, depoZcoord);
+                                    // new values
+                                    if (Program.BuildingsExist == false) //flat terrain, no buildings
+                                    {
+                                        depoCellH = 2;
+                                    }
+                                    else
+                                    {
+                                        depoCellH = Program.DZK[depoIndexK];
+                                    }
+                                    depoTime = (float)depoCellH * 4 / depoVelVertical;
+                                }
+                            }
+
+                            // concentration grid indices
+                            int depoiko = (int)((depoX - IKOOAGRAL) * ConcGridXRez) + 1;
+                            int depojko = (int)((depoY - JKOOAGRAL) * ConcGridYRez) + 1;
+                            if ((depoiko >= Program.NXL) || (depoiko < 2) || (depojko >= Program.NYL) || (depojko < 2))
+                            {
+                                depoEpsilonW = 0;
+                            }
+                            else //save deposition 
+                            {
+                                //Console.WriteLine("StartCoordinates" + Math.Round(xcoord_nteil,0).ToString() + "/" + Math.Round(ycoord_nteil,0).ToString() + "FinalCoordinates" + Math.Round(depoX,1).ToString() + "/" + Math.Round(depoY,1).ToString());
+                                double[] depo_L = Program.Depo_conz[depoiko][depojko];
+                                double conc = depoEpsilonW * area_rez_fac;
+                                lock (depo_L)
+                                {
+                                    depo_L[SG_nteil] += conc;
+                                }
+                            }
+                        } //loop for 4 drop size classes
+
+                    } // end of considering drop drift
 
                     if (ex)
                     {
@@ -1080,32 +1183,36 @@ namespace GRAL_2001
                 if (Deposition_type < 2) // compute concentrations for this particle
                 {
                     //receptor concentrations
-                    if ((Program.ReceptorsAvailable) && (reflexion_flag == Consts.ParticleNotReflected))
+                    if (Program.ReceptorsAvailable && reflexion_flag == Consts.ParticleNotReflected && Program.GridCellReceptors != null)
                     {
-                        for (int irec = 1; irec < ReceptorConcentration.Length; irec++)
+                        //search for a receptor within the recent cell
+                        if (Program.GridCellReceptors.TryGetValue((iko, jko), out var receptors))
                         {
-                            // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
-                            if (Program.ReceptorNearbyBuilding[irec])
+                            foreach (int irec in receptors)
                             {
-                                if (iko == Program.ReceptorIInd[irec] &&
-                                    jko == Program.ReceptorJInd[irec])
+                                // if a receptor is inside or nearby a building, use the raster grid concentration inside or nearby the building
+                                if (Program.ReceptorNearbyBuilding[irec])
                                 {
-                                    float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if ((int) slice == 0)
+                                    if (iko == Program.ReceptorIInd[irec] &&
+                                        jko == Program.ReceptorJInd[irec])
                                     {
-                                        ReceptorConcentration[irec] += idt * masse;
+                                        float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
+                                        if ((int)slice == 0)
+                                        {
+                                            ReceptorConcentration[irec] += idt * masse;
+                                        }
                                     }
                                 }
-                            }
-                            else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
-                            {
-                                if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < ConcGridXHalf &&
-                                    Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
+                                else // use the concentration at the receptor position x +- GralDx/2 and receptor y +- GralDy/2
                                 {
-                                    float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
-                                    if ((int)(slice) == 0)
+                                    if (Math.Abs(xcoord_nteil - Program.ReceptorX[irec]) < ConcGridXHalf &&
+                                        Math.Abs(ycoord_nteil - Program.ReceptorY[irec]) < ConcGridYHalf)
                                     {
-                                        ReceptorConcentration[irec] += idt * masse;
+                                        float slice = (zcoord_nteil - AHint - Program.ReceptorZ[irec]) * ConcGridZRez;
+                                        if ((int)slice == 0)
+                                        {
+                                            ReceptorConcentration[irec] += idt * masse;
+                                        }
                                     }
                                 }
                             }
@@ -1117,11 +1224,11 @@ namespace GRAL_2001
                     {
                         if ((kko[II] == 0) && (reflexion_flag == Consts.ParticleNotReflected))
                         {
-                            float[] conz3d_L = Program.Conz3d[iko][jko][II];
+                            double[] conz3d_L = Program.Conz3dDouble[iko][jko][II];
                             double conc = masse * idt;
                             lock (conz3d_L)
                             {
-                                conz3d_L[SG_nteil] += (float)conc;
+                                conz3d_L[SG_nteil] += conc;
                             }
                         }
                     }
@@ -1208,5 +1315,32 @@ namespace GRAL_2001
             }
             return;
         }
+
+        private static ulong MixSeed(ulong seed)
+        {
+            unchecked
+            {
+                seed += 0x9E3779B97F4A7C15UL;
+                seed = (seed ^ (seed >> 30)) * 0xBF58476D1CE4E5B9UL;
+                seed = (seed ^ (seed >> 27)) * 0x94D049BB133111EBUL;
+                return seed ^ (seed >> 31);
+            }
+        }
+
+        // Include the full residual-particle identity before the first MWC step.
+        private static void ResidualSeeds(int i, int j, int k, int SG, int splitIndex, ref uint m_w, ref uint m_z)
+        {
+            ulong seed = MixSeed(((ulong)m_z << 32) | m_w);
+            seed = MixSeed(seed ^ (ulong)(uint)Program.IWET ^ 0x7265736964UL);
+            seed = MixSeed(seed ^ ((ulong)(uint)i | ((ulong)(uint)j << 32)));
+            seed = MixSeed(seed ^ ((ulong)(uint)k | ((ulong)(uint)SG << 32)));
+            seed = MixSeed(seed ^ (ulong)(uint)splitIndex);
+            m_w = (uint)seed;
+            m_z = (uint)(seed >> 32);
+            // Exclude the fixed points of the two MWC components.
+            if (m_w % 1179647999u == 0u) m_w = 521288629u;
+            if (m_z % 2422800383u == 0u) m_z = 2232121u;
+        }
+
     }
 }

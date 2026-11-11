@@ -11,8 +11,10 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO.Pipes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -250,7 +252,7 @@ namespace GRAL_2001
         ///<summary>
         ///2D concentration separated into source groups and horizontal slices
         ///</summary>
-        public static float[][][][] Conz3d = CreateArray<float[][][]>(1, () => CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1])));
+        public static double[][][][] Conz3dDouble = CreateArray<double[][][]>(1, () => CreateArray<double[][]>(1, () => CreateArray<double[]>(1, () => new double[1])));
         ///<summary>
         ///Height of u,v measurements
         ///</summary>
@@ -510,6 +512,10 @@ namespace GRAL_2001
         ///Flag determining if receptor points are included or not
         ///</summary>
         public static bool ReceptorsAvailable = false;
+        ///<summary>
+        ///Directory for spatial stored receptor data
+        ///</summary>
+        public static FrozenDictionary<(int i, int j), List<int>> GridCellReceptors;
         ///<summary>
         ///Default roughness length in [m]
         ///</summary>
@@ -1203,6 +1209,10 @@ namespace GRAL_2001
         ///</summary>
         public static double WedDepoAlphaW = 0;
         ///<summary>
+        /// Wet deposition Drop Drift
+        ///</summary>
+        public static bool WetDopoDropDrift = false;
+        ///<summary>
         /// Wet deposition rW per dispersion situation
         ///</summary>
         public static double WetDepoRW = 0;
@@ -1210,6 +1220,10 @@ namespace GRAL_2001
         /// Wet deposition precipitation data for the timeseries
         ///</summary>
         public static readonly List<float> WetDepoPrecipLst = new List<float>();
+        ///<summary>
+        /// Recent precipitation for IWET 
+        ///</summary>
+        public static float WetDepoPrecipitation;
         ///<summary>
         /// Log additional informations at the console
         ///</summary>
@@ -1287,6 +1301,31 @@ namespace GRAL_2001
         /// Use Fixed Random Seed Value?
         ///</summary>
         public static bool UseFixedRndSeedVal = false;
+        ///<summary>
+        /// Cancel token for the app, sent from the GUI
+        ///</summary>
+        public static CancellationTokenSource CancelToken = new();
+        
+        ///<summary>
+        /// Table for the Drop Drift calculation
+        /// col 0 = Precipitation intensity [mm/h]
+        /// col 1 to 4 = drop velocity for a mass distribution of raindrops for 4 classes with a relative mass fraction of 12, 37, 62 and 87 % 
+        /// col 5 to 8 = percentage of wet deposition capability; this percentage is inversely proportional to the drop velocity
+        /// Data according to VDI 3782 Part 5
+        ///</summary>
+        public static readonly float[,] WetDepoDropVelocity = new float[,]
+        {
+            { 0.1F,0.9F,2.0F,2.6F,3.7F, 48.6F,22.4F,17.0F,12.0F },
+            { 0.2F,1.3F,2.3F,2.9F,4.1F, 43.3F,24.2F,19.2F,13.4F },
+            { 0.5F,1.6F,2.9F,3.7F,4.6F, 42.2F,23.9F,18.8F,15.1F },
+            { 1.0F,2.0F,3.4F,4.1F,4.9F, 40.8F,23.5F,19.4F,16.3F },
+            { 2.0F,2.6F,3.9F,4.6F,5.3F, 36.7F,24.4F,20.9F,18.0F },
+            { 5.0F,2.9F,4.1F,4.9F,5.6F, 35.8F,24.9F,20.9F,18.4F },
+            {  10F,3.2F,4.3F,5.3F,6.4F, 35.5F,25.7F,21.2F,17.6F },
+            {  20F,3.7F,4.9F,5.6F,6.8F, 34.0F,25.3F,22.3F,18.4F },
+            {  50F,4.1F,5.3F,6.4F,7.2F, 33.3F,26.1F,21.6F,19.0F },
+            { 100F,4.6F,5.7F,6.8F,7.6F, 32.6F,25.9F,22.0F,19.5F }
+        };
 
         ///<summary>
         /// Deposition velocity factor within vegetation areas
@@ -1315,7 +1354,7 @@ namespace GRAL_2001
             public override string ToString()
             {
                 return (VelGasFact + 1).ToString(CultureInfo.InvariantCulture) + ", " + (VelPMxxFact + 1).ToString(CultureInfo.InvariantCulture);
-            } 
+            }
         }
 
         ///<summary>
