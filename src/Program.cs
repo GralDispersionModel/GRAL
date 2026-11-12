@@ -167,6 +167,8 @@ namespace GRAL_2001
 
             //reading main control file in.dat
             ReaderClass.ReadInDat();
+            // Decide the GPU switch here, so that its line is in the GRAL log of every run, also one that ends before the first situation
+            _ = GpuExperimental.Enabled;
             //override first weather situation when using a command line argument for the 1st and last weather situation
             if (IWETstartstop.Start > 0)
             {
