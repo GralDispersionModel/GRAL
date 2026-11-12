@@ -190,13 +190,15 @@ namespace GRAL_2001
                 }
             }
             specialize = specializationSteps.Count > 0;
-            // INU_GPU_REPRODUCIBLE_SUMS: unset or 1 = order-independent sums when the run uses fixed random seeds (in.dat
-            // "Use fixed random seed value" = 1); 0 = the atomic floating-point sums of a native-seed run.
+            // Order-independent sums when the run uses fixed random seeds (in.dat line 22, "Use fixed random seed value" = 1), unless
+            // in.dat line 24 is 0; then, and in a native-seed run, the atomic floating-point sums. INU_GPU_REPRODUCIBLE_SUMS = 0 or 1
+            // overrides line 24 for one run.
             string reproSetting = (Environment.GetEnvironmentVariable("INU_GPU_REPRODUCIBLE_SUMS") ?? "").Trim();
             if (reproSetting.Length > 0 && reproSetting != "0" && reproSetting != "1")
                 throw new ArgumentException("INU_GPU_REPRODUCIBLE_SUMS: use 0 or 1, not '" + reproSetting + "'");
-            reproSums = Program.UseFixedRndSeedVal && reproSetting != "0";
-            reproSumsSource = !Program.UseFixedRndSeedVal ? "in.dat line 22: no fixed random seeds" : reproSetting.Length > 0 ? "INU_GPU_REPRODUCIBLE_SUMS=" + reproSetting : "in.dat line 22";
+            reproSums = Program.UseFixedRndSeedVal && (reproSetting.Length > 0 ? reproSetting != "0" : Program.GpuReproducibleSums);
+            reproSumsSource = !Program.UseFixedRndSeedVal ? "in.dat line 22: no fixed random seeds" : reproSetting.Length > 0 ? "INU_GPU_REPRODUCIBLE_SUMS=" + reproSetting :
+                              Program.GpuReproducibleSums ? "in.dat line 22" : "in.dat line 24";
             metrics["reproducible_sums"] = reproSums;
             metrics["repro_finalize_ms"] = 0.0; metrics["repro_word_bytes"] = 0L;
             metrics["pipe_read_wait_ms"] = 0.0; metrics["h2d_ms"] = 0.0; metrics["d2h_ms"] = 0.0; metrics["kernel_device_ms"] = 0.0;

@@ -1314,6 +1314,10 @@ namespace GRAL_2001
         ///</summary>
         public static bool UseGpuLinePresent = false;
         ///<summary>
+        /// Add the GPU results in integers when the run uses reproducible results (in.dat line 24; absent = yes; INU_GPU_REPRODUCIBLE_SUMS overrides it)
+        ///</summary>
+        public static bool GpuReproducibleSums = true;
+        ///<summary>
         /// Cancel token for the app, sent from the GUI
         ///</summary>
         public static CancellationTokenSource CancelToken = new();
