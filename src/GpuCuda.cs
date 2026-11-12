@@ -169,7 +169,8 @@ namespace GRAL_2001
         {
             var (raw, source) = GpuSettings.Get("device");
             string expected = GpuSettings.Value("device_name");
-            if (source != "file" || string.IsNullOrEmpty(expected)) return raw;
+            // No device at all is reported as such by the caller (and lets the automatic choice go on to HIP); it is not a name mismatch
+            if (source != "file" || string.IsNullOrEmpty(expected) || count < 1) return raw;
             string found = null;
             int handle;
             if (int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out int ordinal) && ordinal < count && cuDeviceGet(&handle, ordinal) == 0)
