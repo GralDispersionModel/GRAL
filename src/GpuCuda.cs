@@ -343,7 +343,7 @@ namespace GRAL_2001
             System.Numerics.BigInteger ordinal = OrdinalValue(raw, label);
             if (count < 1) throw Status(new InvalidOperationException("No " + api + " device is visible (check the " + (hip ? "AMD" : "NVIDIA") + " driver and " + visible + ")"), "no_device");
             if (ordinal >= count)
-                throw GpuSettings.FromFile(new ArgumentException(label + "=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)"), "device");
+                throw GpuSettings.FromFile(new ArgumentException("Device " + ordinal + " (" + label + ") is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)"), "device");
             return (int)ordinal;
         }
 

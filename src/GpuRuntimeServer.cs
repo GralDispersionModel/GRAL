@@ -697,7 +697,7 @@ namespace GRAL_2001
         {
             if (raw.Length == 0 || !raw.All(ch => ch >= '0' && ch <= '9') ||
                 !long.TryParse(raw, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out long value) || value < minimum)
-                throw new ArgumentException("Invalid GPU memory setting: " + label);
+                throw new ArgumentException(label + " must be an integer of at least " + minimum.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", got '" + raw + "'");
             return value;
         }
 
