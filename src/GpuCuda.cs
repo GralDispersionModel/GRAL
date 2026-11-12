@@ -538,8 +538,10 @@ namespace GRAL_2001
                 int handle;
                 if (cuDeviceGet(&handle, i) == 0 && OptionalAttribute(HipAttrIntegrated, handle) != 1) return i;
             }
-            // allow_integrated = 1 in the settings file accepts the integrated GPU on the automatic path as well
-            if (automatic && GpuSettings.Value("allow_integrated") != "1")
+            // allow_integrated = 1 in the settings file accepts the integrated GPU. The variable INU_GPU_BACKEND=hip accepts it too, as
+            // before; backend = hip in the settings file does not: a front end writes it for "HIP, automatic device", and that choice
+            // must not put the run on an integrated GPU without the question.
+            if ((automatic || GpuSettings.Get("backend").Source == "file") && GpuSettings.Value("allow_integrated") != "1")
                 throw Status(new InvalidOperationException("Only integrated AMD GPUs are visible; set allow_integrated = 1 in the GPU settings file, or INU_GPU_BACKEND=hip (and INU_GPU_DEVICE), to run on one"), "only_integrated");
             return 0;
         }
