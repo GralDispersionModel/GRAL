@@ -205,12 +205,13 @@ namespace GRAL_2001
             if (cuda.Hip) specializationSteps.UnionWith(SpecializationSetting());
             specialize = specializationSteps.Count > 0;
             // Order-independent sums when the run uses fixed random seeds (in.dat line 22, "Use fixed random seed value" = 1), unless
-            // in.dat line 24 is 0; then, and in a native-seed run, the atomic floating-point sums. INU_GPU_REPRODUCIBLE_SUMS = 0 or 1
-            // overrides line 24 for one run.
-            string reproSetting = ReproducibleSumsSetting();
-            reproSums = Program.UseFixedRndSeedVal && (reproSetting.Length > 0 ? reproSetting != "0" : Program.GpuReproducibleSums);
-            reproSumsSource = !Program.UseFixedRndSeedVal ? "in.dat line 22: no fixed random seeds" : reproSetting.Length > 0 ? "INU_GPU_REPRODUCIBLE_SUMS=" + reproSetting :
-                              Program.GpuReproducibleSums ? "in.dat line 22" : "in.dat line 24";
+            // GPU.txt has reproducible_sums = 0; then, and in a native-seed run, the atomic floating-point sums.
+            // INU_GPU_REPRODUCIBLE_SUMS = 0 or 1 overrides the file for one run.
+            ReproducibleSumsSetting();
+            var (reproSetting, reproFrom) = GpuSettings.Get("reproducible_sums");
+            reproSums = Program.UseFixedRndSeedVal && reproSetting != "0";
+            reproSumsSource = !Program.UseFixedRndSeedVal ? "in.dat line 22: no fixed random seeds" : reproFrom == "env" ? "INU_GPU_REPRODUCIBLE_SUMS=" + reproSetting :
+                              reproSetting == "0" ? "GPU.txt reproducible_sums = 0" : "in.dat line 22";
             metrics["reproducible_sums"] = reproSums;
             metrics["repro_finalize_ms"] = 0.0; metrics["repro_word_bytes"] = 0L;
             metrics["pipe_read_wait_ms"] = 0.0; metrics["h2d_ms"] = 0.0; metrics["d2h_ms"] = 0.0; metrics["kernel_device_ms"] = 0.0;

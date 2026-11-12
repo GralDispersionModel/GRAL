@@ -287,47 +287,6 @@ namespace GRAL_2001
                                 { }
                             }
 
-                            // Use the GPU for the particle dispersion (optional line; absent = CPU)
-                            if (sr.EndOfStream == false)
-                            {
-                                try
-                                {
-                                    _line++;
-                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                                    Program.UseGpuLinePresent = true;
-                                    if (text.Length > 0 && int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r))
-                                    {
-                                        if (r == 1) //1: Use the GPU
-                                        {
-                                            Program.UseGpu = true;
-                                        }
-                                    }
-                                    WarnInvalidSwitch(_line, "GPU for the particle dispersion", text, "0");
-                                }
-                                catch
-                                { }
-                            }
-
-                            // Reproducible sums on the GPU, used with reproducible results only (optional line; absent = yes)
-                            if (sr.EndOfStream == false)
-                            {
-                                try
-                                {
-                                    _line++;
-                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                                    if (text.Length > 0 && int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r))
-                                    {
-                                        if (r == 0) //0: floating-point sums, repeated runs can differ in the last bits
-                                        {
-                                            Program.GpuReproducibleSums = false;
-                                        }
-                                    }
-                                    WarnInvalidSwitch(_line, "reproducible sums on the GPU", text, "1");
-                                }
-                                catch
-                                { }
-                            }
-
                         }
                     }
                 }

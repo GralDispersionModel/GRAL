@@ -6,23 +6,25 @@ namespace GRAL_2001
     internal static class GpuExperimental
     {
         private static int enabledState=-1;
-        // in.dat line 23 ("Use the GPU", Program.UseGpu) switches the GPU on; INU_GPU_EXPERIMENTAL=1 or 0 overrides it.
-        // The first query writes to the GRAL log which of the two decided, and to the console as well unless both leave the GPU off.
+        // use_gpu = 1 in the project's GPU.txt switches the GPU on; INU_GPU_EXPERIMENTAL=1 or 0 overrides it. The first query reads
+        // the file (an invalid file is an ArgumentException, whatever the decision would be) and writes to the GRAL log which of
+        // the two decided, and to the console as well unless both leave the GPU off.
         internal static bool Enabled
         {
             get
             {
                 if(enabledState<0)
                 {
+                    bool fileOn=GpuSettings.FileValue("use_gpu")=="1";
                     string variable=Environment.GetEnvironmentVariable("INU_GPU_EXPERIMENTAL");
-                    bool on=variable=="1" || (variable!="0" && Program.UseGpu);
+                    bool on=variable=="1" || (variable!="0" && fileOn);
                     bool byVariable=variable=="1" || variable=="0";
-                    string source=byVariable ? "INU_GPU_EXPERIMENTAL="+variable+(Program.UseGpu ? ", in.dat asks for the GPU" : string.Empty) : Program.UseGpuLinePresent ? "in.dat" : "in.dat line 23 absent";
+                    string source=byVariable ? "INU_GPU_EXPERIMENTAL="+variable+(fileOn ? ", GPU.txt asks for the GPU" : string.Empty) : GpuSettings.FileStatus=="read" ? "GPU.txt" : "no GPU.txt";
                     // A value such as "true" or "yes" does not switch anything; say so instead of ignoring it without a word
                     bool ignored=!byVariable && !string.IsNullOrEmpty(variable);
                     if(ignored) source+="; INU_GPU_EXPERIMENTAL="+variable+" is ignored, use 1 or 0";
                     string message="GPU for the particle dispersion: "+(on ? "on" : "off")+" ("+source+")";
-                    if(on || byVariable || Program.UseGpu || ignored) Console.WriteLine(message);
+                    if(on || byVariable || fileOn || ignored) Console.WriteLine(message);
                     ProgramWriters.LogfileGralCoreWrite(message);
                     enabledState=on ? 1 : 0;
                 }

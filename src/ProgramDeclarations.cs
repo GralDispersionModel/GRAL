@@ -1306,18 +1306,6 @@ namespace GRAL_2001
         ///</summary>
         public static bool UseFixedRndSeedVal = false;
         ///<summary>
-        /// Use the GPU for the particle dispersion? (in.dat line 23; INU_GPU_EXPERIMENTAL overrides it)
-        ///</summary>
-        public static bool UseGpu = false;
-        ///<summary>
-        /// in.dat has a line 23, whatever its value
-        ///</summary>
-        public static bool UseGpuLinePresent = false;
-        ///<summary>
-        /// Add the GPU results in integers when the run uses reproducible results (in.dat line 24; absent = yes; INU_GPU_REPRODUCIBLE_SUMS overrides it)
-        ///</summary>
-        public static bool GpuReproducibleSums = true;
-        ///<summary>
         /// Cancel token for the app, sent from the GUI
         ///</summary>
         public static CancellationTokenSource CancelToken = new();

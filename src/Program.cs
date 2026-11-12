@@ -168,7 +168,17 @@ namespace GRAL_2001
             //reading main control file in.dat
             ReaderClass.ReadInDat();
             // Decide the GPU switch here, so that its line is in the GRAL log of every run, also one that ends before the first situation
-            _ = GpuExperimental.Enabled;
+            try { _ = GpuExperimental.Enabled; }
+            catch (ArgumentException exc)
+            {
+                // An invalid GPU.txt stops the run before the first situation, also when it would have left the GPU off
+                Console.WriteLine();
+                Console.WriteLine("ERROR: " + exc.Message);
+                ProgramWriters.LogfileProblemreportWrite(exc.Message); // also writes to Logfile_GRALCore
+                ProgramWriters.LogfileGralCoreWrite("GRAL simulations stopped with errors at: " + DateTime.Now.ToString());
+                ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
+                Environment.Exit(1);
+            }
             //override first weather situation when using a command line argument for the 1st and last weather situation
             if (IWETstartstop.Start > 0)
             {
