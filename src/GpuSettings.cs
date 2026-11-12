@@ -35,14 +35,22 @@ namespace GRAL_2001
             lock(sync)
             {
                 if(file!=null) return;
-                string path=Environment.GetEnvironmentVariable("INU_GPU_SETTINGS_FILE");
+                // Blanks around the value do not count, and a blank value is the same as an unset variable
+                string path=Environment.GetEnvironmentVariable("INU_GPU_SETTINGS_FILE")?.Trim();
                 if(string.IsNullOrEmpty(path))
                 {
                     string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                     path=string.IsNullOrEmpty(local) ? null : Path.Combine(local,"GRAL","GpuSettings.txt");
                 }
-                else if(path.Trim().Equals("off",StringComparison.OrdinalIgnoreCase)) { FilePath=null; FileStatus="off"; file=new Dictionary<string,string>(); return; }
-                else path=Path.GetFullPath(path);
+                else if(path.Equals("off",StringComparison.OrdinalIgnoreCase)) { FilePath=null; FileStatus="off"; file=new Dictionary<string,string>(); return; }
+                else
+                {
+                    // A value that is no path at all is reported, with the text as given and the status of a file that is not there
+                    FilePath=path; FileStatus="absent";
+                    try { path=Path.GetFullPath(path); }
+                    catch(Exception error) when(error is ArgumentException || error is IOException || error is NotSupportedException || error is System.Security.SecurityException)
+                    { throw GpuCuda.Status(new ArgumentException("INU_GPU_SETTINGS_FILE is not a usable path: "+error.Message,error),"invalid_setting"); }
+                }
                 FilePath=path;
                 var values=new Dictionary<string,string>(StringComparer.Ordinal);
                 if(path==null || !File.Exists(path)) { FileStatus="absent"; file=values; return; }
