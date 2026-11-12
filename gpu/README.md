@@ -70,7 +70,7 @@ Line 24 only matters when line 22 is 1 and the GPU is used. A missing line or `1
 
 What GRAL writes about the GPU to `Logfile_GRALCore.txt`:
 
-- always one line with the decision, also for a CPU run: `GPU for the particle dispersion: off (in.dat line 23 absent)`, `off (in.dat)`, `on (in.dat)` or `on`/`off (INU_GPU_EXPERIMENTAL=...)`. The console gets this line only when in.dat or the variable asks for the GPU, so a CPU-only run prints nothing new;
+- always one line with the decision, also for a CPU run: `GPU for the particle dispersion: off (in.dat line 23 absent)`, `off (in.dat)`, `on (in.dat)` or `on`/`off (INU_GPU_EXPERIMENTAL=...)`. The console gets this line only when in.dat or the variable asks for the GPU, so a CPU-only run prints nothing new. A value of `INU_GPU_EXPERIMENTAL` other than 1 or 0 switches nothing; the line then names it as ignored, on the console too;
 - after a successful GPU start: the backend, the device ordinal and name, its memory, the driver and compiler versions and the binary kind; whether reproducible sums are on and what decided that (line 22, line 24 or the variable); the GPU settings file and its status; every setting of that file's key list that is not at its default, with its source (`env` or `file`); and every other `INU_GPU_*` or `INU_GRAL_GPU_*` variable of the process with its value, so that a variable inherited from the calling program is visible;
 - warnings (`GPU warning: ...`), per-situation CPU fallbacks and a whole-run fallback, with the reason;
 - at the end: `GPU run summary: N situation(s) computed on the GPU, M on the CPU`, with a note when the CPU situations are per-situation fallbacks or when the whole run fell back.
@@ -79,7 +79,7 @@ With several GRAL instances (`SITUATIONS` argument), each instance writes these 
 
 | Variable | Default | Effect |
 |---|---|---|
-| `INU_GPU_EXPERIMENTAL` | unset | `1` or `0` turns the GPU on or off for this run, overriding `in.dat` line 23; unset or any other value leaves the choice to `in.dat` |
+| `INU_GPU_EXPERIMENTAL` | unset | `1` or `0` turns the GPU on or off for this run, overriding `in.dat` line 23; unset or any other value leaves the choice to `in.dat` (another value is reported as ignored) |
 | `INU_GPU_MANIFEST` | `fields_manifest.json` in GRAL's `gpu\runtime` folder, which the build writes, else next to GRAL (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
 | `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it | JSON-lines file for per-situation metrics |
 | `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
@@ -182,7 +182,7 @@ Tests on an RX 9070 XT: nine projects ran three times each, with launch sizes of
 
 ## When something goes wrong
 
-- A GPU failure that ends the run, that is a startup failure without fallback or an error after GPU work has started, ends GRAL like its other failed runs: the reason is written to the console (`ERROR: GPU failure in weather situation N: ...`), to `Problemreport_GRAL.txt` and to `Logfile_GRALCore.txt`, the log ends with `GRAL simulations stopped with errors`, and the exit code is 1. The vertical concentration file is not written from the unfinished situation, and the transient checkpoint files (`*.tmp`) of the last finished situation are kept, as after an interrupted run.
+- A startup failure without fallback, or an error after GPU work has started, ends GRAL like its other failed runs: the reason is written to the console (`ERROR: GPU failure in weather situation N: ...`), to `Problemreport_GRAL.txt` and to `Logfile_GRALCore.txt`, the log ends with `GRAL simulations stopped with errors`, and the exit code is 1. The vertical concentration file is not written from the unfinished situation, and the transient checkpoint files (`*.tmp`) of the last finished situation are kept, as after an interrupted run.
 - `GPU startup failed: ...`: the message names the missing piece (driver, device ordinal, NVRTC, manifest). Set `INU_GPU_FALLBACK_ON_STARTUP=1`, or `fallback_on_startup = 1` in the GPU settings file, to run on the CPU instead; the run then finishes with exit code 0 and the log says that the whole run fell back.
 - A device error or watchdog reset during a run stops GRAL with an error; it is not retried on the CPU. Lower `INU_GPU_MAX_KERNEL_MS` on slow NVIDIA display GPUs; on an AMD GPU that resets, lower `INU_GRAL_GPU_CHUNK` instead.
 - On a machine with only AMD GPUs, a startup failure that names only the NVIDIA driver means that GRAL found no HIP 7 runtime (`amdhip64_7.dll` in System32), or that a leftover NVIDIA driver loads but fails. Update the Adrenalin driver or set `INU_GPU_HIP_RUNTIME`; with a leftover NVIDIA driver, set `INU_GPU_BACKEND=hip`.
