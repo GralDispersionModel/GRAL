@@ -425,6 +425,18 @@ namespace GRAL_2001
             Thread ThreadWriteConz4dFile = null;
             Thread ThreadWrite2DConcentrationFiles = null;
             int recentWeatherSituation = 0;
+            // A GPU failure (startup without fallback, or an error after GPU work started) ends the run like a failed meteorology
+            // input: the reason goes to the console and the logs, the finish sequence runs and the exit code is 1.
+            bool gpuFailed = false;
+            void ReportGpuFailure(Exception exc)
+            {
+                gpuFailed = true;
+                string err = "GPU failure in weather situation " + IWET.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + exc.Message +
+                             (exc.InnerException != null && !exc.Message.Contains(exc.InnerException.Message) ? ": " + exc.InnerException.Message : string.Empty);
+                Console.WriteLine();
+                Console.WriteLine("ERROR: " + err);
+                ProgramWriters.LogfileProblemreportWrite(err); // also writes to Logfile_GRALCore
+            }
             // A failed GPU situation ends the run; let the writer threads of earlier situations finish their files first.
             void RunGpuSituation()
             {
@@ -439,12 +451,12 @@ namespace GRAL_2001
                     ThreadWriteConz4dFile?.Join();
                     ThreadWrite2DConcentrationFiles?.Join();
                 }
-                catch
+                catch (Exception exc)
                 {
                     ThreadWriteGffFiles?.Join();
                     ThreadWriteConz4dFile?.Join();
                     ThreadWrite2DConcentrationFiles?.Join();
-                    throw;
+                    ReportGpuFailure(exc);
                 }
             }
 
@@ -740,6 +752,12 @@ namespace GRAL_2001
                         // A stop during the GPU check or startup finishes GRAL like the checks below.
                         goto FinishGral;
                     }
+                    catch (Exception exc)
+                    {
+                        // Only the GPU switch and the GPU startup run in this try block
+                        ReportGpuFailure(exc);
+                        goto FinishGral;
+                    }
 
                     //Transient mode: non-steady-state particles
                     if (ISTATIONAER == Consts.TransientMode)
@@ -777,7 +795,7 @@ namespace GRAL_2001
                         }
                         else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
-                    if (CancelToken.IsCancellationRequested)
+                    if (CancelToken.IsCancellationRequested || gpuFailed)
                     {
                         goto FinishGral;
                     }
@@ -788,7 +806,7 @@ namespace GRAL_2001
                     if (useGpu && ISTATIONAER == Consts.StationaryMode) { RunGpuSituation(); }
                     else if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
-                    if (CancelToken.IsCancellationRequested)
+                    if (CancelToken.IsCancellationRequested || gpuFailed)
                     {
                         goto FinishGral;
                     }
@@ -890,7 +908,7 @@ FinishGral:
             if (ISTATIONAER == Consts.TransientMode)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
-                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1) // do not write the files for multiple instances
+                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1 && !gpuFailed) // do not write the files for multiple instances or from a situation that the GPU did not finish
                 {
                     try
                     {
@@ -929,7 +947,15 @@ FinishGral:
                 ThreadWriteConz4dFile = null;
             }
 
-            if (verticalOutputFailed && (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp")))
+            if (gpuFailed)
+            {
+                // Leave the checkpoint of the last finished situation, as the unhandled GPU error did before and as an interrupted run does
+                if (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp"))
+                {
+                    ProgramWriters.LogfileProblemreportWrite("The run stopped with a GPU error. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
+                }
+            }
+            else if (verticalOutputFailed && (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp")))
             {
                 // Leave the checkpoint as an interrupted run would; GRAL's usual restart rules apply to a rerun in this folder
                 ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
@@ -964,7 +990,7 @@ FinishGral:
                 SyncWithMutex.Dispose();
             }
 
-            bool runFailed = verticalOutputFailed || gpuShutdownFailed || MeteoInputFailed;
+            bool runFailed = verticalOutputFailed || gpuShutdownFailed || gpuFailed || MeteoInputFailed;
             if (Program.CancelToken.IsCancellationRequested)
             {
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations cancelled at: " + DateTime.Now.ToString());    
@@ -990,7 +1016,7 @@ FinishGral:
                 Console.ReadKey(true); 	// wait for a key input
             }
 
-            Environment.Exit(runFailed ? 1 : 0);        // Exit console; nonzero if the vertical file, the GPU shutdown or the meteorology input failed
+            Environment.Exit(runFailed ? 1 : 0);        // Exit console; nonzero if the vertical file, the GPU or the meteorology input failed
         }
     }
 }

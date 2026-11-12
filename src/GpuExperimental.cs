@@ -2,7 +2,7 @@ using System;
 using System.IO;
 namespace GRAL_2001
 {
-    // GPU path for the particle dispersion; no CPU fallback after partial GPU execution.
+    // GPU path for the particle dispersion; no CPU fallback after partial GPU execution: a GPU error then ends the run (exit code 1).
     internal static class GpuExperimental
     {
         private static int enabledState=-1;
@@ -80,11 +80,9 @@ namespace GRAL_2001
             catch(Exception error) when(error is not OperationCanceledException)
             {
                 string message="GPU startup failed: "+error.Message;
+                // Program.Main reports this on the console and in the logs and ends the run with exit code 1
                 if(started || !FallbackOnStartup)
-                {
-                    Console.WriteLine(message);
                     throw new InvalidOperationException(message+(started?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1 to run on the CPU instead)"),error);
-                }
                 startupFailure=message;
                 Console.WriteLine("GPU fallback to CPU for the whole run: "+message);
                 ProgramWriters.LogfileGralCoreWrite("GPU fallback to CPU for the whole run: "+message);
