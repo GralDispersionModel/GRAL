@@ -435,6 +435,8 @@ namespace GRAL_2001
                 gpuFailed = true;
                 string err = "GPU failure in weather situation " + IWET.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + exc.Message +
                              (exc.InnerException != null && !exc.Message.Contains(exc.InnerException.Message) ? ": " + exc.InnerException.Message : string.Empty);
+                // A runtime compiler log can be very long; the full text is in the GPU runtime log
+                if (err.Length > 2000) err = err.Substring(0, 2000) + " ... (shortened; see the GPU runtime log)";
                 Console.WriteLine();
                 Console.WriteLine("ERROR: " + err);
                 ProgramWriters.LogfileProblemreportWrite(err); // also writes to Logfile_GRALCore
@@ -891,7 +893,7 @@ namespace GRAL_2001
             } // loop for all meteorological situations
 FinishGral:
             bool gpuShutdownFailed = false;
-            GpuExperimental.LogSummary();
+            GpuExperimental.LogSummary(gpuFailed);
             try
             {
                 GpuExperimental.Close();

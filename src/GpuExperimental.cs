@@ -156,12 +156,13 @@ namespace GRAL_2001
             foreach(var variable in variables) ProgramWriters.LogfileGralCoreWrite("GPU variable "+variable.Key+"="+variable.Value);
         }
         // One line at the end of a run that asked for the GPU: where the situations were computed.
-        internal static void LogSummary()
+        internal static void LogSummary(bool failed)
         {
             if(enabledState!=1) return;
             string message="GPU run summary: "+gpuSituations.ToString(System.Globalization.CultureInfo.InvariantCulture)+" situation(s) computed on the GPU, "+
                            cpuSituations.ToString(System.Globalization.CultureInfo.InvariantCulture)+" on the CPU"+
-                           (startupFailure!=null ? " (the whole run fell back to the CPU)" : cpuSituations>0 ? " (per-situation fallback)" : string.Empty);
+                           (startupFailure!=null ? " (the whole run fell back to the CPU)" : cpuSituations>0 ? " (per-situation fallback)" : string.Empty)+
+                           (failed ? "; the run was stopped by a GPU error, and the situation that failed is counted in neither" : string.Empty);
             Console.WriteLine(message);
             ProgramWriters.LogfileGralCoreWrite(message);
         }
