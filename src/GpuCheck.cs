@@ -4,12 +4,15 @@ using System.IO;
 using System.Text.Json;
 namespace GRAL_2001
 {
-    // GRAL --gpu-check: checks the GPU runtime files and starts the GPU backend as a GPU run would (driver, device, runtime
-    // compiler, probe compile). Prints one line "GRAL_GPU_CHECK {json}" with a status such as ok, no_manifest, no_driver,
-    // no_device, only_integrated, no_nvrtc, no_hiprtc, nvrtc_rejected, hiprtc_rejected or invalid_setting. Settings that only
-    // the runtime reads during a run (specialization, reproducible sums, chunk and block size, kernel-time limit, memory
-    // budgets, module cache) are not checked. Reads no project files and writes nothing; exit code 0 means that the GPU
-    // backend starts.
+    // GRAL --gpu-check: checks the GPU runtime files and starts the GPU backend as a GPU run would (GPU settings file, driver,
+    // device, runtime compiler, probe compile). Prints one line "GRAL_GPU_CHECK {json}" with the status ok, no_manifest,
+    // no_driver, driver_error, no_device, only_integrated, no_nvrtc, no_hiprtc, nvrtc_rejected, hiprtc_rejected, invalid_setting
+    // or failed. Besides the fields of the chosen device the line has settings_file, settings_file_status, settings (value and
+    // source of every key that is set), devices (all devices of the started backend), other_backends (installed, not started)
+    // and warnings; the device fields found so far are kept when a later step fails. Settings that only a run uses
+    // (specialization, reproducible sums, chunk and block size, kernel-time limit, memory budgets) get their syntax checks
+    // once the backend has started; the module cache folder and in.dat are not looked at. Reads no project files and writes
+    // nothing; exit code 0 means status ok, 2 anything else.
     internal static class GpuCheck
     {
         internal const string Argument="--gpu-check";

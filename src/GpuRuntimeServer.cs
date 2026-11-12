@@ -662,7 +662,9 @@ namespace GRAL_2001
 
         private void AdaptLaunch(string phase, long part)
         {
-            // Results do not depend on the split: particles are seeded and use scratch rows per particle.
+            // Particles are seeded and use scratch rows per particle, so each particle's path does not depend on the split. With
+            // reproducible sums the results do not depend on it either; the floating-point sums depend on the order of the
+            // additions, which the split changes.
             if (!adaptiveLaunch) return;
             double elapsed = lastKernelMs, target = maxKernelMs;
             long current = adaptivePart.TryGetValue(phase, out long known) ? known : AdaptiveStartPart;
