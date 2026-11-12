@@ -64,11 +64,19 @@ namespace GRAL_2001
                 var values=new Dictionary<string,string>(StringComparer.Ordinal);
                 if(!File.Exists(path)) { FileStatus="absent"; file=values; return; }
                 FileStatus="read";
-                string[] lines;
-                try { lines=File.ReadAllLines(path); }
+                byte[] bytes;
+                try { bytes=File.ReadAllBytes(path); }
                 catch(Exception error) when(error is IOException || error is UnauthorizedAccessException)
                 { throw GpuCuda.Status(new ArgumentException("GPU settings file "+FileName+" cannot be read: "+error.Message,error),"invalid_setting"); }
-                for(int i=0;i<lines.Length;i++)
+                // The file is UTF-8 (with or without a byte order mark). A UTF-16 or UTF-32 file is refused, not guessed at: a front end
+                // that reads the file as UTF-8 would otherwise see other settings than GRAL. Such a file has a UTF-16 mark or NUL bytes.
+                if((bytes.Length>=2 && ((bytes[0]==0xFF && bytes[1]==0xFE) || (bytes[0]==0xFE && bytes[1]==0xFF))) || Array.IndexOf(bytes,(byte)0)>=0)
+                    throw GpuCuda.Status(new ArgumentException("GPU settings file "+FileName+" is not a UTF-8 text file (UTF-16 or UTF-32, or it contains NUL bytes); save it as UTF-8"),"invalid_setting");
+                // Lines end with CR LF, LF or CR, as File.ReadAllLines splits them
+                var lines=new List<string>();
+                using(var reader=new StringReader(System.Text.Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF')))
+                    for(string text=reader.ReadLine();text!=null;text=reader.ReadLine()) lines.Add(text);
+                for(int i=0;i<lines.Count;i++)
                 {
                     string line=lines[i].Split('!')[0].Trim();
                     if(line.Length==0 || line[0]=='#') continue;
