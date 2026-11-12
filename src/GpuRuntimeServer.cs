@@ -162,6 +162,35 @@ namespace GRAL_2001
 
         // ------------------------------------------------------------------ startup
 
+        /// <summary>The steps INU_GPU_SPECIALIZE asks for; throws on an unknown step. Also called by GRAL --gpu-check.</summary>
+        internal static HashSet<string> SpecializationSetting()
+        {
+            var steps = new HashSet<string>(StringComparer.Ordinal);
+            string setting = (Environment.GetEnvironmentVariable("INU_GPU_SPECIALIZE") ?? "").Trim().ToLowerInvariant();
+            string usage = " (use 0, off, 1, on or a list of " + string.Join(", ", SpecializationSteps) + ")";
+            if (setting.Length == 0 || setting == "1" || setting == "on") steps.UnionWith(SpecializationSteps);
+            else if (setting != "0" && setting != "off")
+            {
+                foreach (string step in setting.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (!SpecializationSteps.Contains(step, StringComparer.Ordinal))
+                        throw new ArgumentException("INU_GPU_SPECIALIZE: unknown step '" + step + "'" + usage);
+                    steps.Add(step);
+                }
+                if (steps.Count == 0) throw new ArgumentException("INU_GPU_SPECIALIZE: no step in '" + setting + "'" + usage);
+            }
+            return steps;
+        }
+
+        /// <summary>INU_GPU_REPRODUCIBLE_SUMS: empty, 0 or 1; throws on another value. Also called by GRAL --gpu-check.</summary>
+        internal static string ReproducibleSumsSetting()
+        {
+            string setting = (Environment.GetEnvironmentVariable("INU_GPU_REPRODUCIBLE_SUMS") ?? "").Trim();
+            if (setting.Length > 0 && setting != "0" && setting != "1")
+                throw new ArgumentException("INU_GPU_REPRODUCIBLE_SUMS: use 0 or 1, not '" + setting + "'");
+            return setting;
+        }
+
         private void Canceled() => cancellation.ThrowIfCancellationRequested();
 
         private void Initialize()
@@ -173,29 +202,12 @@ namespace GRAL_2001
             // HIP only; the CUDA path compiles one general kernel. Read before the first compile, so a wrong value fails early.
             // INU_GPU_SPECIALIZE (any case): unset, 1 or on = all steps; 0 or off = general kernel; a comma list of steps (flags,
             // ints, grid, depo, src) enables only those.
-            if (cuda.Hip)
-            {
-                string setting = (Environment.GetEnvironmentVariable("INU_GPU_SPECIALIZE") ?? "").Trim().ToLowerInvariant();
-                string usage = " (use 0, off, 1, on or a list of " + string.Join(", ", SpecializationSteps) + ")";
-                if (setting.Length == 0 || setting == "1" || setting == "on") specializationSteps.UnionWith(SpecializationSteps);
-                else if (setting != "0" && setting != "off")
-                {
-                    foreach (string step in setting.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                    {
-                        if (!SpecializationSteps.Contains(step, StringComparer.Ordinal))
-                            throw new ArgumentException("INU_GPU_SPECIALIZE: unknown step '" + step + "'" + usage);
-                        specializationSteps.Add(step);
-                    }
-                    if (specializationSteps.Count == 0) throw new ArgumentException("INU_GPU_SPECIALIZE: no step in '" + setting + "'" + usage);
-                }
-            }
+            if (cuda.Hip) specializationSteps.UnionWith(SpecializationSetting());
             specialize = specializationSteps.Count > 0;
             // Order-independent sums when the run uses fixed random seeds (in.dat line 22, "Use fixed random seed value" = 1), unless
             // in.dat line 24 is 0; then, and in a native-seed run, the atomic floating-point sums. INU_GPU_REPRODUCIBLE_SUMS = 0 or 1
             // overrides line 24 for one run.
-            string reproSetting = (Environment.GetEnvironmentVariable("INU_GPU_REPRODUCIBLE_SUMS") ?? "").Trim();
-            if (reproSetting.Length > 0 && reproSetting != "0" && reproSetting != "1")
-                throw new ArgumentException("INU_GPU_REPRODUCIBLE_SUMS: use 0 or 1, not '" + reproSetting + "'");
+            string reproSetting = ReproducibleSumsSetting();
             reproSums = Program.UseFixedRndSeedVal && (reproSetting.Length > 0 ? reproSetting != "0" : Program.GpuReproducibleSums);
             reproSumsSource = !Program.UseFixedRndSeedVal ? "in.dat line 22: no fixed random seeds" : reproSetting.Length > 0 ? "INU_GPU_REPRODUCIBLE_SUMS=" + reproSetting :
                               Program.GpuReproducibleSums ? "in.dat line 22" : "in.dat line 24";

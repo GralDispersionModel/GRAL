@@ -29,7 +29,7 @@ namespace GRAL_2001
         // Module images the driver cannot use: invalid image, no binary for GPU, invalid PTX, unsupported PTX version,
         // and 221/223 when the driver cannot JIT PTX at all; a CUBIN may still load.
         internal static readonly int[] RejectedImageCodes = { 200, 209, 218, 221, 222, 223 };
-        private const int AttrKernelExecTimeout = 17, AttrCanMapHostMemory = 19, AttrComputeMode = 20, AttrTccDriver = 35,
+        private const int AttrKernelExecTimeout = 17, AttrIntegrated = 18, AttrCanMapHostMemory = 19, AttrComputeMode = 20, AttrTccDriver = 35,
                           AttrCcMajor = 75, AttrCcMinor = 76, AttrSingleToDoublePerfRatio = 87;
         // Project sizes are runtime array shapes, so they never enter the compile options and the module cache key stays stable.
         internal static readonly string[] NvrtcOptions = { "--std=c++11", "--fmad=false" };
@@ -95,7 +95,9 @@ namespace GRAL_2001
         internal (int Major, int Minor) NvrtcVersion { get; private set; }
         internal string[] CompileOptions { get; private set; }
         internal double ContextMs { get; private set; }
-        internal Dictionary<string, object> DeviceInfo { get; } = new Dictionary<string, object>();
+        internal Dictionary<string, object> DeviceInfo { get; }
+        // GRAL --gpu-check only: list every device of the started backend in DeviceInfo["devices"]. A run does not list.
+        private readonly bool listDevices;
         /// <summary>True when the AMD HIP runtime and hiprtc stand in for the CUDA driver and NVRTC.</summary>
         internal bool Hip { get; private set; }
         /// <summary>AMD GPU architecture name (for example gfx1201); null on the CUDA backend.</summary>
@@ -107,9 +109,13 @@ namespace GRAL_2001
         private bool cudaAbsent;
         private const int ErrorNoDevice = 100; // CUDA_ERROR_NO_DEVICE and hipErrorNoDevice
 
-        internal GpuCuda(string runtimeDirectory, Action<string> log)
+        /// <param name="checkReport">GRAL --gpu-check passes its report: the device information is written into it step by step,
+        /// so that what was found is still there when a later step throws, and it also gets the list of all devices.</param>
+        internal GpuCuda(string runtimeDirectory, Action<string> log, Dictionary<string, object> checkReport = null)
         {
             this.log = log;
+            DeviceInfo = checkReport ?? new Dictionary<string, object>();
+            listDevices = checkReport != null;
             try
             {
                 DeviceInfo["warnings"] = Warnings;
@@ -203,6 +209,42 @@ namespace GRAL_2001
             error.Data["GpuStatus"] = status;
             return error;
         }
+
+        /// <summary>
+        /// For GRAL --gpu-check: name, memory and integrated flag of every device of the started backend. Only driver queries that
+        /// need no context; the device choice does not depend on it.
+        /// </summary>
+        private void ListDevices(int count)
+        {
+            if (!listDevices) return;
+            var devices = new List<Dictionary<string, object>>();
+            byte* nameBuffer = stackalloc byte[256];
+            for (int i = 0; i < count; i++)
+            {
+                int handle;
+                nuint total;
+                if (cuDeviceGet(&handle, i) != 0) continue;
+                string name = cuDeviceGetName(nameBuffer, 256, handle) == 0 ? Marshal.PtrToStringUTF8((IntPtr)nameBuffer)?.Trim() : null;
+                // The integrated attribute is optional: null when the driver does not answer
+                devices.Add(new Dictionary<string, object>
+                {
+                    ["backend"] = Hip ? "hip" : "cuda", ["ordinal"] = i, ["name"] = name,
+                    ["total_memory_bytes"] = cuDeviceTotalMem(&total, handle) == 0 ? (object)(long)total : null,
+                    ["integrated"] = OptionalAttribute(Hip ? HipAttrIntegrated : AttrIntegrated, handle) is int integrated ? (object)(integrated != 0) : null,
+                    ["selected"] = false
+                });
+            }
+            DeviceInfo["devices"] = devices;
+        }
+
+        private void MarkSelectedDevice()
+        {
+            if (DeviceInfo.TryGetValue("devices", out object list))
+                foreach (var device in (List<Dictionary<string, object>>)list) device["selected"] = (int)device["ordinal"] == DeviceOrdinal;
+        }
+
+        /// <summary>The NVIDIA driver library is installed (file test only, Windows).</summary>
+        internal static bool CudaDriverPresent() => Windows && File.Exists(Path.Combine(Environment.SystemDirectory, DriverLibrary));
 
         /// <summary>Per-user folder for a runtime compiler (nvrtc or hiprtc) that GRAL itself never writes; searched last.</summary>
         internal static string UserToolchainFolder(string name)
@@ -306,6 +348,7 @@ namespace GRAL_2001
 
         private void Initialize(string runtimeDirectory)
         {
+            DeviceInfo["backend"] = "cuda";
             // On Windows the driver comes from System32 only, never from the project folder or PATH.
             try { driver = Windows ? NativeLibrary.Load(DriverLibrary, typeof(GpuCuda).Assembly, DllImportSearchPath.System32) : NativeLibrary.Load(DriverLibrary); }
             catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException)
@@ -325,7 +368,9 @@ namespace GRAL_2001
             Check(cuDriverGetVersion(&driverVersion), "cuDriverGetVersion");
             Check(cuDeviceGetCount(&count), "cuDeviceGetCount");
             cudaAbsent = count < 1;
+            ListDevices(count);
             DeviceOrdinal = DeviceOrdinalSetting(DeviceSetting(count), count);
+            MarkSelectedDevice();
             Check(cuDeviceGet(&device, DeviceOrdinal), "cuDeviceGet");
             byte* nameBuffer = stackalloc byte[256];
             Check(cuDeviceGetName(nameBuffer, 256, device), "cuDeviceGetName");
@@ -339,7 +384,6 @@ namespace GRAL_2001
             int computeMode = Attribute(AttrComputeMode, device, "compute mode");
             KernelExecTimeout = Attribute(AttrKernelExecTimeout, device, "kernel exec timeout") != 0;
             string modeText = computeMode switch { 0 => "default", 2 => "prohibited", 3 => "exclusive_process", _ => computeMode.ToString(System.Globalization.CultureInfo.InvariantCulture) };
-            DeviceInfo["backend"] = "cuda";
             DeviceInfo["ordinal"] = DeviceOrdinal;
             DeviceInfo["device_count"] = count;
             DeviceInfo["name"] = name;
@@ -402,7 +446,7 @@ namespace GRAL_2001
         /// <summary>Code-object manager libraries loaded next to hiprtc; they generate the GPU code, so they enter the module cache key.</summary>
         internal string[] ComgrPaths { get; private set; } = Array.Empty<string>();
 
-        private static bool HipRuntimePresent()
+        internal static bool HipRuntimePresent()
         {
             if (!Windows) return false;
             string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
@@ -504,6 +548,7 @@ namespace GRAL_2001
             // The HIP path was built and tested on Windows only (AMD Adrenalin driver runtime + hiprtc).
             if (!Windows) throw new PlatformNotSupportedException("The HIP backend is implemented for Windows only; use INU_GPU_BACKEND=cuda or the CPU path");
             Hip = true;
+            DeviceInfo["backend"] = "hip";
             string explicitRuntime = Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME");
             string loaded = null;
             if (explicitRuntime != null && explicitRuntime.Length > 0)
@@ -535,8 +580,10 @@ namespace GRAL_2001
             int countResult = cuDeviceGetCount(&count);
             if (countResult == ErrorNoDevice) count = 0;
             else Check(countResult, "hipGetDeviceCount");
+            ListDevices(count);
             string rawOrdinal = DeviceSetting(count);
             DeviceOrdinal = string.IsNullOrEmpty(rawOrdinal) && count > 0 ? DefaultHipOrdinal(count, automatic) : DeviceOrdinalSetting(rawOrdinal, count, hip: true);
+            MarkSelectedDevice();
             Check(cuDeviceGet(&device, DeviceOrdinal), "hipDeviceGet");
             byte* nameBuffer = stackalloc byte[256];
             Check(cuDeviceGetName(nameBuffer, 256, device), "hipDeviceGetName");
@@ -551,7 +598,6 @@ namespace GRAL_2001
             int computeMode = Attribute(HipAttrComputeMode, device, "compute mode");
             KernelExecTimeout = Attribute(HipAttrKernelExecTimeout, device, "kernel exec timeout") != 0;
             string modeText = computeMode switch { 0 => "default", 2 => "prohibited", 3 => "exclusive_process", _ => computeMode.ToString(System.Globalization.CultureInfo.InvariantCulture) };
-            DeviceInfo["backend"] = "hip";
             DeviceInfo["ordinal"] = DeviceOrdinal;
             DeviceInfo["device_count"] = count;
             DeviceInfo["name"] = name;

@@ -31,9 +31,13 @@ namespace GRAL_2001
                 {
                     throw GpuCuda.Status(new InvalidDataException("Invalid "+manifest+": "+error.Message,error),"no_manifest");
                 }
-                using var gpu=new GpuCuda(Path.GetDirectoryName(manifest),log.Add);
-                report["backend"]=gpu.Hip ? "hip" : "cuda";
-                foreach(var item in gpu.DeviceInfo) report[item.Key]=item.Value;
+                // The backend writes the device information, the device list and its warnings into the report as it finds them
+                using var gpu=new GpuCuda(Path.GetDirectoryName(manifest),log.Add,report);
+                // Settings that only a run uses: the same syntax checks, so that a bad value shows before the run
+                foreach(string key in new[]{"chunk","block","max_kernel_ms","memory_budget_bytes","memory_reserve_bytes","pinned_budget_bytes"})
+                    if(GpuSettings.Value(key) is string value) GpuSettings.Validate(key,value,GpuSettings.Label(key));
+                GpuRuntimeServer.ReproducibleSumsSetting();
+                GpuRuntimeServer.SpecializationSetting();
                 report["status"]="ok";
             }
             catch(Exception error)
@@ -42,6 +46,23 @@ namespace GRAL_2001
                 report["message"]=error.Message;
                 exitCode=2;
             }
+            report["settings_file"]=GpuSettings.FilePath;
+            report["settings_file_status"]=GpuSettings.FileStatus;
+            var settings=new Dictionary<string,object>();
+            // An invalid file is already reported above; it has no settings to list
+            try { foreach(var (key,value,source) in GpuSettings.Active()) settings[key]=new Dictionary<string,string>{["value"]=value,["source"]=source}; }
+            catch(ArgumentException) { settings.Clear(); }
+            report["settings"]=settings;
+            if(!report.ContainsKey("devices")) report["devices"]=Array.Empty<object>();
+            // A backend whose runtime library is installed but which was not started; it is not loaded for this test
+            var others=new List<string>();
+            if(report.TryGetValue("backend",out object backend))
+            {
+                if((string)backend=="cuda" && GpuCuda.HipRuntimePresent()) others.Add("hip");
+                if((string)backend=="hip" && GpuCuda.CudaDriverPresent()) others.Add("cuda");
+            }
+            report["other_backends"]=others;
+            if(!report.ContainsKey("warnings")) report["warnings"]=Array.Empty<string>();
             report["log"]=log;
             Console.WriteLine("GRAL_GPU_CHECK "+JsonSerializer.Serialize(report));
             return exitCode;
