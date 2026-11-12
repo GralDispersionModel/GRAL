@@ -14,7 +14,7 @@ A specialized kernel can round some results differently from the general kernel 
 
 ## Choosing the backend
 
-With no backend set, GRAL uses CUDA. Only when the NVIDIA driver library is missing or the driver reports no device, and the AMD HIP runtime is installed, does GRAL try HIP. Unless a device is set, it then takes the first AMD GPU that is not integrated, and stops with a startup failure if only integrated GPUs are visible; `allow_integrated = 1` in the GPU settings file lets it take the integrated GPU in that case. `backend = hip` in the settings file follows the same rule. The variable `INU_GPU_BACKEND=hip` takes device 0 in that case, also when it is integrated. Any other CUDA problem (for example a missing NVRTC or a driver error) is reported as a startup failure, and GRAL does not switch to HIP. Set the backend to `cuda` or `hip` (case does not matter) to choose one, for example on a machine with both kinds of GPU, and the device to an ordinal within that backend. Both can be set in the GPU settings file (`backend`, `device`) or with `INU_GPU_BACKEND` and `INU_GPU_DEVICE`; see "GPU settings file" below.
+With no backend set, GRAL uses CUDA. Only when the NVIDIA driver library is missing or the driver reports no device, and the AMD HIP runtime is installed, does GRAL try HIP. Unless a device is set, it then takes the first AMD GPU that is not integrated, and stops with a startup failure if only integrated GPUs are visible; `allow_integrated = 1` in `GPU.txt` lets it take the integrated GPU in that case. `backend = hip` in `GPU.txt` follows the same rule. The variable `INU_GPU_BACKEND=hip` takes device 0 in that case, also when it is integrated. Any other CUDA problem (for example a missing NVRTC or a driver error) is reported as a startup failure, and GRAL does not switch to HIP. Set the backend to `cuda` or `hip` (case does not matter) to choose one, for example on a machine with both kinds of GPU, and the device to an ordinal within that backend. Both can be set in the project's `GPU.txt` (`backend`, `device`) or with `INU_GPU_BACKEND` and `INU_GPU_DEVICE`; see "GPU.txt, the GPU settings of a project" below.
 
 ## Requirements (NVIDIA)
 
@@ -47,31 +47,33 @@ At startup the runtime reads the compute capability of the selected device, asks
 
 ## Running GRAL on the GPU
 
-The build copies `fields_manifest.json` and `generated.cu` to `gpu\runtime` next to `GRAL.dll`, so one setting is enough. Put it in the project's `in.dat`, after the reproducible-results line (line 23), so the project records whether it runs on the GPU:
+The build copies `fields_manifest.json` and `generated.cu` to `gpu\runtime` next to `GRAL.dll`, so one setting is enough. Put it in a text file `GPU.txt` in the project's Computation folder, so the project records whether it runs on the GPU:
 
 ```
-1	 ! Use the GPU for the particle dispersion Yes = 1, No = 0
+use_gpu = 1   ! Use the GPU for the particle dispersion Yes = 1, No = 0
 ```
 
-A missing line means the CPU. `INU_GPU_EXPERIMENTAL=1` or `0` overrides the line for one run, for example in test scripts:
+A missing file, a missing `use_gpu` line or `use_gpu = 0` means the CPU. `INU_GPU_EXPERIMENTAL=1` or `0` overrides the file for one run, for example in test scripts:
 
 ```powershell
 $env:INU_GPU_EXPERIMENTAL = '1'
 dotnet GRAL.dll D:\project\Computation
 ```
 
-The GPU follows GRAL's reproducible-results option (line 22): with it, the GPU adds its results in integers, so repeated runs give the same files. Line 24 can switch these reproducible sums off for the project:
+The GPU follows GRAL's reproducible-results option (`in.dat` line 22): with it, the GPU adds its results in integers, so repeated runs give the same files. `GPU.txt` can switch these reproducible sums off for the project:
 
 ```
-1	 ! Use reproducible sums on the GPU with reproducible results Yes = 1, No = 0
+reproducible_sums = 0
 ```
 
-Line 24 only matters when line 22 is 1 and the GPU is used. A missing line or `1` keeps the integer sums; `0` uses the floating-point sums, which can be faster or slower (see the measurements below) and can differ in the last bits between two runs. `INU_GPU_REPRODUCIBLE_SUMS=0` or `1` overrides the line for one run. A value other than 0 or 1 on line 22, 23 or 24 gives a warning on the console and in the GRAL log; lines 22 and 23 then count as 0 and line 24 as 1. A GUI without the GPU option (V27.01 and older) writes only 22 lines and drops lines 23 and 24 whenever it rewrites `in.dat`; a GUI that knows line 23 but not line 24 drops line 24, and the run then keeps the reproducible sums.
+`reproducible_sums` only matters when line 22 is 1 and the GPU is used. No entry or `1` keeps the integer sums; `0` uses the floating-point sums, which can be faster or slower (see the measurements below) and can differ in the last bits between two runs. `INU_GPU_REPRODUCIBLE_SUMS=0` or `1` overrides the entry for one run. A value other than 0 or 1 on line 22 gives a warning on the console and in the GRAL log, and the line then counts as 0.
+
+`in.dat` has no GPU lines: it ends at line 22, and GRAL ignores further lines without a message. (Development builds of this GPU path read the GPU switch from line 23 and the reproducible sums from line 24. A project written for such a build runs on the CPU until it has a `GPU.txt` with `use_gpu = 1`.) A GUI without the GPU option (V27.01 and older) does not know `GPU.txt` and leaves it alone, so a project keeps its GPU settings when such a GUI rewrites `in.dat`.
 
 What GRAL writes about the GPU to `Logfile_GRALCore.txt`:
 
-- always one line with the decision, also for a CPU run, written when `in.dat` has been read: `GPU for the particle dispersion: off (in.dat line 23 absent)`, `off (in.dat)`, `on (in.dat)` or `on`/`off (INU_GPU_EXPERIMENTAL=...)`. When the variable overrides a line 23 that is 1, the bracket ends with `, in.dat asks for the GPU`. The console gets this line only when in.dat or the variable asks for the GPU, so a CPU-only run prints nothing new. A value of `INU_GPU_EXPERIMENTAL` other than 1 or 0 switches nothing; the line then names it as ignored, on the console too;
-- after a successful GPU start: the backend, the device ordinal and name, its memory, the driver and compiler versions and the binary kind; whether reproducible sums are on and what decided that (line 22, line 24 or the variable); the GPU settings file and its status; every setting of that file's key list that is set, with its source (`env` or `file`); and every other `INU_GPU_*` or `INU_GRAL_GPU_*` variable of the process with its value, so that a variable inherited from the calling program is visible;
+- always one line with the decision, also for a CPU run, written when `in.dat` and `GPU.txt` have been read: `GPU for the particle dispersion: off (no GPU.txt)`, `off (GPU.txt)`, `on (GPU.txt)` or `on`/`off (INU_GPU_EXPERIMENTAL=...)`. When the variable overrides a file with `use_gpu = 1`, the bracket ends with `, GPU.txt asks for the GPU`. The console gets this line only when `GPU.txt` or the variable asks for the GPU, so a CPU-only run prints nothing new. A value of `INU_GPU_EXPERIMENTAL` other than 1 or 0 switches nothing; the line then names it as ignored, on the console too;
+- after a successful GPU start: the backend, the device ordinal and name, its memory, the driver and compiler versions and the binary kind; whether reproducible sums are on and what decided that (`in.dat line 22`, `GPU.txt reproducible_sums = 0` or the variable); the settings file and its status (`GPU settings file: GPU.txt (read)` for the project's file, the full path when `INU_GPU_SETTINGS_FILE` names another file, `none (absent)` or `none (off)`); every setting of the file's key list that is set, with its source (`env` or `file`); and every other `INU_GPU_*` or `INU_GRAL_GPU_*` variable of the process with its value, so that a variable inherited from the calling program is visible;
 - warnings (`GPU warning: ...`), per-situation CPU fallbacks and a whole-run fallback, with the reason;
 - at the end: `GPU run summary: N situation(s) computed on the GPU, M on the CPU`, with a note when the CPU situations are per-situation fallbacks, when the whole run fell back, or when a GPU error stopped the run (the situation that failed is in neither count).
 
@@ -79,21 +81,43 @@ With several GRAL instances (`SITUATIONS` argument), each instance writes these 
 
 | Variable | Default | Effect |
 |---|---|---|
-| `INU_GPU_EXPERIMENTAL` | unset | `1` or `0` turns the GPU on or off for this run, overriding `in.dat` line 23; unset or any other value leaves the choice to `in.dat` (another value is reported as ignored) |
+| `INU_GPU_EXPERIMENTAL` | unset | `1` or `0` turns the GPU on or off for this run, overriding `use_gpu` in `GPU.txt`; unset or any other value leaves the choice to `GPU.txt` (another value is reported as ignored) |
 | `INU_GPU_MANIFEST` | `fields_manifest.json` in GRAL's `gpu\runtime` folder, which the build writes, else next to GRAL (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
 | `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it | JSON-lines file for per-situation metrics |
 | `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
 
 Missing folders in the two log paths are created.
 
-### GPU settings file
+### GPU.txt, the GPU settings of a project
 
-Settings that belong to the PC and not to a project can be kept in a per-user text file, so that neither a front end nor the user has to set environment variables: `%LOCALAPPDATA%\GRAL\GpuSettings.txt` on Windows (`Environment.SpecialFolder.LocalApplicationData`, the folder that also holds `GpuToolchain` and `GpuModuleCache`). `INU_GPU_SETTINGS_FILE` names another file; the value `off` means that no file is read, and a path that does not exist is the same as no file. Blanks around the value are ignored. Give an absolute path: a relative one is taken from the working directory of each GRAL process. GRAL only reads the file, and a run reads it only when the GPU is asked for. `GRAL --gpu-check` reads it too.
+All GPU settings of a project are in one text file, `GPU.txt` in the project's Computation folder, which is GRAL's working directory in a run. Each project can therefore have its own device and budgets, for example on a PC with several GPUs or on a compute server, and neither a front end nor the user has to set environment variables. A missing file means: GPU off, every default. `INU_GPU_SETTINGS_FILE` names another file in its place; the value `off` means that no file is read, and a path that does not exist is the same as no file. Blanks around the value are ignored. Give an absolute path: a relative one is taken from the working directory of each GRAL process. GRAL only reads the file. Every run reads it, because it holds the GPU switch, and `GRAL --gpu-check` reads it too. Nothing is read from or written to a per-user settings file; only the compiled-kernel cache (`GpuModuleCache`) and a runtime compiler (`GpuToolchain`) are kept in `%LOCALAPPDATA%\GRAL`.
 
-One `key = value ! comment` per line. Text after `!` is a comment, as in `in.dat` (so a value cannot contain `!`). Blank lines and lines that start with `!` or `#` are ignored. Keys are not case-sensitive, the value is trimmed, and an empty value means "not set". The file is UTF-8.
+One `key = value ! comment` per line. Text after `!` is a comment, as in `in.dat` (so a value cannot contain `!`). Blank lines and lines that start with `!` or `#` are ignored. Keys are not case-sensitive, the value is trimmed, and an empty value means "not set". The file is UTF-8. An example with every key (only `use_gpu` is needed):
+
+```
+! GPU settings of this project
+use_gpu = 1               ! 1: particle dispersion on the GPU; 0 or no entry: CPU
+reproducible_sums =       ! with reproducible results (in.dat line 22): 1 or no entry: integer sums; 0: floating-point sums
+device =                  ! device ordinal within the backend; no entry: automatic
+device_name =             ! name of that device; another name at the ordinal makes the choice automatic again
+backend =                 ! cuda or hip; no entry: automatic
+allow_integrated =        ! 1: an integrated AMD GPU may be used when no other is found
+fallback_on_startup =     ! 1: run on the CPU when the GPU cannot start
+nvrtc_dir =               ! use only this NVRTC folder
+hiprtc_dir =              ! use only this hiprtc folder
+chunk =                   ! largest number of particles per launch, 1 to 65536
+block =                   ! threads per block, 128 or 256
+max_kernel_ms =           ! kernel-time limit for the launch sizing, 0: off
+memory_budget_bytes =     ! upper limit for GRAL's device buffers
+memory_reserve_bytes =    ! VRAM left for the display and other programs
+pinned_budget_bytes =     ! limit for particle windows in mapped host memory
+cache_dir =               ! folder for compiled kernels, or off
+```
 
 | Key | Variable | Value |
 |---|---|---|
+| `use_gpu` | `INU_GPU_EXPERIMENTAL` | `1`: particle dispersion on the GPU; `0` or no entry: CPU |
+| `reproducible_sums` | `INU_GPU_REPRODUCIBLE_SUMS` | `0` or `1`; only with `in.dat` line 22 = 1 and the GPU on. No entry or `1`: integer sums; `0`: floating-point sums |
 | `device` | `INU_GPU_DEVICE` | nonnegative integer |
 | `device_name` | none | name of the device chosen with `device` |
 | `backend` | `INU_GPU_BACKEND` | `cuda` or `hip` |
@@ -109,18 +133,18 @@ One `key = value ! comment` per line. Text after `!` is a comment, as in `in.dat
 | `pinned_budget_bytes` | `INU_GPU_PINNED_BUDGET_BYTES` | as the variable |
 | `cache_dir` | `INU_GPU_CACHE_DIR` | as the variable |
 
-For each key the environment variable wins when it is set and not empty, then the file, then the default. The GPU switch (in.dat line 23) and reproducible sums (in.dat lines 22 and 24) are not in this file, because they change results and belong to the project.
+For each key the environment variable wins when it is set and not empty, then the file, then the default. `INU_GPU_EXPERIMENTAL` counts only as `1` or `0`.
 
-An unknown key, a line without `=` or an invalid value is an error: the message names the file, the line number and the key, the run stops (also when startup fallback is on), and the check reports `invalid_setting`. The values get the same checks as the variables. A value of the file that turns out to be unusable only when the backend starts (a `device` ordinal beyond the last device without `device_name`, or a compiler folder without a compiler) also stops the run when startup fallback is on. The same value from a variable is a normal startup failure, which falls back when fallback is on.
+An unknown key, a line without `=` or an invalid value is an error: the message names the file, the line number and the key, and the check reports `invalid_setting`. A run stops before its first situation with exit code 1, also when startup fallback is on and also when the file or `INU_GPU_EXPERIMENTAL=0` leaves the GPU off, because every run reads the file. The values get the same checks as the variables. A value of the file that turns out to be unusable only when the backend starts (a `device` ordinal beyond the last device without `device_name`, or a compiler folder without a compiler) also stops the run when startup fallback is on. The same value from a variable is a normal startup failure, which falls back when fallback is on.
 
 `device_name` guards the ordinal: device ordinals change when a card is swapped or the driver renumbers the devices. When the file gives `device` and `device_name`, and the device at that ordinal has another name or does not exist, GRAL ignores the file's device, chooses the device automatically and writes a warning (console, GRAL log, `warnings` of the check). `INU_GPU_DEVICE` is always used as given.
 
-`GRAL.exe --gpu-check` (or `dotnet GRAL.dll --gpu-check`) checks that the manifest and `generated.cu` exist and that the manifest can be read, then starts the backend as a GPU run would, with the same settings (variables and the GPU settings file) and search order: driver, device, runtime compiler and a probe compile. When the backend has started, the check also applies the syntax checks of the settings that only a run uses (`INU_GPU_SPECIALIZE`, `INU_GPU_REPRODUCIBLE_SUMS`, launch size, threads per block, kernel-time limit and the three memory settings, from the variable or the file) and reports a bad value as `invalid_setting`; it checks `INU_GPU_SPECIALIZE` on CUDA too, where a run ignores it. It does not use these values, does not look at the cache folder, and does not compile the real kernel. It reads no project (so nothing from `in.dat`) and writes no file, and prints one line, `GRAL_GPU_CHECK {...}`. The exit code is 0 when the status is `ok` and 2 otherwise. Besides `schema`, `manifest`, `status`, the error `message`, `log` and the fields of the chosen device, the line has:
+`GRAL.exe --gpu-check` (or `dotnet GRAL.dll --gpu-check`) checks that the manifest and `generated.cu` exist and that the manifest can be read, then starts the backend as a GPU run would, with the same settings (variables and `GPU.txt`) and search order: driver, device, runtime compiler and a probe compile. When the backend has started, the check also applies the syntax checks of the settings that only a run uses (`INU_GPU_SPECIALIZE`, `INU_GPU_REPRODUCIBLE_SUMS`, launch size, threads per block, kernel-time limit and the three memory settings, from the variable or the file) and reports a bad value as `invalid_setting`; it checks `INU_GPU_SPECIALIZE` on CUDA too, where a run ignores it. It does not use these values, does not look at the cache folder, and does not compile the real kernel. It takes exactly this one argument and reads the file named by `INU_GPU_SETTINGS_FILE`, or `GPU.txt` in the current directory; a front end that starts the check outside the project folder sets the variable to the project's `GPU.txt`. The check does not need `use_gpu = 1`: it tells whether the GPU could start. It reads nothing else of a project (so nothing from `in.dat`) and writes no file, and prints one line, `GRAL_GPU_CHECK {...}`. The exit code is 0 when the status is `ok` and 2 otherwise. Besides `schema`, `manifest`, `status`, the error `message`, `log` and the fields of the chosen device, the line has:
 
 | Key | Content |
 |---|---|
-| `settings_file`, `settings_file_status` | the GPU settings file that was looked at (`null` with `INU_GPU_SETTINGS_FILE=off`), and `read`, `absent` or `off` |
-| `settings` | one entry per key of the settings file that has a value: `{"value": "...", "source": "env"}` or `"file"` |
+| `settings_file`, `settings_file_status` | full path of the GPU settings file that was looked at (`null` with `INU_GPU_SETTINGS_FILE=off`), and `read`, `absent` or `off` |
+| `settings` | one entry per key of the settings file that has a value, `use_gpu` and `reproducible_sums` included: `{"value": "...", "source": "env"}` or `"file"` |
 | `devices` | every device of the backend that was started: `backend`, `ordinal`, `name`, `total_memory_bytes`, `integrated` (`null` when the driver does not say) and `selected`. A name or a size the driver does not give is `""` or `0`. Present, possibly empty, also after a failure. No context is created for it, and a run does not make this list |
 | `other_backends` | backends whose runtime library is installed but which were not started, for example `["hip"]` on a PC with an NVIDIA GPU and the AMD HIP runtime; a file test, the library is not loaded. `cuda` is listed only when the backend setting `hip` skipped it: on the automatic path CUDA has already been tried |
 | `warnings` | warnings that did not stop the start, for example a `device_name` that no longer matches |
@@ -136,10 +160,10 @@ The device fields found so far (and `backend`) are also there when a later step 
 | `only_integrated` | only integrated AMD GPUs are visible, and neither `allow_integrated = 1` nor `INU_GPU_BACKEND=hip` is set |
 | `no_nvrtc`, `no_hiprtc` | no runtime compiler was found |
 | `nvrtc_rejected`, `hiprtc_rejected` | runtime compilers were found, but none compiles for the device |
-| `invalid_setting` | an `INU_GPU_*` or `INU_GRAL_GPU_*` value or an entry of the GPU settings file is invalid |
+| `invalid_setting` | an `INU_GPU_*` or `INU_GRAL_GPU_*` value or an entry of `GPU.txt` is invalid |
 | `failed` | any other startup error |
 
-Optional settings (those with a key in the GPU settings file can be set there instead):
+Optional settings (those with a key in `GPU.txt` can be set there instead):
 
 | Variable | Default | Effect |
 |---|---|---|
@@ -151,8 +175,8 @@ Optional settings (those with a key in the GPU settings file can be set there in
 | `INU_GPU_HIPRTC_EXTRA` | unset | extra hiprtc options, separated by spaces, for diagnosis; they become part of the cache key |
 | `INU_GPU_SPECIALIZE` | `1` | HIP only, CUDA ignores it: `1`, `on` or unset uses all specialization steps; `0` or `off` keeps the general kernel; a comma list of `flags`, `ints`, `grid`, `depo` and `src` uses only those steps (case is ignored). An unknown step or a list without a step is a GPU startup error |
 | `INU_GPU_CACHE_DIR` | `%LOCALAPPDATA%\GRAL\GpuModuleCache` | local folder for compiled kernels, so later runs skip the NVRTC or hiprtc compile; `off` disables it. On HIP, each project configuration adds its own specialized kernels; entries are never deleted |
-| `INU_GPU_FALLBACK_ON_STARTUP` | `0` | `1`: if the GPU cannot start (no driver, no NVRTC or hiprtc, missing manifest, or an invalid `INU_GPU_BACKEND`, `INU_GPU_HIPRTC_DIR`, `INU_GPU_HIP_RUNTIME`, `INU_GPU_DEVICE`, `INU_GPU_MEMORY_RESERVE_BYTES`, `INU_GPU_MEMORY_BUDGET_BYTES`, `INU_GPU_MAX_KERNEL_MS`, `INU_GPU_SPECIALIZE` (HIP only), `INU_GPU_REPRODUCIBLE_SUMS`, `INU_GRAL_GPU_CHUNK` or `INU_GRAL_GPU_BLOCK` value), run the whole job on the CPU and log the reason. An invalid `INU_GPU_PINNED_BUDGET_BYTES` variable is found only at the first launch and stops the run, and so does an invalid GPU settings file, whatever this setting says |
-| `INU_GPU_REPRODUCIBLE_SUMS` | unset: in.dat line 24, which defaults to `1` | only with fixed random seeds (in.dat line 22, "Use fixed random seed value" = 1): `1` adds the concentration, deposition, odour, vertical-concentration, receptor and emission totals in integers, so that repeated runs on the same GPU give the same result files (tested on an RX 9070 XT and an RTX 5080; see below); `0` uses the floating-point atomic additions. Native-seed runs always use the floating-point additions |
+| `INU_GPU_FALLBACK_ON_STARTUP` | `0` | `1`: if the GPU cannot start (no driver, no NVRTC or hiprtc, missing manifest, or an invalid `INU_GPU_BACKEND`, `INU_GPU_HIPRTC_DIR`, `INU_GPU_HIP_RUNTIME`, `INU_GPU_DEVICE`, `INU_GPU_MEMORY_RESERVE_BYTES`, `INU_GPU_MEMORY_BUDGET_BYTES`, `INU_GPU_MAX_KERNEL_MS`, `INU_GPU_SPECIALIZE` (HIP only), `INU_GPU_REPRODUCIBLE_SUMS`, `INU_GRAL_GPU_CHUNK` or `INU_GRAL_GPU_BLOCK` value), run the whole job on the CPU and log the reason. An invalid `INU_GPU_PINNED_BUDGET_BYTES` variable is found only at the first launch and stops the run, and so does an invalid `GPU.txt`, whatever this setting says |
+| `INU_GPU_REPRODUCIBLE_SUMS` | unset: `reproducible_sums` in `GPU.txt`, which defaults to `1` | only with fixed random seeds (in.dat line 22, "Use fixed random seed value" = 1): `1` adds the concentration, deposition, odour, vertical-concentration, receptor and emission totals in integers, so that repeated runs on the same GPU give the same result files (tested on an RX 9070 XT and an RTX 5080; see below); `0` uses the floating-point atomic additions. Native-seed runs always use the floating-point additions |
 | `INU_GPU_MEMORY_RESERVE_BYTES` | 10 % of VRAM, 128-512 MiB, at most a quarter of VRAM | VRAM left for the display and other programs |
 | `INU_GPU_MEMORY_BUDGET_BYTES` | all VRAM | upper limit for GRAL's device buffers; larger arrays go to mapped host memory |
 | `INU_GPU_PINNED_BUDGET_BYTES` | 256 MiB | limit for the particle windows and scratch rows placed in mapped host memory when they do not fit within the device budget; other arrays placed there (above `INU_GPU_MEMORY_BUDGET_BYTES` or after a failed device allocation) do not count against it |
@@ -160,7 +184,7 @@ Optional settings (those with a key in the GPU settings file can be set there in
 | `INU_GRAL_GPU_CHUNK` | `65536` | largest number of particles per launch (1 to 65536); launches can be smaller on a GPU with the display watchdog. With reproducible sums the results do not depend on it; without them the floating-point sums depend on how the particles are split into launches, so the last bits can change (a launch-size change altered 48 of 98 result files of a wet-deposition project, see below) |
 | `INU_GRAL_GPU_BLOCK` | `128` | threads per block, 128 or 256 |
 
-For developers (variables only, not in the settings file and not checked by `--gpu-check`):
+For developers (variables only, not in `GPU.txt` and not checked by `--gpu-check`):
 
 - `INU_GPU_FORCE_CUBIN=1`: CUDA only; load the kernel as a CUBIN without trying PTX first. Any other value is ignored.
 - `INU_GPU_CACHE_COORDINATES=1`: also hash the particle start coordinates and send them to the GPU only when they differ from those of the previous situation (off by default, because they usually change); `0` or unset is off, another value stops the run.
@@ -182,11 +206,12 @@ Tests on an RX 9070 XT: nine projects ran three times each, with launch sizes of
 
 ## When something goes wrong
 
+- An invalid `GPU.txt` ends GRAL before the first situation: `ERROR: GPU settings file GPU.txt line N: ...` on the console, the same text in `Problemreport_GRAL.txt` and `Logfile_GRALCore.txt`, and exit code 1.
 - A startup failure without fallback, or an error after GPU work has started, ends GRAL like its other failed runs: the reason is written to the console (`ERROR: GPU failure in weather situation N: ...`), to `Problemreport_GRAL.txt` and to `Logfile_GRALCore.txt`, the log ends with `GRAL simulations stopped with errors`, and the exit code is 1. A reason longer than 2000 characters is cut there; `GRAL_GPU_runtime.log` has all of it. The vertical concentration file is not written from the unfinished situation, and the transient checkpoint files (`*.tmp`) of the last finished situation are kept, as after an interrupted run.
-- `GPU startup failed: ...`: the message names the missing piece (driver, device ordinal, NVRTC, manifest). Set `INU_GPU_FALLBACK_ON_STARTUP=1`, or `fallback_on_startup = 1` in the GPU settings file, to run on the CPU instead; the run then finishes with exit code 0 and the log says that the whole run fell back.
+- `GPU startup failed: ...`: the message names the missing piece (driver, device ordinal, NVRTC, manifest). Set `INU_GPU_FALLBACK_ON_STARTUP=1`, or `fallback_on_startup = 1` in `GPU.txt`, to run on the CPU instead; the run then finishes with exit code 0 and the log says that the whole run fell back.
 - A device error or watchdog reset during a run stops GRAL with an error; it is not retried on the CPU. Lower `INU_GPU_MAX_KERNEL_MS` on slow NVIDIA display GPUs; on an AMD GPU that resets, lower `INU_GRAL_GPU_CHUNK` instead.
 - On a machine with only AMD GPUs, a startup failure that names only the NVIDIA driver means that GRAL found no HIP 7 runtime (`amdhip64_7.dll` in System32), or that a leftover NVIDIA driver loads but fails. Update the Adrenalin driver or set `INU_GPU_HIP_RUNTIME`; with a leftover NVIDIA driver, set `INU_GPU_BACKEND=hip`.
 - Stopping GRAL (Ctrl+C or the GUI) takes effect at the next GPU startup step, kernel launch or transfer, and GRAL finishes as on the CPU path.
 - The GPU driver and the runtime compiler (NVRTC or hiprtc) run inside the GRAL process. An NVRTC or hiprtc that cannot be loaded is reported as a startup failure, but a crash inside the driver, NVRTC, hiprtc or `amd_comgr` (for example a compiler library that faults while compiling) ends GRAL, and `INU_GPU_FALLBACK_ON_STARTUP` cannot turn it into a CPU run. Point `INU_GPU_NVRTC_DIR` (or `INU_GPU_HIPRTC_DIR` on AMD) at a known-good compiler if that happens.
-- The commits that added the settings file, in.dat line 24, the log lines, the check additions and the exit handling were run on an RTX 5080 (CUDA) only. Their HIP side was compiled but not run on an AMD GPU; on the test PC the HIP runtime loaded and reported no device. `device_name`, `allow_integrated`, the rule for `backend = hip` in the settings file and the device list on HIP are therefore untested, and so is any PC with more than one GPU.
+- The commits that added the settings file and moved it to the project's `GPU.txt`, the log lines, the check additions and the exit handling were run on an RTX 5080 (CUDA) only. Their HIP side was compiled but not run on an AMD GPU; on the test PC the HIP runtime loaded and reported no device. `device_name`, `allow_integrated`, the rule for `backend = hip` in `GPU.txt` and the device list on HIP are therefore untested, and so is any PC with more than one GPU.
 - Several GRAL processes may run on one GPU. If they get the same log paths, the second one adds its process id and a time stamp to its file names. They may also share one cache folder (entries are written to a temporary file, moved into place and checked when read); concurrent use of one cache folder has not been tested.

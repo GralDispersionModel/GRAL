@@ -34,7 +34,7 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Cache folder: INU_GPU_CACHE_DIR or the cache_dir key of the GPU settings file, or by default a per-user local folder
+        /// Cache folder: INU_GPU_CACHE_DIR or the cache_dir key of GPU.txt, or by default a per-user local folder
         /// (LocalApplicationData/GRAL/GpuModuleCache); the value off disables the cache. Null when disabled.
         /// </summary>
         internal static string Directory()

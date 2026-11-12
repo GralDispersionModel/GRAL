@@ -32,7 +32,7 @@ namespace GRAL_2001
             }
         }
         // Only a failure to start the GPU server, before any GPU situation, may turn the whole run into a CPU run
-        // (INU_GPU_FALLBACK_ON_STARTUP=1 or fallback_on_startup = 1 in the GPU settings file).
+        // (INU_GPU_FALLBACK_ON_STARTUP=1 or fallback_on_startup = 1 in GPU.txt).
         private static bool FallbackOnStartup => GpuSettings.Value("fallback_on_startup")=="1";
         private static GpuSituationDriver driver;
         private static FileStream metricsLock;
@@ -62,7 +62,7 @@ namespace GRAL_2001
             lastFallbackReason=reason;
             return false;
         }
-        // Unset settings get defaults, so the GPU switch (in.dat line 23 or INU_GPU_EXPERIMENTAL) is the only setting a normal run needs.
+        // Unset settings get defaults, so the GPU switch (use_gpu in GPU.txt or INU_GPU_EXPERIMENTAL) is the only setting a normal run needs.
         private static string Setting(string name,string fallback)
         {
             string value=Environment.GetEnvironmentVariable(name);
@@ -82,7 +82,8 @@ namespace GRAL_2001
         private static bool Start()
         {
             if(driver!=null) return true;
-            // Outside the try block: an invalid GPU settings file stops the run even when startup fallback is on
+            // Outside the try block: an invalid GPU settings file stops the run even when startup fallback is on (Program.Main has
+            // already read the file for the GPU switch and stopped there; this call only keeps the rule with the code that needs it)
             GpuSettings.Load();
             try { driver=CreateDriver(); started=true; return true; }
             catch(Exception error) when(error is not OperationCanceledException)
