@@ -139,7 +139,8 @@ namespace GRAL_2001
                     Console.WriteLine("GPU warning: "+warning.GetString());
                     ProgramWriters.LogfileGralCoreWrite("GPU warning: "+warning.GetString());
                 }
-            ProgramWriters.LogfileGralCoreWrite("GPU settings file: "+(GpuSettings.FilePath ?? "none")+" ("+GpuSettings.FileStatus+")");
+            // The path is written only when a file was read: the default path holds the account folder, which a project log need not carry
+            ProgramWriters.LogfileGralCoreWrite("GPU settings file: "+(GpuSettings.FileStatus=="read" ? GpuSettings.FilePath+" (read)" : "none ("+GpuSettings.FileStatus+")"));
             // Every setting that is not at its default, with the source that decided
             var listed=new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach(var (key,value,source) in GpuSettings.Active())
