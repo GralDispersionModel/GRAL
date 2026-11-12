@@ -628,7 +628,7 @@ namespace GRAL_2001
 
         private void ConfigureLaunchSizing()
         {
-            maxKernelMs = MemorySetting("INU_GPU_MAX_KERNEL_MS", 500, 0);
+            maxKernelMs = MemorySetting("max_kernel_ms", 500, 0);
             adaptiveLaunch = cuda.KernelExecTimeout && maxKernelMs > 0;
             adaptivePart.Clear();
             lastKernelMs = 0;
@@ -673,12 +673,15 @@ namespace GRAL_2001
             metrics["adaptive_part_final"] = new Dictionary<string, long>(adaptivePart);
         }
 
-        private static long MemorySetting(string name, long fallback, long minimum)
+        // key: a key of the GPU settings file; its variable wins over the file (GpuSettings)
+        private static long MemorySetting(string key, long fallback, long minimum) =>
+            MemoryValue(GpuSettings.Value(key) ?? fallback.ToString(System.Globalization.CultureInfo.InvariantCulture), GpuSettings.Label(key), minimum);
+
+        internal static long MemoryValue(string raw, string label, long minimum)
         {
-            string raw = Environment.GetEnvironmentVariable(name) ?? fallback.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (raw.Length == 0 || !raw.All(ch => ch >= '0' && ch <= '9') ||
                 !long.TryParse(raw, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out long value) || value < minimum)
-                throw new ArgumentException("Invalid GPU memory setting: " + name);
+                throw new ArgumentException("Invalid GPU memory setting: " + label);
             return value;
         }
 
@@ -692,8 +695,8 @@ namespace GRAL_2001
         private void RefreshMemoryBudget()
         {
             var (free, total) = cuda.MemoryInfo();
-            long reserve = MemorySetting("INU_GPU_MEMORY_RESERVE_BYTES", DefaultReserve(total), 0);
-            long requested = MemorySetting("INU_GPU_MEMORY_BUDGET_BYTES", total, 4096);
+            long reserve = MemorySetting("memory_reserve_bytes", DefaultReserve(total), 0);
+            long requested = MemorySetting("memory_budget_bytes", total, 4096);
             long owned = DeviceBufferBytes;
             deviceBudget = Math.Min(requested, owned + Math.Max(0, free - reserve));
             // Keep room for one fresh or residual window when placing full fields.
@@ -869,7 +872,7 @@ namespace GRAL_2001
             long available = Math.Max(0, deviceBudget - DeviceBufferBytes + retained - zeroBytes);
             long capacity = Math.Min(Math.Min(MaxMemoryParticles, count), Math.Max(0, FloorDiv(available - extra, perRow)));
             // Host-mapped scratch and windows are bounded by a pinned host-memory budget.
-            long pinnedBudget = MemorySetting("INU_GPU_PINNED_BUDGET_BYTES", DefaultPinnedBudget, 0);
+            long pinnedBudget = MemorySetting("pinned_budget_bytes", DefaultPinnedBudget, 0);
             if (mappedScratch) capacity = Math.Min(capacity, Math.Max(1, pinnedBudget / scratchUnit));
             // When not even one particle window fits in device memory, use mapped host memory for the window arrays too.
             bool mappedWindows = capacity < 1 && count > 0;

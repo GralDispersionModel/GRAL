@@ -17,10 +17,20 @@ namespace GRAL_2001
         private bool receptorsCommitted;
         private static int Setting(string name,int fallback,int min,int max)
         {
-            string raw=Environment.GetEnvironmentVariable(name);
+            return IntValue(Environment.GetEnvironmentVariable(name),name,fallback,min,max);
+        }
+        internal static int IntValue(string raw,string label,int fallback,int min,int max)
+        {
             if(raw==null)return fallback;
             if(!int.TryParse(raw,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out int value) || value<min || value>max)
-                throw new InvalidOperationException("Invalid "+name);
+                throw new ArgumentException("Invalid "+label+": '"+raw+"' (use an integer from "+min.ToString(System.Globalization.CultureInfo.InvariantCulture)+" to "+max.ToString(System.Globalization.CultureInfo.InvariantCulture)+")");
+            return value;
+        }
+        // Threads per block: 128 (default) or 256
+        internal static int BlockValue(string raw,string label)
+        {
+            int value=IntValue(raw,label,128,128,256);
+            if(value!=128 && value!=256)throw new ArgumentException("Invalid "+label+": '"+raw+"' (use 128 or 256)");
             return value;
         }
         private readonly List<string> fields=new List<string>();
@@ -37,9 +47,8 @@ namespace GRAL_2001
                 if(!field.GetProperty("constant").GetBoolean() && !omit.Contains(name)) fields.Add(name);
             }
             this.metricsPath=metricsPath;
-            chunk=Setting("INU_GRAL_GPU_CHUNK",65536,1,65536);
-            block=Setting("INU_GRAL_GPU_BLOCK",128,128,256);
-            if(block!=128 && block!=256)throw new InvalidOperationException("Invalid INU_GRAL_GPU_BLOCK");
+            chunk=IntValue(GpuSettings.Value("chunk"),GpuSettings.Label("chunk"),65536,1,65536);
+            block=BlockValue(GpuSettings.Value("block"),GpuSettings.Label("block"));
             receptors=ReceptorCsr();
             server=new GpuServerConnection(manifest,stderrPath);
         }

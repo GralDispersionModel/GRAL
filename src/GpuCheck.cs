@@ -20,6 +20,7 @@ namespace GRAL_2001
             int exitCode=0;
             try
             {
+                GpuSettings.Load();
                 string manifest=Path.GetFullPath(GpuExperimental.ManifestPath());
                 report["manifest"]=manifest;
                 // A run reads both files first; an unreadable or invalid manifest stops it at the first GPU situation

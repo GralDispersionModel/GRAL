@@ -34,12 +34,12 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Cache folder: INU_GPU_CACHE_DIR, or by default a per-user local folder (LocalApplicationData/GRAL/GpuModuleCache);
-        /// INU_GPU_CACHE_DIR=off disables the cache. Null when disabled.
+        /// Cache folder: INU_GPU_CACHE_DIR or the cache_dir key of the GPU settings file, or by default a per-user local folder
+        /// (LocalApplicationData/GRAL/GpuModuleCache); the value off disables the cache. Null when disabled.
         /// </summary>
         internal static string Directory()
         {
-            string directory = Environment.GetEnvironmentVariable("INU_GPU_CACHE_DIR");
+            string directory = GpuSettings.Value("cache_dir");
             if (directory != null && (directory.Length == 0 || directory.Equals("off", StringComparison.OrdinalIgnoreCase))) return null;
             if (directory != null) return directory;
             string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

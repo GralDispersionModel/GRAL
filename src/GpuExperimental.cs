@@ -26,8 +26,9 @@ namespace GRAL_2001
                 return enabledState==1;
             }
         }
-        // Only a failure to start the GPU server, before any GPU situation, may turn the whole run into a CPU run.
-        private static readonly bool FallbackOnStartup=Environment.GetEnvironmentVariable("INU_GPU_FALLBACK_ON_STARTUP")=="1";
+        // Only a failure to start the GPU server, before any GPU situation, may turn the whole run into a CPU run
+        // (INU_GPU_FALLBACK_ON_STARTUP=1 or fallback_on_startup = 1 in the GPU settings file).
+        private static bool FallbackOnStartup => GpuSettings.Value("fallback_on_startup")=="1";
         private static GpuSituationDriver driver;
         private static FileStream metricsLock;
         private static bool started;
@@ -76,13 +77,15 @@ namespace GRAL_2001
         private static bool Start()
         {
             if(driver!=null) return true;
+            // Outside the try block: an invalid GPU settings file stops the run even when startup fallback is on
+            GpuSettings.Load();
             try { driver=CreateDriver(); started=true; return true; }
             catch(Exception error) when(error is not OperationCanceledException)
             {
                 string message="GPU startup failed: "+error.Message;
                 // Program.Main reports this on the console and in the logs and ends the run with exit code 1
                 if(started || !FallbackOnStartup)
-                    throw new InvalidOperationException(message+(started?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1 to run on the CPU instead)"),error);
+                    throw new InvalidOperationException(message+(started?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1, or fallback_on_startup = 1 in the GPU settings file, to run on the CPU instead)"),error);
                 startupFailure=message;
                 Console.WriteLine("GPU fallback to CPU for the whole run: "+message);
                 ProgramWriters.LogfileGralCoreWrite("GPU fallback to CPU for the whole run: "+message);
@@ -125,10 +128,25 @@ namespace GRAL_2001
                                                 (hip ? Text("driver_cuda")+", "+Text("nvrtc_version") : "driver CUDA "+Text("driver_cuda")+", NVRTC "+Text("nvrtc_version"))+
                                                 ", "+Text("binary_kind")+" "+Text("target"));
             ProgramWriters.LogfileGralCoreWrite("GPU reproducible sums: "+(Text("reproducible_sums")=="True" ? "on" : "off")+" ("+Text("reproducible_sums_source")+")");
-            // Every GPU variable of this process, so that a value inherited from the calling program or the user environment is visible.
+            if(probe.TryGetProperty("warnings",out var warnings) && warnings.ValueKind==System.Text.Json.JsonValueKind.Array)
+                foreach(var warning in warnings.EnumerateArray())
+                {
+                    Console.WriteLine("GPU warning: "+warning.GetString());
+                    ProgramWriters.LogfileGralCoreWrite("GPU warning: "+warning.GetString());
+                }
+            ProgramWriters.LogfileGralCoreWrite("GPU settings file: "+(GpuSettings.FilePath ?? "none")+" ("+GpuSettings.FileStatus+")");
+            // Every setting that is not at its default, with the source that decided
+            var listed=new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach(var (key,value,source) in GpuSettings.Active())
+            {
+                string variable=System.Linq.Enumerable.First(GpuSettings.Keys,k=>k.Key==key).Variable;
+                if(source=="env") listed.Add(variable);
+                ProgramWriters.LogfileGralCoreWrite("GPU setting "+key+" = "+value+" ("+(source=="env" ? "env "+variable : "file")+")");
+            }
+            // Every other GPU variable of this process, so that a value inherited from the calling program or the user environment is visible.
             var variables=new System.Collections.Generic.SortedDictionary<string,string>(StringComparer.Ordinal);
             foreach(System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
-                if(entry.Key is string name && (name.StartsWith("INU_GPU_",StringComparison.OrdinalIgnoreCase) || name.StartsWith("INU_GRAL_GPU_",StringComparison.OrdinalIgnoreCase)))
+                if(entry.Key is string name && !listed.Contains(name) && (name.StartsWith("INU_GPU_",StringComparison.OrdinalIgnoreCase) || name.StartsWith("INU_GRAL_GPU_",StringComparison.OrdinalIgnoreCase)))
                     variables[name]=entry.Value as string;
             foreach(var variable in variables) ProgramWriters.LogfileGralCoreWrite("GPU variable "+variable.Key+"="+variable.Value);
         }

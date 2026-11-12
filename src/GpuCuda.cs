@@ -112,13 +112,69 @@ namespace GRAL_2001
             this.log = log;
             try
             {
-                string backend = Environment.GetEnvironmentVariable("INU_GPU_BACKEND")?.Trim();
-                if (string.IsNullOrEmpty(backend)) InitializeAutomatic(runtimeDirectory);
-                else if (backend.Equals("cuda", StringComparison.OrdinalIgnoreCase)) Initialize(runtimeDirectory);
-                else if (backend.Equals("hip", StringComparison.OrdinalIgnoreCase)) InitializeHip(runtimeDirectory, automatic: false);
-                else throw new ArgumentException("INU_GPU_BACKEND must be cuda or hip, got '" + backend + "'");
+                DeviceInfo["warnings"] = Warnings;
+                string backend = BackendValue(GpuSettings.Value("backend"), GpuSettings.Label("backend"));
+                if (backend == null) InitializeAutomatic(runtimeDirectory);
+                else if (backend == "cuda") Initialize(runtimeDirectory);
+                else InitializeHip(runtimeDirectory, automatic: false);
             }
             catch { Dispose(); throw; }
+        }
+
+        /// <summary>Startup warnings that do not stop the run (for example a device of the settings file that is no longer there).</summary>
+        internal List<string> Warnings { get; } = new List<string>();
+
+        private void Warn(string message)
+        {
+            Warnings.Add(message);
+            log("Warning: " + message);
+        }
+
+        /// <summary>cuda, hip, or null for the automatic choice (INU_GPU_BACKEND or the backend key of the settings file; case does not matter).</summary>
+        internal static string BackendValue(string raw, string label)
+        {
+            string backend = raw?.Trim();
+            if (string.IsNullOrEmpty(backend)) return null;
+            if (backend.Equals("cuda", StringComparison.OrdinalIgnoreCase)) return "cuda";
+            if (backend.Equals("hip", StringComparison.OrdinalIgnoreCase)) return "hip";
+            throw new ArgumentException(label + " must be cuda or hip, got '" + backend + "'");
+        }
+
+        /// <summary>Syntax of a device ordinal (INU_GPU_DEVICE or the device key); empty means the default device.</summary>
+        internal static System.Numerics.BigInteger OrdinalValue(string raw, string label)
+        {
+            if (string.IsNullOrEmpty(raw)) return 0;
+            if (raw.All(ch => ch >= '0' && ch <= '9')) return System.Numerics.BigInteger.Parse(raw, System.Globalization.CultureInfo.InvariantCulture);
+            throw new ArgumentException(label + " must be a nonnegative integer, got '" + raw + "'");
+        }
+
+        /// <summary>A compiler folder setting (INU_GPU_NVRTC_DIR, INU_GPU_HIPRTC_DIR or their keys) must be an absolute path.</summary>
+        internal static void DirectoryValue(string raw, string label)
+        {
+            if (raw.Length == 0 || !Path.IsPathFullyQualified(raw)) throw new ArgumentException(label + " must be a nonempty absolute path");
+        }
+
+        /// <summary>
+        /// The device setting to use: INU_GPU_DEVICE as given. A device of the settings file that comes with a device_name is used
+        /// only while the device at that ordinal still has that name; after a card swap or a renumbering the entry is ignored with a
+        /// warning and the device is chosen automatically. Null or empty: automatic choice.
+        /// </summary>
+        private string DeviceSetting(int count)
+        {
+            var (raw, source) = GpuSettings.Get("device");
+            string expected = GpuSettings.Value("device_name");
+            if (source != "file" || string.IsNullOrEmpty(expected)) return raw;
+            string found = null;
+            int handle;
+            if (int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out int ordinal) && ordinal < count && cuDeviceGet(&handle, ordinal) == 0)
+            {
+                byte* nameBuffer = stackalloc byte[256];
+                if (cuDeviceGetName(nameBuffer, 256, handle) == 0) found = Marshal.PtrToStringUTF8((IntPtr)nameBuffer);
+            }
+            if (found != null && found.Trim() == expected) return raw;
+            Warn("The GPU settings file " + GpuSettings.FilePath + " selects device " + raw + " (" + expected + "), but " +
+                 (found == null ? "there is no such device now" : "device " + raw + " is now " + found.Trim()) + "; the device is chosen automatically");
+            return null;
         }
 
         /// <summary>
@@ -239,13 +295,12 @@ namespace GRAL_2001
         private static int DeviceOrdinalSetting(string raw, int count, bool hip = false)
         {
             string api = hip ? "HIP" : "CUDA", visible = hip ? "HIP_VISIBLE_DEVICES" : "CUDA_VISIBLE_DEVICES";
-            System.Numerics.BigInteger ordinal;
-            if (string.IsNullOrEmpty(raw)) ordinal = 0;
-            else if (raw.All(ch => ch >= '0' && ch <= '9')) ordinal = System.Numerics.BigInteger.Parse(raw, System.Globalization.CultureInfo.InvariantCulture);
-            else throw new ArgumentException("INU_GPU_DEVICE must be a nonnegative integer, got '" + raw + "'");
+            // A null raw value comes from DeviceSetting after it ignored the file entry, so the label is taken only for a real value
+            string label = string.IsNullOrEmpty(raw) ? "INU_GPU_DEVICE" : GpuSettings.Label("device");
+            System.Numerics.BigInteger ordinal = OrdinalValue(raw, label);
             if (count < 1) throw Status(new InvalidOperationException("No " + api + " device is visible (check the " + (hip ? "AMD" : "NVIDIA") + " driver and " + visible + ")"), "no_device");
             if (ordinal >= count)
-                throw new ArgumentException("INU_GPU_DEVICE=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)");
+                throw new ArgumentException(label + "=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)");
             return (int)ordinal;
         }
 
@@ -270,7 +325,7 @@ namespace GRAL_2001
             Check(cuDriverGetVersion(&driverVersion), "cuDriverGetVersion");
             Check(cuDeviceGetCount(&count), "cuDeviceGetCount");
             cudaAbsent = count < 1;
-            DeviceOrdinal = DeviceOrdinalSetting(Environment.GetEnvironmentVariable("INU_GPU_DEVICE"), count);
+            DeviceOrdinal = DeviceOrdinalSetting(DeviceSetting(count), count);
             Check(cuDeviceGet(&device, DeviceOrdinal), "cuDeviceGet");
             byte* nameBuffer = stackalloc byte[256];
             Check(cuDeviceGetName(nameBuffer, 256, device), "cuDeviceGetName");
@@ -306,7 +361,7 @@ namespace GRAL_2001
                 throw new InvalidOperationException("CUDA device " + DeviceOrdinal + " (" + name + ") is unavailable (compute mode " + modeText + "; another process may own it)");
             Check(rc, "cuCtxCreate");
             context = ctx;
-            var candidates = NvrtcCandidates(Environment.GetEnvironmentVariable("INU_GPU_NVRTC_DIR"), runtimeDirectory);
+            var candidates = NvrtcCandidates(GpuSettings.Value("nvrtc_dir"), runtimeDirectory);
             SelectToolchain(candidates, driverVersion);
             string query = SupportedArchs != null ? "" : " (exact target unverified; NVRTC has no architecture query)";
             DeviceInfo["nvrtc_version"] = NvrtcVersion.Major + "." + NvrtcVersion.Minor;
@@ -438,8 +493,9 @@ namespace GRAL_2001
                 int handle;
                 if (cuDeviceGet(&handle, i) == 0 && OptionalAttribute(HipAttrIntegrated, handle) != 1) return i;
             }
-            if (automatic)
-                throw Status(new InvalidOperationException("Only integrated AMD GPUs are visible; set INU_GPU_BACKEND=hip (and INU_GPU_DEVICE) to run on one"), "only_integrated");
+            // allow_integrated = 1 in the settings file accepts the integrated GPU on the automatic path as well
+            if (automatic && GpuSettings.Value("allow_integrated") != "1")
+                throw Status(new InvalidOperationException("Only integrated AMD GPUs are visible; set allow_integrated = 1 in the GPU settings file, or INU_GPU_BACKEND=hip (and INU_GPU_DEVICE), to run on one"), "only_integrated");
             return 0;
         }
 
@@ -479,7 +535,7 @@ namespace GRAL_2001
             int countResult = cuDeviceGetCount(&count);
             if (countResult == ErrorNoDevice) count = 0;
             else Check(countResult, "hipGetDeviceCount");
-            string rawOrdinal = Environment.GetEnvironmentVariable("INU_GPU_DEVICE");
+            string rawOrdinal = DeviceSetting(count);
             DeviceOrdinal = string.IsNullOrEmpty(rawOrdinal) && count > 0 ? DefaultHipOrdinal(count, automatic) : DeviceOrdinalSetting(rawOrdinal, count, hip: true);
             Check(cuDeviceGet(&device, DeviceOrdinal), "hipDeviceGet");
             byte* nameBuffer = stackalloc byte[256];
@@ -522,7 +578,7 @@ namespace GRAL_2001
             // 8 = hipDeviceMapHost, the same value as CU_CTX_MAP_HOST.
             Check(cuCtxCreate(&ctx, 8, device), "hipCtxCreate");
             context = ctx;
-            SelectHiprtc(HiprtcCandidates(Environment.GetEnvironmentVariable("INU_GPU_HIPRTC_DIR"), runtimeDirectory));
+            SelectHiprtc(HiprtcCandidates(GpuSettings.Value("hiprtc_dir"), runtimeDirectory));
             DeviceInfo["nvrtc_version"] = "hiprtc " + NvrtcVersion.Major + "." + NvrtcVersion.Minor;
             DeviceInfo["nvrtc_path"] = NvrtcPath;
             DeviceInfo["hiprtc_comgr"] = ComgrPaths;
@@ -542,7 +598,7 @@ namespace GRAL_2001
             var directories = new List<string>();
             if (explicitDirectory != null)
             {
-                if (explicitDirectory.Length == 0 || !Path.IsPathFullyQualified(explicitDirectory)) throw new ArgumentException("INU_GPU_HIPRTC_DIR must be a nonempty absolute path");
+                DirectoryValue(explicitDirectory, GpuSettings.Label("hiprtc_dir"));
                 directories.Add(explicitDirectory);
             }
             else
@@ -664,7 +720,7 @@ namespace GRAL_2001
             var ignored = new List<string>();
             if (explicitDirectory != null)
             {
-                if (explicitDirectory.Length == 0 || !Path.IsPathFullyQualified(explicitDirectory)) throw new ArgumentException("INU_GPU_NVRTC_DIR must be a nonempty absolute path");
+                DirectoryValue(explicitDirectory, GpuSettings.Label("nvrtc_dir"));
                 directories.Add(explicitDirectory);
             }
             else
@@ -716,7 +772,7 @@ namespace GRAL_2001
             }
             if (result.Count == 0)
             {
-                if (explicitDirectory != null) throw Status(new FileNotFoundException("INU_GPU_NVRTC_DIR contains no NVRTC library: " + explicitDirectory), "invalid_setting");
+                if (explicitDirectory != null) throw Status(new FileNotFoundException(GpuSettings.Label("nvrtc_dir") + " contains no NVRTC library: " + explicitDirectory), "invalid_setting");
                 throw Status(new FileNotFoundException("NVRTC library not found in " + (runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ") +
                                                        "CUDA_PATH or CUDA_PATH_V*" + (Windows && UserToolchainFolder("nvrtc") is string user ? " or " + user : "") +
                                                        "; copy the NVRTC libraries (or pip install --target that folder nvidia-cuda-nvrtc-cu12), " +
