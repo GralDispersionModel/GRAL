@@ -18,8 +18,11 @@ namespace GRAL_2001
                     bool on=variable=="1" || (variable!="0" && Program.UseGpu);
                     bool byVariable=variable=="1" || variable=="0";
                     string source=byVariable ? "INU_GPU_EXPERIMENTAL="+variable+(Program.UseGpu ? ", in.dat asks for the GPU" : string.Empty) : Program.UseGpuLinePresent ? "in.dat" : "in.dat line 23 absent";
+                    // A value such as "true" or "yes" does not switch anything; say so instead of ignoring it without a word
+                    bool ignored=!byVariable && !string.IsNullOrEmpty(variable);
+                    if(ignored) source+="; INU_GPU_EXPERIMENTAL="+variable+" is ignored, use 1 or 0";
                     string message="GPU for the particle dispersion: "+(on ? "on" : "off")+" ("+source+")";
-                    if(on || byVariable || Program.UseGpu) Console.WriteLine(message);
+                    if(on || byVariable || Program.UseGpu || ignored) Console.WriteLine(message);
                     ProgramWriters.LogfileGralCoreWrite(message);
                     enabledState=on ? 1 : 0;
                 }
