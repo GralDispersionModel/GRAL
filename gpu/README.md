@@ -68,7 +68,7 @@ reproducible_sums = 0
 
 `reproducible_sums` only matters when line 22 is 1 and the GPU is used. No entry or `1` keeps the integer sums; `0` uses the floating-point sums, which can be faster or slower (see the measurements below) and can differ in the last bits between two runs. `INU_GPU_REPRODUCIBLE_SUMS=0` or `1` overrides the entry for one run. A value other than 0 or 1 on line 22 gives a warning on the console and in the GRAL log, and the line then counts as 0.
 
-`in.dat` has no GPU lines: it ends at line 22, and GRAL ignores further lines without a message. (Development builds of this GPU path read the GPU switch from line 23 and the reproducible sums from line 24. A project written for such a build runs on the CPU until it has a `GPU.txt` with `use_gpu = 1`.) A GUI without the GPU option (V27.01 and older) does not know `GPU.txt` and leaves it alone, so a project keeps its GPU settings when such a GUI rewrites `in.dat`.
+`in.dat` has no GPU lines: it ends at line 22, and GRAL ignores further lines without a message. A GUI without the GPU option (V27.01 and older) does not know `GPU.txt` and leaves it alone, so a project keeps its GPU settings when such a GUI rewrites `in.dat`.
 
 What GRAL writes about the GPU to `Logfile_GRALCore.txt`:
 

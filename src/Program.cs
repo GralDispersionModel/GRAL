@@ -177,6 +177,13 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(exc.Message); // also writes to Logfile_GRALCore
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations stopped with errors at: " + DateTime.Now.ToString());
                 ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
+                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("GRAL simulations stopped with errors. Press any key to continue...");
+                    Program.CleanUpMemory();
+                    Console.ReadKey(true); 	// wait for a key input
+                }
                 Environment.Exit(1);
             }
             //override first weather situation when using a command line argument for the 1st and last weather situation
