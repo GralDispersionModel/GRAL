@@ -284,6 +284,7 @@ namespace GRAL_2001
             int computeMode = Attribute(AttrComputeMode, device, "compute mode");
             KernelExecTimeout = Attribute(AttrKernelExecTimeout, device, "kernel exec timeout") != 0;
             string modeText = computeMode switch { 0 => "default", 2 => "prohibited", 3 => "exclusive_process", _ => computeMode.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+            DeviceInfo["backend"] = "cuda";
             DeviceInfo["ordinal"] = DeviceOrdinal;
             DeviceInfo["device_count"] = count;
             DeviceInfo["name"] = name;
