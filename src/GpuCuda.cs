@@ -343,7 +343,7 @@ namespace GRAL_2001
             System.Numerics.BigInteger ordinal = OrdinalValue(raw, label);
             if (count < 1) throw Status(new InvalidOperationException("No " + api + " device is visible (check the " + (hip ? "AMD" : "NVIDIA") + " driver and " + visible + ")"), "no_device");
             if (ordinal >= count)
-                throw new ArgumentException(label + "=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)");
+                throw GpuSettings.FromFile(new ArgumentException(label + "=" + ordinal + " is out of range: " + count + " " + api + " device(s) visible (valid 0.." + (count - 1) + "; " + visible + " renumbers devices)"), "device");
             return (int)ordinal;
         }
 
@@ -663,8 +663,8 @@ namespace GRAL_2001
                 result.AddRange(files.Where(p => HiprtcName.IsMatch(Path.GetFileName(p))).OrderByDescending(p => p, StringComparer.Ordinal));
             }
             if (result.Count == 0)
-                throw Status(new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) + "; install the HIP SDK or the ROCm Python " +
-                                                       "packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll"), explicitDirectory == null ? "no_hiprtc" : "invalid_setting");
+                throw GpuSettings.FromFile(Status(new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) + "; install the HIP SDK or the ROCm Python " +
+                                                       "packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll"), explicitDirectory == null ? "no_hiprtc" : "invalid_setting"), "hiprtc_dir");
             return result;
         }
 
@@ -819,7 +819,7 @@ namespace GRAL_2001
             }
             if (result.Count == 0)
             {
-                if (explicitDirectory != null) throw Status(new FileNotFoundException(GpuSettings.Label("nvrtc_dir") + " contains no NVRTC library: " + explicitDirectory), "invalid_setting");
+                if (explicitDirectory != null) throw GpuSettings.FromFile(Status(new FileNotFoundException(GpuSettings.Label("nvrtc_dir") + " contains no NVRTC library: " + explicitDirectory), "invalid_setting"), "nvrtc_dir");
                 throw Status(new FileNotFoundException("NVRTC library not found in " + (runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ") +
                                                        "CUDA_PATH or CUDA_PATH_V*" + (Windows && UserToolchainFolder("nvrtc") is string user ? " or " + user : "") +
                                                        "; copy the NVRTC libraries (or pip install --target that folder nvidia-cuda-nvrtc-cu12), " +

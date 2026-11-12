@@ -128,7 +128,9 @@ namespace GRAL_2001
             {
                 // The error text alone; the frame around it ({"status":"error","error":"...","payload_bytes":0}) only made the message harder to read
                 string error=doc.RootElement.TryGetProperty("error",out var text) && text.ValueKind==JsonValueKind.String ? text.GetString() : doc.RootElement.ToString();
-                doc.Dispose();throw new InvalidDataException("GPU server failed: "+error);
+                var failure=new InvalidDataException("GPU server failed: "+error);
+                if(doc.RootElement.TryGetProperty("settings_file_error",out var fromFile) && fromFile.ValueKind==JsonValueKind.True) failure.Data["GpuSettingsFile"]=true;
+                doc.Dispose();throw failure;
             }
             return doc;
             }

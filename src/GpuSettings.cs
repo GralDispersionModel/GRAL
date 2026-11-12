@@ -107,6 +107,21 @@ namespace GRAL_2001
             return file.TryGetValue(key,out string fromFile) ? (fromFile,"file") : (fromVariable,null);
         }
         internal static string Value(string key) => Get(key).Value;
+        /// <summary>
+        /// Marks an error about a value that proved unusable only when it was used (a device ordinal beyond the last device, a compiler
+        /// folder without a compiler), when that value comes from the settings file: like every invalid value of the file it stops
+        /// the run even when startup fallback is on. The same error from a variable stays an ordinary startup failure.
+        /// </summary>
+        internal static T FromFile<T>(T error,string key) where T:Exception
+        {
+            if(Get(key).Source=="file") error.Data["GpuSettingsFile"]=true;
+            return error;
+        }
+        internal static bool IsFromFile(Exception error)
+        {
+            for(;error!=null;error=error.InnerException) if(error.Data["GpuSettingsFile"] is true) return true;
+            return false;
+        }
         /// <summary>Name of a setting for a message: the variable, or the key and the file when the value comes from the file.</summary>
         internal static string Label(string key) => Get(key).Source=="file" ? key+" in "+FilePath : Keys.First(k=>k.Key==key).Variable ?? key;
         /// <summary>Every key that has a value, with its source, in the order of the key list.</summary>

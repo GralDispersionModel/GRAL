@@ -1772,7 +1772,10 @@ namespace GRAL_2001
                     log(error is OperationCanceledException ? "GPU run cancelled" : error.ToString());
                     // Stop reading first, so a client that is still writing a large frame fails instead of blocking, then answer.
                     try { input.Dispose(); } catch (IOException) { }
-                    try { WriteFrame(new Dictionary<string, object> { { "status", "error" }, { "error", error.Message }, { "payload_bytes", 0L } }); }
+                    // settings_file_error: an unusable value of the GPU settings file, which must not end in a CPU fallback
+                    var frame = new Dictionary<string, object> { { "status", "error" }, { "error", error.Message }, { "payload_bytes", 0L } };
+                    if (GpuSettings.IsFromFile(error)) frame["settings_file_error"] = true;
+                    try { WriteFrame(frame); }
                     catch (FrameWriteException) { }
                     ExitCode = 1;
                 }

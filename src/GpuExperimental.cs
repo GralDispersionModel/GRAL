@@ -87,8 +87,10 @@ namespace GRAL_2001
             {
                 string message="GPU startup failed: "+error.Message;
                 // Program.Main reports this on the console and in the logs and ends the run with exit code 1
-                if(started || !FallbackOnStartup)
-                    throw new InvalidOperationException(message+(started?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1, or fallback_on_startup = 1 in the GPU settings file, to run on the CPU instead)"),error);
+                // An unusable value of the GPU settings file stops the run like every other invalid value of that file
+                bool fromFile=GpuSettings.IsFromFile(error);
+                if(started || !FallbackOnStartup || fromFile)
+                    throw new InvalidOperationException(message+(started || fromFile?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1, or fallback_on_startup = 1 in the GPU settings file, to run on the CPU instead)"),error);
                 startupFailure=message;
                 Console.WriteLine("GPU fallback to CPU for the whole run: "+message);
                 ProgramWriters.LogfileGralCoreWrite("GPU fallback to CPU for the whole run: "+message);
