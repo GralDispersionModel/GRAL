@@ -1310,6 +1310,10 @@ namespace GRAL_2001
         ///</summary>
         public static bool UseGpu = false;
         ///<summary>
+        /// in.dat has a line 23, whatever its value
+        ///</summary>
+        public static bool UseGpuLinePresent = false;
+        ///<summary>
         /// Cancel token for the app, sent from the GUI
         ///</summary>
         public static CancellationTokenSource CancelToken = new();

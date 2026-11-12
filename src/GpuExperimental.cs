@@ -7,7 +7,7 @@ namespace GRAL_2001
     {
         private static int enabledState=-1;
         // in.dat line 23 ("Use the GPU", Program.UseGpu) switches the GPU on; INU_GPU_EXPERIMENTAL=1 or 0 overrides it.
-        // The first query reports on the console and in the GRAL log which of the two decided, unless both leave the GPU off.
+        // The first query writes to the GRAL log which of the two decided, and to the console as well unless both leave the GPU off.
         internal static bool Enabled
         {
             get
@@ -16,13 +16,11 @@ namespace GRAL_2001
                 {
                     string variable=Environment.GetEnvironmentVariable("INU_GPU_EXPERIMENTAL");
                     bool on=variable=="1" || (variable!="0" && Program.UseGpu);
-                    string source=variable=="1" || variable=="0" ? "INU_GPU_EXPERIMENTAL="+variable : "in.dat";
-                    if(on || variable=="1" || variable=="0" || Program.UseGpu)
-                    {
-                        string message="GPU for the particle dispersion: "+(on ? "on" : "off")+" ("+source+(source!="in.dat" && Program.UseGpu ? ", in.dat asks for the GPU" : string.Empty)+")";
-                        Console.WriteLine(message);
-                        ProgramWriters.LogfileGralCoreWrite(message);
-                    }
+                    bool byVariable=variable=="1" || variable=="0";
+                    string source=byVariable ? "INU_GPU_EXPERIMENTAL="+variable+(Program.UseGpu ? ", in.dat asks for the GPU" : string.Empty) : Program.UseGpuLinePresent ? "in.dat" : "in.dat line 23 absent";
+                    string message="GPU for the particle dispersion: "+(on ? "on" : "off")+" ("+source+")";
+                    if(on || byVariable || Program.UseGpu) Console.WriteLine(message);
+                    ProgramWriters.LogfileGralCoreWrite(message);
                     enabledState=on ? 1 : 0;
                 }
                 return enabledState==1;
@@ -35,11 +33,19 @@ namespace GRAL_2001
         private static bool started;
         private static string startupFailure;
         private static string lastFallbackReason;
+        private static int gpuSituations,cpuSituations;
         internal static bool CanRun(int first,int count)
         {
-            if(startupFailure!=null) return false;
+            if(startupFailure!=null) { cpuSituations++; return false; }
             string reason=GpuSituationDriver.GetUnsupportedReason(first,count);
-            if(reason==null) { lastFallbackReason=null; return Start(); }
+            if(reason==null)
+            {
+                lastFallbackReason=null;
+                if(Start()) return true;
+                cpuSituations++;
+                return false;
+            }
+            cpuSituations++;
             if(reason!=lastFallbackReason)
             {
                 // Keep the reason in the GRAL log as well, so a CPU situation in a GPU run is visible afterwards.
@@ -104,13 +110,39 @@ namespace GRAL_2001
             {
                 driver=CreateDriver();started=true;
             }
-            try { driver.RunSituation(first,count); }
+            try { driver.RunSituation(first,count); gpuSituations++; }
             catch(Exception runError)
             {
                 try { Close(); }
                 catch(Exception cleanupError) { throw new AggregateException("GPU execution and cleanup failed",runError,cleanupError); }
                 throw;
             }
+        }
+        // After a successful GPU start: what ran, for the GRAL log. The console already has the device line.
+        internal static void LogStart(System.Text.Json.JsonElement probe)
+        {
+            string Text(string name) => probe.TryGetProperty(name,out var value) ? value.ToString() : "?";
+            bool hip=Text("backend")=="hip";
+            ProgramWriters.LogfileGralCoreWrite("GPU start: backend "+(hip ? "hip" : "cuda")+", device "+Text("ordinal")+" ("+Text("name")+"), "+Text("total_memory_mib")+" MiB, "+
+                                                (hip ? Text("driver_cuda")+", "+Text("nvrtc_version") : "driver CUDA "+Text("driver_cuda")+", NVRTC "+Text("nvrtc_version"))+
+                                                ", "+Text("binary_kind")+" "+Text("target"));
+            ProgramWriters.LogfileGralCoreWrite("GPU reproducible sums: "+(Text("reproducible_sums")=="True" ? "on" : "off")+" ("+Text("reproducible_sums_source")+")");
+            // Every GPU variable of this process, so that a value inherited from the calling program or the user environment is visible.
+            var variables=new System.Collections.Generic.SortedDictionary<string,string>(StringComparer.Ordinal);
+            foreach(System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+                if(entry.Key is string name && (name.StartsWith("INU_GPU_",StringComparison.OrdinalIgnoreCase) || name.StartsWith("INU_GRAL_GPU_",StringComparison.OrdinalIgnoreCase)))
+                    variables[name]=entry.Value as string;
+            foreach(var variable in variables) ProgramWriters.LogfileGralCoreWrite("GPU variable "+variable.Key+"="+variable.Value);
+        }
+        // One line at the end of a run that asked for the GPU: where the situations were computed.
+        internal static void LogSummary()
+        {
+            if(enabledState!=1) return;
+            string message="GPU run summary: "+gpuSituations.ToString(System.Globalization.CultureInfo.InvariantCulture)+" situation(s) computed on the GPU, "+
+                           cpuSituations.ToString(System.Globalization.CultureInfo.InvariantCulture)+" on the CPU"+
+                           (startupFailure!=null ? " (the whole run fell back to the CPU)" : cpuSituations>0 ? " (per-situation fallback)" : string.Empty);
+            Console.WriteLine(message);
+            ProgramWriters.LogfileGralCoreWrite(message);
         }
         internal static void Close()
         {

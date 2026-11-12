@@ -68,6 +68,7 @@ namespace GRAL_2001
             {
                 if(!reply.RootElement.TryGetProperty("probe",out var probe))throw new InvalidDataException("GPU server did not answer the startup probe");
                 string Text(string name) => probe.TryGetProperty(name,out var value) ? value.ToString() : "?";
+                GpuExperimental.LogStart(probe);
                 if(Text("backend")=="hip")
                 {
                     Console.WriteLine("GPU device "+Text("ordinal")+": "+Text("name")+", "+Text("arch")+", "+Text("total_memory_mib")+" MiB, "+Text("driver_cuda")+

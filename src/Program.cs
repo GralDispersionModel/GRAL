@@ -871,6 +871,7 @@ namespace GRAL_2001
             } // loop for all meteorological situations
 FinishGral:
             bool gpuShutdownFailed = false;
+            GpuExperimental.LogSummary();
             try
             {
                 GpuExperimental.Close();

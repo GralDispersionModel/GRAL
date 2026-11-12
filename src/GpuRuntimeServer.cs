@@ -70,6 +70,7 @@ namespace GRAL_2001
         private const string ReproDefine = "#define GRAL_REPRO_SUMS 0";
         private const int ReproConstantBytes = 8 * 8 * 2;
         private bool reproSums;
+        private string reproSumsSource;
         private ulong reproAddress;
         private IntPtr fnReproFinalize;
         private readonly long[] reproWordElements = new long[ReproSlots.Length];
@@ -195,6 +196,7 @@ namespace GRAL_2001
             if (reproSetting.Length > 0 && reproSetting != "0" && reproSetting != "1")
                 throw new ArgumentException("INU_GPU_REPRODUCIBLE_SUMS: use 0 or 1, not '" + reproSetting + "'");
             reproSums = Program.UseFixedRndSeedVal && reproSetting != "0";
+            reproSumsSource = !Program.UseFixedRndSeedVal ? "in.dat line 22: no fixed random seeds" : reproSetting.Length > 0 ? "INU_GPU_REPRODUCIBLE_SUMS=" + reproSetting : "in.dat line 22";
             metrics["reproducible_sums"] = reproSums;
             metrics["repro_finalize_ms"] = 0.0; metrics["repro_word_bytes"] = 0L;
             metrics["pipe_read_wait_ms"] = 0.0; metrics["h2d_ms"] = 0.0; metrics["d2h_ms"] = 0.0; metrics["kernel_device_ms"] = 0.0;
@@ -617,6 +619,8 @@ namespace GRAL_2001
             info["max_kernel_ms"] = maxKernelMs;
             info["host"] = ".NET " + Environment.Version;
             info["startup_ms"] = startupMs;
+            info["reproducible_sums"] = reproSums;
+            info["reproducible_sums_source"] = reproSumsSource;
             return info;
         }
 
