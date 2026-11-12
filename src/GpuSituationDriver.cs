@@ -29,8 +29,9 @@ namespace GRAL_2001
         // Threads per block: 128 (default) or 256
         internal static int BlockValue(string raw,string label)
         {
-            int value=IntValue(raw,label,128,128,256);
-            if(value!=128 && value!=256)throw new ArgumentException("Invalid "+label+": '"+raw+"' (use 128 or 256)");
+            if(raw==null)return 128;
+            if(!int.TryParse(raw,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out int value) || (value!=128 && value!=256))
+                throw new ArgumentException("Invalid "+label+": '"+raw+"' (use 128 or 256)");
             return value;
         }
         private readonly List<string> fields=new List<string>();
