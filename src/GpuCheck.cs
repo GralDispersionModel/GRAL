@@ -23,9 +23,9 @@ namespace GRAL_2001
             int exitCode=0;
             try
             {
-                GpuSettings.Load();
                 string manifest=Path.GetFullPath(GpuExperimental.ManifestPath());
                 report["manifest"]=manifest;
+                GpuSettings.Load();
                 // A run reads both files first; an unreadable or invalid manifest stops it at the first GPU situation
                 if(!File.Exists(manifest) || !File.Exists(Path.Combine(Path.GetDirectoryName(manifest),"generated.cu")))
                     throw GpuCuda.Status(new FileNotFoundException("fields_manifest.json or generated.cu not found in "+Path.GetDirectoryName(manifest)),"no_manifest");
@@ -49,12 +49,17 @@ namespace GRAL_2001
                 report["message"]=error.Message;
                 exitCode=2;
             }
+            var settings=new Dictionary<string,object>();
+            // An invalid file has no settings to list. When the check stopped before it read the file (no manifest), the file is read
+            // here, so that the two keys below are always filled; its error is then reported unless there is an earlier one.
+            try { foreach(var (key,value,source) in GpuSettings.Active()) settings[key]=new Dictionary<string,string>{["value"]=value,["source"]=source}; }
+            catch(Exception error)
+            {
+                settings.Clear();
+                if(exitCode==0) { report["status"]=StatusOf(error); report["message"]=error.Message; exitCode=2; }
+            }
             report["settings_file"]=GpuSettings.FilePath;
             report["settings_file_status"]=GpuSettings.FileStatus;
-            var settings=new Dictionary<string,object>();
-            // An invalid file is already reported above; it has no settings to list
-            try { foreach(var (key,value,source) in GpuSettings.Active()) settings[key]=new Dictionary<string,string>{["value"]=value,["source"]=source}; }
-            catch(ArgumentException) { settings.Clear(); }
             report["settings"]=settings;
             if(!report.ContainsKey("devices")) report["devices"]=Array.Empty<object>();
             // A backend whose runtime library is installed but which was not started; it is not loaded for this test
@@ -62,7 +67,9 @@ namespace GRAL_2001
             if(report.TryGetValue("backend",out object backend))
             {
                 if((string)backend=="cuda" && GpuCuda.HipRuntimePresent()) others.Add("hip");
-                if((string)backend=="hip" && GpuCuda.CudaDriverPresent()) others.Add("cuda");
+                // Without the backend setting hip, CUDA was tried first and found no device, so it is not offered again
+                if((string)backend=="hip" && settings.TryGetValue("backend",out object chosen) && "hip".Equals(((Dictionary<string,string>)chosen)["value"]?.Trim(),StringComparison.OrdinalIgnoreCase) &&
+                   GpuCuda.CudaDriverPresent()) others.Add("cuda");
             }
             report["other_backends"]=others;
             if(!report.ContainsKey("warnings")) report["warnings"]=Array.Empty<string>();

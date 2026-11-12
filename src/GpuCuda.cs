@@ -225,11 +225,11 @@ namespace GRAL_2001
                 nuint total;
                 if (cuDeviceGet(&handle, i) != 0) continue;
                 string name = cuDeviceGetName(nameBuffer, 256, handle) == 0 ? Marshal.PtrToStringUTF8((IntPtr)nameBuffer)?.Trim() : null;
-                // The integrated attribute is optional: null when the driver does not answer
+                // Only the integrated attribute may be null (the driver does not answer); a name or a size the driver does not give is "" or 0
                 devices.Add(new Dictionary<string, object>
                 {
-                    ["backend"] = Hip ? "hip" : "cuda", ["ordinal"] = i, ["name"] = name,
-                    ["total_memory_bytes"] = cuDeviceTotalMem(&total, handle) == 0 ? (object)(long)total : null,
+                    ["backend"] = Hip ? "hip" : "cuda", ["ordinal"] = i, ["name"] = name ?? "",
+                    ["total_memory_bytes"] = cuDeviceTotalMem(&total, handle) == 0 ? (long)total : 0L,
                     ["integrated"] = OptionalAttribute(Hip ? HipAttrIntegrated : AttrIntegrated, handle) is int integrated ? (object)(integrated != 0) : null,
                     ["selected"] = false
                 });
