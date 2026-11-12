@@ -51,7 +51,12 @@ namespace GRAL_2001
                 {
                     // A value that is no path at all is reported, with the text as given and the status of a file that is not there
                     FilePath=FileName=path; FileStatus="absent";
-                    try { path=FileName=Path.GetFullPath(path); }
+                    // The variable may name the project's own file (a front end can set it for every start): that is GPU.txt, without its path
+                    try
+                    {
+                        path=FileName=Path.GetFullPath(path);
+                        if(path.Equals(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(),"GPU.txt")),OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) FileName="GPU.txt";
+                    }
                     catch(Exception error) when(error is ArgumentException || error is IOException || error is NotSupportedException || error is System.Security.SecurityException)
                     { throw GpuCuda.Status(new ArgumentException("INU_GPU_SETTINGS_FILE is not a usable path: "+error.Message,error),"invalid_setting"); }
                 }
