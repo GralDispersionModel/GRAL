@@ -179,7 +179,7 @@ namespace GRAL_2001
                 if (cuDeviceGetName(nameBuffer, 256, handle) == 0) found = Marshal.PtrToStringUTF8((IntPtr)nameBuffer);
             }
             if (found != null && found.Trim() == expected) return raw;
-            Warn("The GPU settings file " + GpuSettings.FilePath + " selects device " + raw + " (" + expected + "), but " +
+            Warn("The GPU settings file " + GpuSettings.FileName + " selects device " + raw + " (" + expected + "), but " +
                  (found == null ? "there is no such device now" : "device " + raw + " is now " + found.Trim()) + "; the device is chosen automatically");
             return null;
         }
@@ -542,7 +542,7 @@ namespace GRAL_2001
             // before; backend = hip in the settings file does not: a front end writes it for "HIP, automatic device", and that choice
             // must not put the run on an integrated GPU without the question.
             if ((automatic || GpuSettings.Get("backend").Source == "file") && GpuSettings.Value("allow_integrated") != "1")
-                throw Status(new InvalidOperationException("Only integrated AMD GPUs are visible; set allow_integrated = 1 in the GPU settings file, or INU_GPU_BACKEND=hip (and INU_GPU_DEVICE), to run on one"), "only_integrated");
+                throw Status(new InvalidOperationException("Only integrated AMD GPUs are visible; set allow_integrated = 1 in GPU.txt, or INU_GPU_BACKEND=hip (and INU_GPU_DEVICE), to run on one"), "only_integrated");
             return 0;
         }
 

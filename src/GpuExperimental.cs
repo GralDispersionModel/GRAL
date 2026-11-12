@@ -92,7 +92,7 @@ namespace GRAL_2001
                 // An unusable value of the GPU settings file stops the run like every other invalid value of that file
                 bool fromFile=GpuSettings.IsFromFile(error);
                 if(started || !FallbackOnStartup || fromFile)
-                    throw new InvalidOperationException(message+(started || fromFile?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1, or fallback_on_startup = 1 in the GPU settings file, to run on the CPU instead)"),error);
+                    throw new InvalidOperationException(message+(started || fromFile?"":" (set INU_GPU_FALLBACK_ON_STARTUP=1, or fallback_on_startup = 1 in GPU.txt, to run on the CPU instead)"),error);
                 startupFailure=message;
                 Console.WriteLine("GPU fallback to CPU for the whole run: "+message);
                 ProgramWriters.LogfileGralCoreWrite("GPU fallback to CPU for the whole run: "+message);
@@ -141,8 +141,8 @@ namespace GRAL_2001
                     Console.WriteLine("GPU warning: "+warning.GetString());
                     ProgramWriters.LogfileGralCoreWrite("GPU warning: "+warning.GetString());
                 }
-            // The path is written only when a file was read: the default path holds the account folder, which a project log need not carry
-            ProgramWriters.LogfileGralCoreWrite("GPU settings file: "+(GpuSettings.FileStatus=="read" ? GpuSettings.FilePath+" (read)" : "none ("+GpuSettings.FileStatus+")"));
+            // The project's own file is written as GPU.txt; the full path only when INU_GPU_SETTINGS_FILE names another file
+            ProgramWriters.LogfileGralCoreWrite("GPU settings file: "+(GpuSettings.FileStatus=="read" ? GpuSettings.FileName+" (read)" : "none ("+GpuSettings.FileStatus+")"));
             // Every setting that is not at its default, with the source that decided
             var listed=new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach(var (key,value,source) in GpuSettings.Active())
