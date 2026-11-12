@@ -286,6 +286,25 @@ namespace GRAL_2001
                                 { }
                             }
 
+                            // Use the GPU for the particle dispersion (optional line; absent = CPU)
+                            if (sr.EndOfStream == false)
+                            {
+                                try
+                                {
+                                    _line++;
+                                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\r', '\n', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (text.Length > 0 && int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r))
+                                    {
+                                        if (r == 1) //1: Use the GPU
+                                        {
+                                            Program.UseGpu = true;
+                                        }
+                                    }
+                                }
+                                catch
+                                { }
+                            }
+
                         }
                     }
                 }

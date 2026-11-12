@@ -47,16 +47,24 @@ At startup the runtime reads the compute capability of the selected device, asks
 
 ## Running GRAL on the GPU
 
-The build copies `fields_manifest.json` and `generated.cu` to `gpu\runtime` next to `GRAL.dll`, so one setting is enough:
+The build copies `fields_manifest.json` and `generated.cu` to `gpu\runtime` next to `GRAL.dll`, so one setting is enough. Put it in the project's `in.dat`, after the reproducible-results line (line 23), so the project records whether it runs on the GPU:
+
+```
+1	 ! Use the GPU for the particle dispersion Yes = 1, No = 0
+```
+
+A missing line means the CPU. `INU_GPU_EXPERIMENTAL=1` or `0` overrides the line for one run, for example in test scripts:
 
 ```powershell
 $env:INU_GPU_EXPERIMENTAL = '1'
 dotnet GRAL.dll D:\project\Computation
 ```
 
+When either one asks for the GPU, GRAL writes to the console and the GRAL log whether the GPU is used and which setting decided. The GPU follows GRAL's reproducible-results option (line 22): with it, the GPU adds its results in integers, so repeated runs give the same files (see `INU_GPU_REPRODUCIBLE_SUMS`). A GUI without the GPU option (V27.01 and older) writes only 22 lines and drops line 23 whenever it rewrites `in.dat`.
+
 | Variable | Default | Effect |
 |---|---|---|
-| `INU_GPU_EXPERIMENTAL` | unset | `1` requests the GPU; anything else keeps the CPU |
+| `INU_GPU_EXPERIMENTAL` | unset | `1` or `0` turns the GPU on or off for this run, overriding `in.dat` line 23; unset or any other value leaves the choice to `in.dat` |
 | `INU_GPU_MANIFEST` | `fields_manifest.json` in GRAL's `gpu\runtime` folder, which the build writes, else next to GRAL (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
 | `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it | JSON-lines file for per-situation metrics |
 | `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |

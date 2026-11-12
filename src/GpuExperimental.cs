@@ -2,10 +2,32 @@ using System;
 using System.IO;
 namespace GRAL_2001
 {
-    // Strict opt-in for isolated experiments; no CPU fallback after partial GPU execution.
+    // GPU path for the particle dispersion; no CPU fallback after partial GPU execution.
     internal static class GpuExperimental
     {
-        internal static readonly bool Enabled=Environment.GetEnvironmentVariable("INU_GPU_EXPERIMENTAL")=="1";
+        private static int enabledState=-1;
+        // in.dat line 23 ("Use the GPU", Program.UseGpu) switches the GPU on; INU_GPU_EXPERIMENTAL=1 or 0 overrides it.
+        // The first query reports on the console and in the GRAL log which of the two decided, unless both leave the GPU off.
+        internal static bool Enabled
+        {
+            get
+            {
+                if(enabledState<0)
+                {
+                    string variable=Environment.GetEnvironmentVariable("INU_GPU_EXPERIMENTAL");
+                    bool on=variable=="1" || (variable!="0" && Program.UseGpu);
+                    string source=variable=="1" || variable=="0" ? "INU_GPU_EXPERIMENTAL="+variable : "in.dat";
+                    if(on || variable=="1" || variable=="0" || Program.UseGpu)
+                    {
+                        string message="GPU for the particle dispersion: "+(on ? "on" : "off")+" ("+source+(source!="in.dat" && Program.UseGpu ? ", in.dat asks for the GPU" : string.Empty)+")";
+                        Console.WriteLine(message);
+                        ProgramWriters.LogfileGralCoreWrite(message);
+                    }
+                    enabledState=on ? 1 : 0;
+                }
+                return enabledState==1;
+            }
+        }
         // Only a failure to start the GPU server, before any GPU situation, may turn the whole run into a CPU run.
         private static readonly bool FallbackOnStartup=Environment.GetEnvironmentVariable("INU_GPU_FALLBACK_ON_STARTUP")=="1";
         private static GpuSituationDriver driver;
@@ -28,7 +50,7 @@ namespace GRAL_2001
             lastFallbackReason=reason;
             return false;
         }
-        // Unset settings get defaults, so INU_GPU_EXPERIMENTAL=1 is the only setting a normal run needs.
+        // Unset settings get defaults, so the GPU switch (in.dat line 23 or INU_GPU_EXPERIMENTAL) is the only setting a normal run needs.
         private static string Setting(string name,string fallback)
         {
             string value=Environment.GetEnvironmentVariable(name);

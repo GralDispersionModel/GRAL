@@ -1306,6 +1306,10 @@ namespace GRAL_2001
         ///</summary>
         public static bool UseFixedRndSeedVal = false;
         ///<summary>
+        /// Use the GPU for the particle dispersion? (in.dat line 23; INU_GPU_EXPERIMENTAL overrides it)
+        ///</summary>
+        public static bool UseGpu = false;
+        ///<summary>
         /// Cancel token for the app, sent from the GUI
         ///</summary>
         public static CancellationTokenSource CancelToken = new();
