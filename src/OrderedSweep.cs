@@ -38,7 +38,8 @@ namespace GRAL_2001
     ///
     /// Strips and hand-over:
     /// The j1 lines are divided into one strip of neighbouring lines per thread, each strip with about the same number of
-    /// columns to solve. Every thread goes through i1 in ascending order. In one step the thread solves the columns (i1, j1) of
+    /// columns to solve. A sweep with only a few lines or columns gets fewer strips, down to the plain loop nest on the calling
+    /// thread. Every thread goes through i1 in ascending order. In one step the thread solves the columns (i1, j1) of
     /// its strip and then publishes i1 as finished. A thread starts the step i1 only after the thread of the strip before it has
     /// published i1. So (i1 - 1, j1) was solved by the same thread one step earlier, (i1, j1 - 1) by the same thread or by the
     /// strip before, (i1 + 1, j1) follows in the next step, and (i1, j1 + 1) follows in the same thread or in the next strip,
@@ -69,6 +70,8 @@ namespace GRAL_2001
         private const int StripBits = 16;
         //spins of a waiting thread before it yields the processor
         private const int SpinsBeforeYield = 4096;
+        //smallest number of columns to solve per strip; below it the start of a further thread costs more than it saves
+        private const int MinColumnsOfStrip = 64;
         //time a worker spins after a sweep before it parks: 50 microseconds
         private static readonly long IdleSpinTicks = Math.Max(1, Stopwatch.Frequency / 20000);
 
@@ -212,7 +215,16 @@ namespace GRAL_2001
                 return;
             }
 
-            int strips = Math.Min(MaxThreads(), j1Last - j1First + 1);
+            //columns to solve: without a domain all columns of a line
+            int[] columns = columnsOfLine;
+            int columnsOfFullLine = i1Last - i1First + 1;
+            long columnsTotal = 0;
+            for (int j1 = j1First; j1 <= j1Last; ++j1)
+            {
+                columnsTotal += columns == null ? columnsOfFullLine : columns[JS == -1 ? Program.NJJ - j1 + 1 : j1];
+            }
+
+            int strips = (int)Math.Min(Math.Min(MaxThreads(), j1Last - j1First + 1), columnsTotal / MinColumnsOfStrip);
             if (strips <= 1)
             {
                 //one thread: the loop nest of the solver over all columns is the sweep itself
@@ -226,18 +238,12 @@ namespace GRAL_2001
                 stripBounds = new int[strips + 1];
                 progress = new long[(strips + 1) * Pad];
             }
-            int[] columns = columnsOfLine;
-            long columnsTotal = 0;
-            for (int j1 = j1First; j1 <= j1Last; ++j1)
-            {
-                columnsTotal += columns == null ? 1 : columns[JS == -1 ? Program.NJJ - j1 + 1 : j1];
-            }
             long columnsSum = 0;
             int strip = 1;
             stripBounds[0] = j1First;
             for (int j1 = j1First; j1 <= j1Last && strip < strips; ++j1)
             {
-                columnsSum += columns == null ? 1 : columns[JS == -1 ? Program.NJJ - j1 + 1 : j1];
+                columnsSum += columns == null ? columnsOfFullLine : columns[JS == -1 ? Program.NJJ - j1 + 1 : j1];
                 //close the strip when it holds its share of the columns, or when each line left is needed for a strip of its own
                 if (columnsSum * strips >= strip * columnsTotal || j1Last - j1 <= strips - strip)
                 {
@@ -333,6 +339,11 @@ namespace GRAL_2001
             long finishedBefore = long.MinValue;
             for (int i1 = sweepI1First; i1 <= i1Last; ++i1)
             {
+                //another strip has failed: the sweep is lost, so no further step is solved
+                if (abort)
+                {
+                    return;
+                }
                 if (strip > 0 && finishedBefore < i1)
                 {
                     int spins = 0;
