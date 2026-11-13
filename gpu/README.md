@@ -24,6 +24,9 @@ With no backend set, GRAL uses CUDA. Only when the NVIDIA driver library is miss
   2. the `nvrtc` folder next to `fields_manifest.json`, either with the two libraries copied in or filled with `pip install --target <runtime>\nvrtc nvidia-cuda-nvrtc-cu12`;
   3. the CUDA toolkit in `CUDA_PATH`, then the other installed toolkits in `CUDA_PATH_V*` (newest first). Entries that are not absolute paths are skipped;
   4. the per-user folder `%LOCALAPPDATA%\GRAL\GpuToolchain\nvrtc` (Windows), which a front end can fill without administrator rights.
+
+  On Linux, steps 3 and 4 are instead: the toolkit in `CUDA_PATH` or `CUDA_HOME` (its `lib64`, `lib` and `targets/x86_64-linux/lib` folders); then `/usr/local/cuda/lib64`, `/usr/local/cuda-<version>/lib64` (newest first), `/usr/lib/x86_64-linux-gnu` and `/usr/lib64`; last, the library that the loader finds under the name `libnvrtc.so.13` or `libnvrtc.so.12` (`LD_LIBRARY_PATH`, `ldconfig`). The `libnvrtc-builtins` library must be in the same folder as the NVRTC library.
+
   CUDA 13.x NVRTC no longer compiles for Maxwell, Pascal and Volta (compute capability below 7.5); use NVRTC 12.x for those cards.
 - Windows x64, which is the tested platform. The Linux code path (`libcuda.so.1`, `libnvrtc.so`, `CUDA_HOME`) is untested.
 

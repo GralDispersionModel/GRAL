@@ -761,7 +761,8 @@ namespace GRAL_2001
         /// <summary>
         /// NVRTC libraries to try, newest name first within each directory: INU_GPU_NVRTC_DIR alone when set; otherwise the
         /// runtime folder's <c>nvrtc</c> subfolder (also as a pip <c>--target</c> install of the NVRTC wheel), then the CUDA toolkits, then (Windows)
-        /// %LOCALAPPDATA%\GRAL\GpuToolchain\nvrtc.
+        /// %LOCALAPPDATA%\GRAL\GpuToolchain\nvrtc, or (Linux) /usr/local/cuda, /usr/local/cuda-&lt;version&gt;, the library folders of
+        /// distribution packages and, last, the library the loader itself finds (LD_LIBRARY_PATH, ldconfig).
         /// </summary>
         internal static List<string> NvrtcCandidates(string explicitDirectory, string runtimeDirectory)
         {
@@ -808,6 +809,14 @@ namespace GRAL_2001
                     else { directories.Add(Path.Combine(root, "lib64")); directories.Add(Path.Combine(root, "lib")); directories.Add(Path.Combine(root, "targets", "x86_64-linux", "lib")); }
                 }
                 if (Windows && UserToolchainFolder("nvrtc") is string user) directories.Add(user);
+                if (!Windows)
+                {
+                    // Where a toolkit or a distribution package puts NVRTC when no variable names it.
+                    directories.Add("/usr/local/cuda/lib64");
+                    foreach (string root in VersionedToolkits()) directories.Add(Path.Combine(root, "lib64"));
+                    directories.Add("/usr/lib/x86_64-linux-gnu");
+                    directories.Add("/usr/lib64");
+                }
             }
             var result = new List<string>();
             var seen = new HashSet<string>(Windows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
@@ -819,16 +828,70 @@ namespace GRAL_2001
                 foreach (string path in files.Where(p => NvrtcName.IsMatch(Path.GetFileName(p)) && File.Exists(p)).OrderByDescending(p => p, StringComparer.Ordinal))
                     if (seen.Add(ResolvedPath(path))) result.Add(path);
             }
+            // Linux, last: the library the loader itself finds (LD_LIBRARY_PATH, ldconfig entries), newest name first.
+            if (explicitDirectory == null && !Windows)
+                foreach (string name in new[] { "libnvrtc.so.13", "libnvrtc.so.12" })
+                    if (LoaderPath(name) is string path && seen.Add(ResolvedPath(path))) result.Add(path);
             if (result.Count == 0)
             {
                 if (explicitDirectory != null) throw GpuSettings.FromFile(Status(new FileNotFoundException(GpuSettings.Label("nvrtc_dir") + " contains no NVRTC library: " + explicitDirectory), "invalid_setting"), "nvrtc_dir");
-                throw Status(new FileNotFoundException("NVRTC library not found in " + (runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ") +
+                string bundled = runtimeDirectory == null ? "" : Path.Combine(runtimeDirectory, "nvrtc") + ", ";
+                string notAbsolute = ignored.Count > 0 ? " (ignored because not absolute: " + string.Join(", ", ignored) + ")" : "";
+                // Linux has other variables, folders and library names than Windows
+                if (!Windows)
+                    throw Status(new FileNotFoundException("NVRTC library not found in " + bundled + "$CUDA_PATH or $CUDA_HOME (lib64, lib, targets/x86_64-linux/lib), " +
+                                                           "/usr/local/cuda/lib64, /usr/local/cuda-*/lib64, /usr/lib/x86_64-linux-gnu, /usr/lib64 or the loader search path " +
+                                                           "(LD_LIBRARY_PATH, ldconfig); set nvrtc_dir in GPU.txt, or INU_GPU_NVRTC_DIR, to the folder that holds " +
+                                                           "libnvrtc.so.12 and libnvrtc-builtins.so.12.*, install the CUDA toolkit" +
+                                                           (bundled.Length > 0 ? ", or fill the first folder with pip install --target <that folder> nvidia-cuda-nvrtc-cu12" : "") +
+                                                           notAbsolute), "no_nvrtc");
+                throw Status(new FileNotFoundException("NVRTC library not found in " + bundled +
                                                        "CUDA_PATH or CUDA_PATH_V*" + (Windows && UserToolchainFolder("nvrtc") is string user ? " or " + user : "") +
                                                        "; copy the NVRTC libraries (or pip install --target that folder nvidia-cuda-nvrtc-cu12), " +
-                                                       "install the CUDA toolkit, or set INU_GPU_NVRTC_DIR" +
-                                                       (ignored.Count > 0 ? " (ignored because not absolute: " + string.Join(", ", ignored) + ")" : "")), "no_nvrtc");
+                                                       "install the CUDA toolkit, or set INU_GPU_NVRTC_DIR" + notAbsolute), "no_nvrtc");
             }
             return result;
+        }
+
+        /// <summary>Linux: the toolkit folders /usr/local/cuda-&lt;major&gt;[.&lt;minor&gt;], newest first.</summary>
+        private static IEnumerable<string> VersionedToolkits()
+        {
+            var found = new List<(int Major, int Minor, string Path)>();
+            try
+            {
+                foreach (string path in Directory.GetDirectories("/usr/local", "cuda-*"))
+                {
+                    Match version = Regex.Match(Path.GetFileName(path), @"^cuda-([0-9]{1,4})(\.([0-9]{1,4}))?$");
+                    if (version.Success)
+                        found.Add((int.Parse(version.Groups[1].Value, CultureInfo.InvariantCulture), version.Groups[3].Success ? int.Parse(version.Groups[3].Value, CultureInfo.InvariantCulture) : -1, path));
+                }
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException || error is IOException) { }
+            return found.OrderByDescending(t => t.Major).ThenByDescending(t => t.Minor).Select(t => t.Path);
+        }
+
+        /// <summary>
+        /// Linux: the file the loader finds for a library name, or null. The library is opened by name and closed again; its file
+        /// is read from /proc/self/maps, so that it is then tried by its path like every other candidate (the builtins library is
+        /// looked for next to it, and both files enter the module cache key).
+        /// </summary>
+        private static string LoaderPath(string name)
+        {
+            if (!NativeLibrary.TryLoad(name, out IntPtr handle)) return null;
+            try
+            {
+                foreach (string line in File.ReadLines("/proc/self/maps"))
+                {
+                    // Address range, permissions, offset, device, inode, then the file with its full path
+                    int start = line.IndexOf('/');
+                    if (start < 0) continue;
+                    string file = Path.GetFileName(line.Substring(start));
+                    if (file == name || file.StartsWith(name + ".", StringComparison.Ordinal)) return line.Substring(start);
+                }
+                return null;
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException || error is IOException) { return null; }
+            finally { NativeLibrary.Free(handle); }
         }
 
         /// <summary>Full path with symbolic links resolved, so one library reached through several links is tried once.</summary>
