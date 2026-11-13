@@ -108,7 +108,7 @@ namespace GRAL_2001
         internal void SendControl(string command, object extra = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] header=JsonSerializer.SerializeToUtf8Bytes(new {command, extra, payload_bytes=0});
+            byte[] header=GpuJson.Bytes(new Dictionary<string,object>{["command"]=command,["extra"]=extra,["payload_bytes"]=0});
             using var w=new BinaryWriter(input,System.Text.Encoding.UTF8,true);
             w.Write((ulong)header.Length);w.Write(header);w.Flush();BytesSent=checked(BytesSent+8+header.Length);
         }

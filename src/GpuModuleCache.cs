@@ -58,7 +58,7 @@ namespace GRAL_2001
             try { full = ResolveLinks(Path.GetFullPath(directory)); }
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException) { return (null, "invalid_directory"); }
             if (!LocalDirectory(full)) return (null, "invalid_directory");
-            string key = Digest(JsonSerializer.SerializeToUtf8Bytes(identity));
+            string key = Digest(GpuJson.Bytes(identity));
             return (Path.Combine(full, key + ".json"), key);
         }
 
@@ -116,11 +116,12 @@ namespace GRAL_2001
             try
             {
                 System.IO.Directory.CreateDirectory(Path.GetDirectoryName(path));
-                var entry = new { schema = Schema, key, kind, size = image.Length, sha256 = Digest(image), image = Convert.ToBase64String(image) };
+                var entry = new System.Collections.Generic.Dictionary<string, object>
+                    { ["schema"] = Schema, ["key"] = key, ["kind"] = kind, ["size"] = image.Length, ["sha256"] = Digest(image), ["image"] = Convert.ToBase64String(image) };
                 temp = Path.Combine(Path.GetDirectoryName(path), ".module-" + Guid.NewGuid().ToString("N") + ".tmp");
                 using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
-                    JsonSerializer.Serialize(stream, entry);
+                    GpuJson.Write(stream, entry);
                     stream.Flush(true);
                 }
                 File.Move(temp, path, true);

@@ -230,7 +230,7 @@ namespace GRAL_2001
         {
             if(Program.UseFixedRndSeedVal)return;
             var seeds=ExecutionSeeds();frame.Add("RnGSeed1",seeds.Item1);frame.Add("RnGSeed2",seeds.Item2);
-            receipts.Add(new {phase,count,seed1=seeds.Item1,seed2=seeds.Item2});
+            receipts.Add(new Dictionary<string,object>{["phase"]=phase,["count"]=count,["seed1"]=seeds.Item1,["seed2"]=seeds.Item2});
         }
         private static void AddPrimitiveSnapshots(Dictionary<string,object> extra)
         {
@@ -363,12 +363,12 @@ namespace GRAL_2001
             step.Restart();server.ApplyResult(result);
             var serverMetrics=server.ReadResultMetrics(result);
             double resultTransferApply=step.Elapsed.TotalSeconds;
-            var metrics=new {situation=Program.IWET,rng_seed1=Program.RnGSeed.Seed1,rng_seed2=Program.RnGSeed.Seed2,rng_seed_mode=Program.UseFixedRndSeedVal?"fixed":"entropy_master_hashed_per_particle",execution_seeds=executionSeeds,fresh_particles=count,fresh_active_particles=activeFresh,fresh_active_particles_definition="positive finite mass after upstream time-series modulation, before geometry rejection",residual_particles=residualParticles,chunk,block,elapsed_s=clock.Elapsed.TotalSeconds,init_roundtrip_s=initRoundTrip,cache_hash_s=cacheHashSeconds,omitted_field_names=plan.Omitted,saved_payload_bytes=checked(plan.SavedPayloadBytes+receptorSavedBytes),saved_receptor_payload_bytes=receptorSavedBytes,residual_split_s=residualSplit,residual_roundtrip_s=residualRoundTrip,
-                residual_kernel_ms=residualKernel,residual_batches=batches,fresh_roundtrip_s=freshRoundTrip,fresh_kernel_ms=freshKernel,
-                result_request_to_header_s=resultHeader,result_transfer_apply_s=resultTransferApply,bytes_sent=BytesSent-sentBefore,bytes_received=BytesReceived-receivedBefore,
-                kernel_total_ms=result.RootElement.GetProperty("kernel_total_ms").GetDouble(),phase_counts=result.RootElement.GetProperty("phase_counts").Clone(),
-                init_server=initDetails,result_server_metrics=serverMetrics};
-            File.AppendAllText(metricsPath,JsonSerializer.Serialize(metrics)+Environment.NewLine);
+            var metrics=new Dictionary<string,object>{["situation"]=Program.IWET,["rng_seed1"]=Program.RnGSeed.Seed1,["rng_seed2"]=Program.RnGSeed.Seed2,["rng_seed_mode"]=Program.UseFixedRndSeedVal?"fixed":"entropy_master_hashed_per_particle",["execution_seeds"]=executionSeeds,["fresh_particles"]=count,["fresh_active_particles"]=activeFresh,["fresh_active_particles_definition"]="positive finite mass after upstream time-series modulation, before geometry rejection",["residual_particles"]=residualParticles,["chunk"]=chunk,["block"]=block,["elapsed_s"]=clock.Elapsed.TotalSeconds,["init_roundtrip_s"]=initRoundTrip,["cache_hash_s"]=cacheHashSeconds,["omitted_field_names"]=plan.Omitted,["saved_payload_bytes"]=checked(plan.SavedPayloadBytes+receptorSavedBytes),["saved_receptor_payload_bytes"]=receptorSavedBytes,["residual_split_s"]=residualSplit,["residual_roundtrip_s"]=residualRoundTrip,
+                ["residual_kernel_ms"]=residualKernel,["residual_batches"]=batches,["fresh_roundtrip_s"]=freshRoundTrip,["fresh_kernel_ms"]=freshKernel,
+                ["result_request_to_header_s"]=resultHeader,["result_transfer_apply_s"]=resultTransferApply,["bytes_sent"]=BytesSent-sentBefore,["bytes_received"]=BytesReceived-receivedBefore,
+                ["kernel_total_ms"]=result.RootElement.GetProperty("kernel_total_ms").GetDouble(),["phase_counts"]=result.RootElement.GetProperty("phase_counts").Clone(),
+                ["init_server"]=initDetails,["result_server_metrics"]=serverMetrics};
+            File.AppendAllText(metricsPath,GpuJson.Text(metrics)+Environment.NewLine);
         }
         public void Dispose()
         {

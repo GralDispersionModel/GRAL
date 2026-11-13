@@ -1038,12 +1038,12 @@ namespace GRAL_2001
         }
 
         // Relaxed escaping keeps quotes and comparison signs readable in error text.
-        private static readonly JsonSerializerOptions HeaderOptions = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        private static readonly JsonWriterOptions HeaderOptions = new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
         private void WriteFrame(Dictionary<string, object> header, IEnumerable<ReadOnlyMemory<byte>> payload = null)
         {
             long expected = Convert.ToInt64(header["payload_bytes"], System.Globalization.CultureInfo.InvariantCulture);
-            byte[] raw = JsonSerializer.SerializeToUtf8Bytes(header, HeaderOptions);
+            byte[] raw = GpuJson.Bytes(header, HeaderOptions);
             var length = new byte[8];
             BinaryPrimitives.WriteUInt64LittleEndian(length, (ulong)raw.Length);
             bool started = false;

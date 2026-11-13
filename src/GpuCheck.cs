@@ -92,7 +92,7 @@ namespace GRAL_2001
             if(GpuSettings.OtherCaseFile is string otherCase) warnings.Add(otherCase+" in "+Path.GetDirectoryName(GpuSettings.FilePath)+" is not read: the file name must be GPU.txt");
             report["warnings"]=warnings;
             report["log"]=log;
-            Console.WriteLine("GRAL_GPU_CHECK "+JsonSerializer.Serialize(report));
+            Console.WriteLine("GRAL_GPU_CHECK "+GpuJson.Text(report));
             return exitCode;
         }
         // The innermost tagged error decides, so "No usable GPU" reports why the HIP attempt failed. Invalid INU_GPU_* values

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace GRAL_2001
 {
@@ -249,9 +248,13 @@ namespace GRAL_2001
             }
             var arrays = new List<object>();
             foreach (var r in records)
-                if (r.ZeroFill) arrays.Add(new { name = r.Name, dtype = r.Element.Name, shape = r.Shape, offset = r.Offset, bytes = r.Bytes, is_null = false, zero_fill = true });
-                else arrays.Add(new { name = r.Name, dtype = r.Element.Name, shape = r.Shape, offset = r.Offset, bytes = r.Bytes, is_null = r.Value == null });
-            byte[] header = JsonSerializer.SerializeToUtf8Bytes(new { command, phase, first, count = itemCount, chunk, block, scalars, arrays, payload_bytes = payloadBytes });
+            {
+                var array = new Dictionary<string, object> { ["name"] = r.Name, ["dtype"] = r.Element.Name, ["shape"] = r.Shape, ["offset"] = r.Offset, ["bytes"] = r.Bytes, ["is_null"] = !r.ZeroFill && r.Value == null };
+                if (r.ZeroFill) array["zero_fill"] = true;
+                arrays.Add(array);
+            }
+            byte[] header = GpuJson.Bytes(new Dictionary<string, object> { ["command"] = command, ["phase"] = phase, ["first"] = first, ["count"] = itemCount, ["chunk"] = chunk, ["block"] = block,
+                                                                           ["scalars"] = scalars, ["arrays"] = arrays, ["payload_bytes"] = payloadBytes });
             var frame = new BinaryWriter(output, System.Text.Encoding.UTF8, true);
             frame.Write((ulong)header.Length); frame.Write(header);
             byte[] buffer = null;

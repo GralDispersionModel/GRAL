@@ -225,7 +225,7 @@ namespace GRAL_2001
         {
             var fields = new Dictionary<string, object>();
             foreach (var f in Fields) fields[f.Name] = new Dictionary<string, int> { { "offset", f.Offset }, { "bytes", f.Size } };
-            return JsonSerializer.Serialize(new Dictionary<string, object> { { "bytes", Size }, { "fields", fields } }, new JsonSerializerOptions { WriteIndented = true });
+            return GpuJson.Text(new Dictionary<string, object> { { "bytes", Size }, { "fields", fields } }, new JsonWriterOptions { Indented = true });
         }
     }
 }
