@@ -853,7 +853,7 @@ namespace GRAL_2001
                                     //if (KKART_LL < k)
                                     //{
                                     DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                                  (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                                  (DPMjm_L[k] + DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
                                     APP = 2F * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + AREAxy / Program.DZK[k]);
 
                                     if (k > 1)

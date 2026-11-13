@@ -121,7 +121,7 @@ namespace GRAL_2001
                                     if (KKART < k)
                                     {
                                         float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                            (DPMjm_L[k] + DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
                                         APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                         if (k > KKART + 1)
@@ -188,7 +188,7 @@ namespace GRAL_2001
                                     if (KKART < k)
                                     {
                                         float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                            (DPMjm_L[k] + DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
                                         APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                         if (k > KKART + 1)
@@ -254,7 +254,7 @@ namespace GRAL_2001
                                     if (KKART < k)
                                     {
                                         float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                            (DPMjm_L[k] + DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
                                         APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                         if (k > KKART + 1)
@@ -319,7 +319,7 @@ namespace GRAL_2001
                                     if (KKART < k)
                                     {
                                         float DIM = DIV_L[k] / DTIME + (DPMim_L[k] + DPMip_L[k]) / DXK * DYK * Program.DZK[k] +
-                                            (DPMjm_L[k] - DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
+                                            (DPMjm_L[k] + DPMjp_L[k]) / DYK * DXK * Program.DZK[k];
                                         APP[k] = 2 * (DYK * Program.DZK[k] / DXK + DXK * Program.DZK[k] / DYK + DXK * DYK / Program.DZK[k]);
 
                                         if (k > KKART + 1)
