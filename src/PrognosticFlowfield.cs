@@ -584,7 +584,8 @@ namespace GRAL_2001
             float[][] PIMPLine = null;
             float[][] QIMPLine = null;
             float[] DeltaUMaxLine = null;
-            if (OrderedSweep.Enabled)
+            bool orderedSweeps = OrderedSweep.Enabled;
+            if (orderedSweeps)
             {
                 OrderedSweep.Prepare(Program.ADVDOM);
                 //in an ordered sweep the lines of the pressure are solved step by step; each line keeps its TDMA coefficients and its maximum
@@ -900,7 +901,7 @@ namespace GRAL_2001
                         }
                         return DeltaUMaxIntern;
                     };
-                    if (OrderedSweep.Enabled)
+                    if (orderedSweeps)
                     {
                         for (int j1 = 2; j1 <= NJJ - 1; ++j1)
                         {
