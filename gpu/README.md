@@ -126,8 +126,8 @@ cache_dir =               ! folder for compiled kernels, or off
 | `backend` | `INU_GPU_BACKEND` | `cuda` or `hip` |
 | `allow_integrated` | none | `1`: an integrated AMD GPU may be used when the automatic choice finds no other (otherwise `only_integrated`); `0` or no entry: it may not |
 | `fallback_on_startup` | `INU_GPU_FALLBACK_ON_STARTUP` | `0` or `1` |
-| `nvrtc_dir` | `INU_GPU_NVRTC_DIR` | absolute folder |
-| `hiprtc_dir` | `INU_GPU_HIPRTC_DIR` | absolute folder |
+| `nvrtc_dir` | `INU_GPU_NVRTC_DIR` | absolute folder of this machine |
+| `hiprtc_dir` | `INU_GPU_HIPRTC_DIR` | absolute folder of this machine |
 | `chunk` | `INU_GRAL_GPU_CHUNK` | as the variable |
 | `block` | `INU_GRAL_GPU_BLOCK` | as the variable |
 | `max_kernel_ms` | `INU_GPU_MAX_KERNEL_MS` | as the variable |
@@ -137,6 +137,8 @@ cache_dir =               ! folder for compiled kernels, or off
 | `cache_dir` | `INU_GPU_CACHE_DIR` | as the variable |
 
 For each key the environment variable wins when it is set and not empty, then the file, then the default. `INU_GPU_EXPERIMENTAL` counts only as `1` or `0`.
+
+`nvrtc_dir`, `hiprtc_dir` and `cache_dir` name folders of one machine. In a `GPU.txt` that is copied to another machine, and above all between Windows and Linux, remove or change them: a Windows path is not an absolute path on Linux and the other way round, so `nvrtc_dir` or `hiprtc_dir` is then an invalid value (the message says which form is expected), and such a `cache_dir` only switches the kernel cache off.
 
 An unknown key, a line without `=` or an invalid value is an error: the message names the file, the line number and the key, and the check reports `invalid_setting`. A run stops before its first situation with exit code 1, also when startup fallback is on and also when the file or `INU_GPU_EXPERIMENTAL=0` leaves the GPU off, because every run reads the file. The values get the same checks as the variables. A value of the file that turns out to be unusable only when the backend starts (a `device` ordinal beyond the last device without `device_name`, or a compiler folder without a compiler) also stops the run when startup fallback is on. The same value from a variable is a normal startup failure, which falls back when fallback is on.
 

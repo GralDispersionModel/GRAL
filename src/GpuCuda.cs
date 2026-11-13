@@ -157,7 +157,10 @@ namespace GRAL_2001
         /// <summary>A compiler folder setting (INU_GPU_NVRTC_DIR, INU_GPU_HIPRTC_DIR or their keys) must be an absolute path.</summary>
         internal static void DirectoryValue(string raw, string label)
         {
-            if (raw.Length == 0 || !Path.IsPathFullyQualified(raw)) throw new ArgumentException(label + " must be a nonempty absolute path");
+            // A GPU.txt copied from the other operating system has a path that is not absolute here; say which form is expected
+            if (raw.Length == 0 || !Path.IsPathFullyQualified(raw))
+                throw new ArgumentException(label + " must be a nonempty absolute path" +
+                                            (raw.Length == 0 ? "" : " of this system (" + (Windows ? @"with a drive letter, such as C:\folder" : "starting with /") + "), got '" + raw + "'"));
         }
 
         /// <summary>
