@@ -34,7 +34,14 @@ namespace GRAL_2001
     /// indices of the solver; the solver maps them to the cell indices i and j with its sweep direction (IS, JS).
     /// A solver can use an ordered sweep if a column writes its own column only, reads the field in work at the four neighbours
     /// only, and no other field it reads is changed during the sweep. Values that a solver carries from one column to the next
-    /// of a line (PIMP and QIMP of the pressure sweep) must be kept per line.
+    /// of a line (PIMP and QIMP of the prognostic pressure sweep) must be kept per line. Solvers that read each other's field
+    /// (U, V, W and TKE) must run one after the other, as the reproducible mode calls them.
+    ///
+    /// How a solver uses it:
+    /// The loop body of the solver is a delegate for a range of columns (Tile) or for a part of a line (Line). Without
+    /// reproducible results, or with one thread, the solver passes it to its Parallel.For as before. Otherwise it calls Run()
+    /// with the range of the sweep indices and the sweep direction. Prepare() tells the following sweeps which columns are
+    /// solved; it has to be called again when the domain changes or when a solver sweeps over all columns.
     ///
     /// Strips and hand-over:
     /// The j1 lines are divided into one strip of neighbouring lines per thread, each strip with about the same number of
@@ -118,7 +125,8 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Defines the columns of the following sweeps; their number per line is used to balance the strips
+        /// Defines the columns of the following sweeps; their number per line is used to balance the strips and lines without
+        /// such columns are left out. The setting is valid until the next call
         /// </summary>
         /// <param name="domain">Columns with domain[i][j] == 1 are solved; null: all columns are solved</param>
         public static void Prepare(byte[][] domain)
