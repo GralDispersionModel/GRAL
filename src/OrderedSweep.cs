@@ -42,6 +42,10 @@ namespace GRAL_2001
     /// reproducible results, or with one thread, the solver passes it to its Parallel.For as before. Otherwise it calls Run()
     /// with the range of the sweep indices and the sweep direction. Prepare() tells the following sweeps which columns are
     /// solved; it has to be called again when the domain changes or when a solver sweeps over all columns.
+    /// Run() leaves out the lines outside the bounding box of these columns, so a loop body must do nothing for a column
+    /// that Prepare() has not marked. An ordered sweep calls the loop body once for each step of each strip. The local
+    /// buffers of the loop body are new in each call, and under [SkipLocalsInit] they have no defined values: a column must
+    /// not read a value that another column has left there.
     ///
     /// Strips and hand-over:
     /// The j1 lines are divided into one strip of neighbouring lines per thread, each strip with about the same number of
@@ -51,6 +55,8 @@ namespace GRAL_2001
     /// published i1. So (i1 - 1, j1) was solved by the same thread one step earlier, (i1, j1 - 1) by the same thread or by the
     /// strip before, (i1 + 1, j1) follows in the next step, and (i1, j1 + 1) follows in the same thread or in the next strip,
     /// which is still waiting for this step. Neighbouring threads work one step apart; after the first steps all threads are busy.
+    /// While a thread waits for the strip before its own, it spins and yields the processor from time to time; it does not
+    /// block. A strip without a free processor slows the other strips down, so there are not more strips than logical processors.
     ///
     /// Threads:
     /// The strip 0 runs on the calling thread, the other strips on worker threads that are started once and used for all
@@ -117,7 +123,8 @@ namespace GRAL_2001
         }
 
         /// <summary>
-        /// Threads of an ordered sweep: Max_Proc, but not more than the logical processors of this process, because a waiting strip spins
+        /// Threads of an ordered sweep: Max_Proc, but not more than the logical processors of this process, because a waiting strip spins.
+        /// The Parallel.For loops use Max_Proc without this limit, see ReadMaxNumbProc()
         /// </summary>
         private static int MaxThreads()
         {
