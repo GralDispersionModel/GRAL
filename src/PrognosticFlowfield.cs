@@ -819,6 +819,7 @@ namespace GRAL_2001
                 DeltaUMax = 0;
                 {
                     int coresOriginal = 1;
+                    //the pressure sweep runs on one thread, unless it runs as an ordered sweep (OrderedSweep.Enabled is true)
                     if (Program.UseFixedRndSeedVal)
                     {
                         coresOriginal = Program.pOptions.MaxDegreeOfParallelism;
@@ -1106,6 +1107,7 @@ namespace GRAL_2001
                     }
                     else
                     {
+                        //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                         int cores = Program.pOptions.MaxDegreeOfParallelism;
                         Program.pOptions.MaxDegreeOfParallelism = 1;
                         U_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax);
@@ -1139,6 +1141,7 @@ namespace GRAL_2001
                         }
                         else
                         {
+                            //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                             int cores = Program.pOptions.MaxDegreeOfParallelism;
                             Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
@@ -1164,6 +1167,7 @@ namespace GRAL_2001
                         }
                         else
                         {
+                            //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                             int cores = Program.pOptions.MaxDegreeOfParallelism;
                             Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
@@ -1187,6 +1191,7 @@ namespace GRAL_2001
                     }
                     else
                     {
+                        //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                         int cores = Program.pOptions.MaxDegreeOfParallelism;
                         Program.pOptions.MaxDegreeOfParallelism = 1;
                         U_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax);
