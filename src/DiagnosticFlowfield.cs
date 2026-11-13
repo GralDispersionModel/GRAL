@@ -87,6 +87,7 @@ namespace GRAL_2001
                 //switch the loop to improve convergence
                 int maxTasks = 1;
                 int cores = 1;
+                //the pressure sweep runs on one thread, unless it runs as an ordered sweep (OrderedSweep.Enabled is true)
                 if (Program.UseFixedRndSeedVal)
                 {
                     cores = Program.pOptions.MaxDegreeOfParallelism;
@@ -98,6 +99,7 @@ namespace GRAL_2001
                 //columns i1First..i1Last x j1First..j1Last of the sweep
                 OrderedSweep.Tile tile = (i1First, i1Last, j1First, j1Last) =>
                 {
+                    //PIMP[NKK] and QIMP[NKK] are read and never written: they must be zero, so this method must not get [SkipLocalsInit]
                     Span<float> PIMP = stackalloc float[Program.NKK + 2];
                     Span<float> QIMP = stackalloc float[Program.NKK + 2];
                     Span<float> APP = stackalloc float[Program.NKK + 1];
@@ -170,7 +172,7 @@ namespace GRAL_2001
                 };
                 if (OrderedSweep.Enabled)
                 {
-                    //reproducible results on several threads: all columns are solved in the order of the sweep on one thread
+                    //reproducible results: the sweep runs on all threads and keeps the order of the one-thread sweep; it solves all columns
                     OrderedSweep.Prepare(null);
                     OrderedSweep.Run(2, Program.NII - 1, 2, Program.NJJ - 1, IS, JS, tile);
                 }
