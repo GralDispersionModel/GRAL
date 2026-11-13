@@ -30,6 +30,11 @@ namespace GRAL_2001
         /// <summary>read, absent or off.</summary>
         internal static string FileStatus { get; private set; }
         /// <summary>
+        /// When the project's GPU.txt is absent: a file of the working directory with that name in another case (gpu.txt), else null.
+        /// It is not read, because file names are case-sensitive on Linux, as for GRAL's other input files; its name is kept for a hint.
+        /// </summary>
+        internal static string OtherCaseFile { get; private set; }
+        /// <summary>
         /// Reads the file once. An unknown key, a line without "=" or an invalid value is an ArgumentException with the status
         /// invalid_setting that names the file, the line and the key; a later call throws it again.
         /// </summary>
@@ -62,7 +67,13 @@ namespace GRAL_2001
                 }
                 FilePath=path;
                 var values=new Dictionary<string,string>(StringComparer.Ordinal);
-                if(!File.Exists(path)) { FileStatus="absent"; file=values; return; }
+                if(!File.Exists(path))
+                {
+                    if(FileName=="GPU.txt")
+                        try { OtherCaseFile=Directory.EnumerateFiles(Path.GetDirectoryName(path)).Select(Path.GetFileName).FirstOrDefault(name=>name!="GPU.txt" && name.Equals("GPU.txt",StringComparison.OrdinalIgnoreCase)); }
+                        catch(Exception error) when(error is IOException || error is UnauthorizedAccessException) { }
+                    FileStatus="absent"; file=values; return;
+                }
                 FileStatus="read";
                 byte[] bytes;
                 try { bytes=File.ReadAllBytes(path); }

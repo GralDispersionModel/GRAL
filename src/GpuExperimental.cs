@@ -23,8 +23,11 @@ namespace GRAL_2001
                     // A value such as "true" or "yes" does not switch anything; say so instead of ignoring it without a word
                     bool ignored=!byVariable && !string.IsNullOrEmpty(variable);
                     if(ignored) source+="; INU_GPU_EXPERIMENTAL="+variable+" is ignored, use 1 or 0";
+                    // A settings file in another case is not read (Linux file names are case-sensitive); do not leave the GPU off without a word
+                    string otherCase=GpuSettings.OtherCaseFile;
+                    if(otherCase!=null) source+="; "+otherCase+" is not read, the file name must be GPU.txt";
                     string message="GPU for the particle dispersion: "+(on ? "on" : "off")+" ("+source+")";
-                    if(on || byVariable || fileOn || ignored) Console.WriteLine(message);
+                    if(on || byVariable || fileOn || ignored || otherCase!=null) Console.WriteLine(message);
                     ProgramWriters.LogfileGralCoreWrite(message);
                     enabledState=on ? 1 : 0;
                 }

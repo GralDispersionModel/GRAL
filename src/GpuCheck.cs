@@ -74,7 +74,10 @@ namespace GRAL_2001
                    GpuCuda.CudaDriverPresent()) others.Add("cuda");
             }
             report["other_backends"]=others;
-            if(!report.ContainsKey("warnings")) report["warnings"]=Array.Empty<string>();
+            var warnings=new List<string>(report.TryGetValue("warnings",out object found) ? (IEnumerable<string>)found : Array.Empty<string>());
+            // A settings file in another case is not read (Linux file names are case-sensitive)
+            if(GpuSettings.OtherCaseFile is string otherCase) warnings.Add(otherCase+" in the current directory is not read: the file name must be GPU.txt");
+            report["warnings"]=warnings;
             report["log"]=log;
             Console.WriteLine("GRAL_GPU_CHECK "+JsonSerializer.Serialize(report));
             return exitCode;
