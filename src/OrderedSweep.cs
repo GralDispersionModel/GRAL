@@ -236,7 +236,15 @@ namespace GRAL_2001
             if (strips <= 1)
             {
                 //one thread: the loop nest of the solver over all columns is the sweep itself
-                tile(i1First, i1Last, j1First, j1Last);
+                try
+                {
+                    tile(i1First, i1Last, j1First, j1Last);
+                }
+                catch (Exception e)
+                {
+                    //the same exception type as a sweep on several threads and as Parallel.For
+                    throw new AggregateException(e);
+                }
                 return;
             }
 
