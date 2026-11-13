@@ -166,6 +166,7 @@ The device fields found so far (and `backend`) are also there when a later step 
 | `no_nvrtc`, `no_hiprtc` | no runtime compiler was found |
 | `nvrtc_rejected`, `hiprtc_rejected` | runtime compilers were found, but none compiles for the device |
 | `invalid_setting` | an `INU_GPU_*` or `INU_GRAL_GPU_*` value or an entry of `GPU.txt` is invalid |
+| `unsupported_platform` | the HIP backend was asked for (`backend = hip` or `INU_GPU_BACKEND=hip`) on Linux, where it is not implemented |
 | `failed` | any other startup error |
 
 Optional settings (those with a key in `GPU.txt` can be set there instead):

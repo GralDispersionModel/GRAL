@@ -552,7 +552,12 @@ namespace GRAL_2001
         private void InitializeHip(string runtimeDirectory, bool automatic)
         {
             // The HIP path was built and tested on Windows only (AMD Adrenalin driver runtime + hiprtc).
-            if (!Windows) throw new PlatformNotSupportedException("The HIP backend is implemented for Windows only; use INU_GPU_BACKEND=cuda or the CPU path");
+            // The message names the setting that asked for HIP: the backend key of the settings file or the variable
+            if (!Windows)
+                throw Status(new PlatformNotSupportedException("The HIP backend is implemented for Windows only; " +
+                                                               (GpuSettings.Get("backend").Source == "file" ? "set backend = cuda in " + GpuSettings.FileName + " (or remove the entry)"
+                                                                                                             : "set INU_GPU_BACKEND=cuda (or unset it)") +
+                                                               ", or use the CPU path"), "unsupported_platform");
             Hip = true;
             DeviceInfo["backend"] = "hip";
             string explicitRuntime = Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME");

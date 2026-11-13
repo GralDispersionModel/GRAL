@@ -10,8 +10,9 @@ namespace GRAL_2001
     // the current directory, which is the folder when one is given (the Computation folder, as in a run); use_gpu need not be 1,
     // the check tells whether the GPU could start. Any other argument is a usage error (exit code 2), never a run.
     // Prints one line "GRAL_GPU_CHECK {json}" with the status ok, no_manifest,
-    // no_driver, driver_error, no_device, only_integrated, no_nvrtc, no_hiprtc, nvrtc_rejected, hiprtc_rejected, invalid_setting
-    // or failed. Besides the fields of the chosen device the line has settings_file, settings_file_status, settings (value and
+    // no_driver, driver_error, no_device, only_integrated, no_nvrtc, no_hiprtc, nvrtc_rejected, hiprtc_rejected, invalid_setting,
+    // unsupported_platform (the HIP backend on Linux) or failed. Besides the fields of the chosen device the line has
+    // settings_file, settings_file_status, settings (value and
     // source of every key that is set), devices (all devices of the started backend), other_backends (installed, not started)
     // and warnings; the device fields found so far are kept when a later step fails. Settings that only a run uses
     // (specialization, reproducible sums, chunk and block size, kernel-time limit, memory budgets) get their syntax checks
