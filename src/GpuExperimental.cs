@@ -103,13 +103,54 @@ namespace GRAL_2001
                 return false;
             }
         }
+
         private static GpuSituationDriver CreateDriver()
         {
-            // Default logs go to the working directory, which is the Computation folder when GRAL is started with the project path.
-            string metrics=GpuLogFiles.Claim(Setting("INU_GPU_METRICS","GRAL_GPU_metrics.jsonl"),out metricsLock);
-            try { return new GpuSituationDriver(ManifestPath(),metrics,Setting("INU_GPU_STDERR","GRAL_GPU_runtime.log")); }
-            catch { ReleaseMetricsLock(); throw; }
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                // GPU logs in a user-writable directory
+                string logDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "GRAL"
+                );
+
+                Directory.CreateDirectory(logDirectory);
+
+                string metricsPath = Setting(
+                    "INU_GPU_METRICS",
+                    Path.Combine(logDirectory, "GRAL_GPU_metrics.jsonl")
+                );
+
+                string metrics = GpuLogFiles.Claim(metricsPath, out metricsLock);
+
+                try
+                {
+                    string stderrPath = Setting(
+                        "INU_GPU_STDERR",
+                        Path.Combine(logDirectory, "GRAL_GPU_runtime.log")
+                    );
+
+                    return new GpuSituationDriver(
+                        ManifestPath(),
+                        metrics,
+                        stderrPath
+                    );
+                }
+                catch
+                {
+                    ReleaseMetricsLock();
+                    throw;
+                }
+            }
+            else
+            {
+                // Default logs go to the working directory, which is the Computation folder when GRAL is started with the project path.
+                string metrics = GpuLogFiles.Claim(Setting("INU_GPU_METRICS", "GRAL_GPU_metrics.jsonl"), out metricsLock);
+                try { return new GpuSituationDriver(ManifestPath(), metrics, Setting("INU_GPU_STDERR", "GRAL_GPU_runtime.log")); }
+                catch { ReleaseMetricsLock(); throw; }
+            }
         }
+
         private static void ReleaseMetricsLock()
         {
             var current=metricsLock;metricsLock=null;
