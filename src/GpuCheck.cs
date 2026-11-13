@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 namespace GRAL_2001
 {
-    // GRAL --gpu-check: checks the GPU runtime files and starts the GPU backend as a GPU run would (GPU settings file, driver,
-    // device, runtime compiler, probe compile). The settings file is the one INU_GPU_SETTINGS_FILE names, else GPU.txt in the
-    // current directory; use_gpu need not be 1, the check tells whether the GPU could start.
+    // GRAL --gpu-check [folder]: checks the GPU runtime files and starts the GPU backend as a GPU run would (GPU settings file,
+    // driver, device, runtime compiler, probe compile). The settings file is the one INU_GPU_SETTINGS_FILE names, else GPU.txt in
+    // the current directory, which is the folder when one is given (the Computation folder, as in a run); use_gpu need not be 1,
+    // the check tells whether the GPU could start. Any other argument is a usage error (exit code 2), never a run.
     // Prints one line "GRAL_GPU_CHECK {json}" with the status ok, no_manifest,
     // no_driver, driver_error, no_device, only_integrated, no_nvrtc, no_hiprtc, nvrtc_rejected, hiprtc_rejected, invalid_setting
     // or failed. Besides the fields of the chosen device the line has settings_file, settings_file_status, settings (value and
@@ -18,8 +20,18 @@ namespace GRAL_2001
     internal static class GpuCheck
     {
         internal const string Argument="--gpu-check";
-        internal static int Run()
+        internal static int Run(string[] args)
         {
+            string[] rest=args.Where(argument=>argument!=Argument).ToArray();
+            string problem=rest.Length>1 || args.Length-rest.Length>1 ? "too many arguments" : rest.Length==1 && !Directory.Exists(rest[0]) ? "not a folder: "+rest[0] : null;
+            if(problem==null && rest.Length==1)
+                try { Directory.SetCurrentDirectory(rest[0]); }
+                catch(Exception error) when(error is IOException || error is UnauthorizedAccessException || error is System.Security.SecurityException) { problem=error.Message; }
+            if(problem!=null)
+            {
+                Console.Error.WriteLine("Usage: GRAL "+Argument+" [Computation folder] ("+problem+")");
+                return 2;
+            }
             var report=new Dictionary<string,object>{["schema"]=1};
             var log=new List<string>();
             int exitCode=0;
@@ -76,7 +88,7 @@ namespace GRAL_2001
             report["other_backends"]=others;
             var warnings=new List<string>(report.TryGetValue("warnings",out object found) ? (IEnumerable<string>)found : Array.Empty<string>());
             // A settings file in another case is not read (Linux file names are case-sensitive)
-            if(GpuSettings.OtherCaseFile is string otherCase) warnings.Add(otherCase+" in the current directory is not read: the file name must be GPU.txt");
+            if(GpuSettings.OtherCaseFile is string otherCase) warnings.Add(otherCase+" in "+Path.GetDirectoryName(GpuSettings.FilePath)+" is not read: the file name must be GPU.txt");
             report["warnings"]=warnings;
             report["log"]=log;
             Console.WriteLine("GRAL_GPU_CHECK "+JsonSerializer.Serialize(report));

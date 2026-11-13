@@ -54,10 +54,11 @@ namespace GRAL_2001
 
         static void Main(string[] args)
         {
-            // Readiness check of the GPU path for the GUI, before any banner or project file
-            if (args.Length == 1 && args[0] == GpuCheck.Argument)
+            // Readiness check of the GPU path for the GUI, before any banner or project file. With this argument GRAL never starts
+            // a run: one more argument is the folder to check in, anything else is a usage error
+            if (Array.IndexOf(args, GpuCheck.Argument) >= 0)
             {
-                Environment.Exit(GpuCheck.Run());
+                Environment.Exit(GpuCheck.Run(args));
             }
             int p = (int)Environment.OSVersion.Platform;
             if ((p == 4) || (p == 6) || (p == 128))
