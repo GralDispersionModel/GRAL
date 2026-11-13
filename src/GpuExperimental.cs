@@ -139,6 +139,16 @@ namespace GRAL_2001
                                                 (hip ? Text("driver_cuda")+", "+Text("nvrtc_version") : "driver CUDA "+Text("driver_cuda")+", NVRTC "+Text("nvrtc_version"))+
                                                 ", "+Text("binary_kind")+" "+Text("target"));
             ProgramWriters.LogfileGralCoreWrite("GPU reproducible sums: "+(Text("reproducible_sums")=="True" ? "on" : "off")+" ("+Text("reproducible_sums_source")+")");
+            // The kernel cache saves the compile in every later run. When it is not used, the log says why; the run itself is not affected
+            string cacheFolder=GpuModuleCache.Directory(),cacheSetting=GpuSettings.Value("cache_dir");
+            string cacheName=cacheSetting==null ? "the default cache folder" : GpuSettings.Label("cache_dir");
+            string cacheProblem=Text("cache_status") switch
+            {
+                "disabled" => cacheSetting!=null ? "switched off by "+cacheName : "no per-user data folder was found; set cache_dir in GPU.txt or INU_GPU_CACHE_DIR",
+                "invalid_directory" => cacheName+" is not an absolute local folder of this system: "+cacheFolder,
+                _ => Text("cache_write_status")=="write_error" ? cacheName+" cannot be written: "+cacheFolder : null
+            };
+            if(cacheProblem!=null) ProgramWriters.LogfileGralCoreWrite("GPU kernel cache: not used ("+cacheProblem+"); the kernel is compiled in every run");
             if(probe.TryGetProperty("warnings",out var warnings) && warnings.ValueKind==System.Text.Json.JsonValueKind.Array)
                 foreach(var warning in warnings.EnumerateArray())
                 {

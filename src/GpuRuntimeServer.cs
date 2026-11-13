@@ -636,6 +636,8 @@ namespace GRAL_2001
             info["startup_ms"] = startupMs;
             info["reproducible_sums"] = reproSums;
             info["reproducible_sums_source"] = reproSumsSource;
+            info["cache_status"] = metrics["cache_status"];
+            info["cache_write_status"] = metrics["cache_write_status"];
             return info;
         }
 

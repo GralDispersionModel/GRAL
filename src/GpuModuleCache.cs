@@ -42,7 +42,9 @@ namespace GRAL_2001
             string directory = GpuSettings.Value("cache_dir");
             if (directory != null && (directory.Length == 0 || directory.Equals("off", StringComparison.OrdinalIgnoreCase))) return null;
             if (directory != null) return directory;
-            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            // DoNotVerify: on Linux this folder ($XDG_DATA_HOME or ~/.local/share) need not exist yet, and without the option it is
+            // then reported as empty, which switched the cache off for a new account. Write creates the folder.
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify);
             return string.IsNullOrEmpty(local) ? null : Path.Combine(local, "GRAL", "GpuModuleCache");
         }
 
