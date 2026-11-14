@@ -830,6 +830,9 @@ FinishGral:
                 ThreadWrite2DConcentrationFiles = null; // Release ressources
             }
 
+            //end the threads of the ordered flow field sweeps
+            OrderedSweep.Stop();
+
             // Clean transient files
             Delete_Temp_Files();
 

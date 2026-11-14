@@ -26,7 +26,8 @@ namespace GRAL_2001
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Calculate(int IS, int JS, float Cmueh, float VISHMIN, float AREAxy, float building_Z0, float relax)
         {
-            Parallel.For(2, Program.NII, Program.pOptions, i1 =>
+            //columns j1First..j1Last of the line i1 of the sweep
+            OrderedSweep.Line line = (i1, j1First, j1Last) =>
             {
                 float DXK = Program.DXK; float DYK = Program.DYK;
                 int KKART_LL, Vert_Index_LL;
@@ -34,7 +35,7 @@ namespace GRAL_2001
                 Single[] PIMW = new Single[Program.KADVMAX + 1];
                 Single[] QIMW = new Single[Program.KADVMAX + 1];
 
-                for (int j1 = 2; j1 <= Program.NJJ - 1; j1++)
+                for (int j1 = j1First; j1 <= j1Last; j1++)
                 {
                     int j = j1;
                     if (JS == -1)
@@ -209,7 +210,18 @@ namespace GRAL_2001
                         }
                     }
                 }
-            });
+            };
+            if (OrderedSweep.Enabled)
+            {
+                OrderedSweep.Run(2, Program.NII - 1, 2, Program.NJJ - 1, IS, JS, line);
+            }
+            else
+            {
+                Parallel.For(2, Program.NII, Program.pOptions, i1 =>
+                {
+                    line(i1, 2, Program.NJJ - 1);
+                });
+            }
         }
 
         //should be faster than MyPow - Function
