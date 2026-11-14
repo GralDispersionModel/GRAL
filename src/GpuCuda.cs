@@ -428,8 +428,37 @@ namespace GRAL_2001
         private const int HipAttrCanMapHostMemory = 3, HipAttrComputeMode = 6, HipAttrIntegrated = 16, HipAttrKernelExecTimeout = 18,
                           HipAttrCcMajor = 23, HipAttrCcMinor = 61, HipAttrSingleToDoublePerfRatio = 77, HipAttrTccDriver = 80;
         // Only the HIP 7.x runtime is bound: the attribute numbers above were checked against the HIP 7.x header.
-        private static readonly string[] HipRuntimeNames = { "amdhip64_7.dll" };
-        private static readonly Regex HiprtcName = new Regex(@"^hiprtc[0-9]{4}\.dll$", RegexOptions.IgnoreCase);
+        // Windows: the AMD Adrenalin driver installs it in System32. Linux: a ROCm 7.x install (libamdhip64.so.7).
+        private static readonly string[] HipRuntimeNames = Windows ? new[] { "amdhip64_7.dll" } : new[] { "libamdhip64.so.7" };
+        // Windows: hiprtcNNNN.dll of the HIP SDK or the ROCm Python packages. Linux: libhiprtc.so.N[.N...] of ROCm.
+        private static readonly Regex HiprtcName = Windows ? new Regex(@"^hiprtc[0-9]{4}\.dll$", RegexOptions.IgnoreCase)
+                                                           : new Regex(@"^libhiprtc\.so\.[0-9]+(\.[0-9]+)*$");
+        private static string HiprtcGlob => Windows ? "hiprtc*.dll" : "libhiprtc.so*";
+        // The code-object manager next to hiprtc. Linux: only the soname link (libamd_comgr.so.N), so one library is loaded once.
+        private static string ComgrGlob => Windows ? "amd_comgr*.dll" : "libamd_comgr.so*";
+        private static readonly Regex ComgrName = Windows ? new Regex(@"^amd_comgr.*\.dll$", RegexOptions.IgnoreCase) : new Regex(@"^libamd_comgr\.so\.[0-9]+$");
+        // Folders of a ROCm install on Linux, in search order: $ROCM_PATH, $HIP_PATH, /opt/rocm, /opt/rocm/core-<version> (ROCm 10),
+        // then /opt/rocm-<version> (ROCm 7 and earlier); versions newest first.
+        private static IEnumerable<string> RocmLibraryFolders()
+        {
+            foreach (string variable in new[] { "ROCM_PATH", "HIP_PATH" })
+                if (Environment.GetEnvironmentVariable(variable) is string root && root.Length > 0 && Path.IsPathFullyQualified(root)) yield return Path.Combine(root, "lib");
+            yield return "/opt/rocm/lib";
+            foreach (string path in VersionedFolders("/opt/rocm", "core-")) yield return Path.Combine(path, "lib");
+            foreach (string path in VersionedFolders("/opt", "rocm-")) yield return Path.Combine(path, "lib");
+        }
+        private static IEnumerable<string> VersionedFolders(string parent, string prefix)
+        {
+            var found = new List<(Version Version, string Path)>();
+            try
+            {
+                if (Directory.Exists(parent))
+                    foreach (string path in Directory.GetDirectories(parent, prefix + "*"))
+                        if (Version.TryParse(Path.GetFileName(path).Substring(prefix.Length), out Version version)) found.Add((version, path));
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException || error is IOException) { }
+            return found.OrderByDescending(t => t.Version).Select(t => t.Path);
+        }
         private static readonly Regex GfxName = new Regex(@"^gfx[0-9a-f]+$");
         /// <summary>AMD architectures whose GPU output was compared with the CPU output; others get a startup warning.</summary>
         internal static readonly string[] CheckedHipArchs = { "gfx1201" };
@@ -452,12 +481,15 @@ namespace GRAL_2001
 
         internal static bool HipRuntimePresent()
         {
-            if (!Windows) return false;
-            string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
             // A set INU_GPU_HIP_RUNTIME counts as present, so a wrong value is reported by InitializeHip instead of being ignored.
-            return Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME") is string explicitPath && explicitPath.Length > 0
-                || HipRuntimeNames.Any(n => File.Exists(Path.Combine(system, n)));
+            if (Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME") is string explicitPath && explicitPath.Length > 0) return true;
+            if (!Windows) return HipRuntimeFiles().Any(File.Exists) || HipRuntimeNames.Any(n => LoaderPath(n, keepLoaded: true) != null);
+            string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            return HipRuntimeNames.Any(n => File.Exists(Path.Combine(system, n)));
         }
+
+        // Linux: the HIP runtime files of the ROCm folders; the loader search path (LD_LIBRARY_PATH, ldconfig) is tried after them.
+        private static IEnumerable<string> HipRuntimeFiles() => RocmLibraryFolders().SelectMany(folder => HipRuntimeNames.Select(name => Path.Combine(folder, name)));
 
         private void BindHip()
         {
@@ -551,13 +583,6 @@ namespace GRAL_2001
 
         private void InitializeHip(string runtimeDirectory, bool automatic)
         {
-            // The HIP path was built and tested on Windows only (AMD Adrenalin driver runtime + hiprtc).
-            // The message names the setting that asked for HIP: the backend key of the settings file or the variable
-            if (!Windows)
-                throw Status(new PlatformNotSupportedException("The HIP backend is implemented for Windows only; " +
-                                                               (GpuSettings.Get("backend").Source == "file" ? "set backend = cuda in " + GpuSettings.FileName + " (or remove the entry)"
-                                                                                                             : "set INU_GPU_BACKEND=cuda (or unset it)") +
-                                                               ", or use the CPU path"), "unsupported_platform");
             Hip = true;
             DeviceInfo["backend"] = "hip";
             string explicitRuntime = Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME");
@@ -569,7 +594,7 @@ namespace GRAL_2001
                 driver = NativeLibrary.Load(explicitRuntime);
                 loaded = explicitRuntime;
             }
-            else
+            else if (Windows)
             {
                 // As for nvcuda.dll: the AMD display driver installs the HIP runtime in System32.
                 foreach (string runtimeName in HipRuntimeNames)
@@ -578,6 +603,19 @@ namespace GRAL_2001
                     catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException) { }
                 }
                 if (driver == IntPtr.Zero) throw Status(new InvalidOperationException("AMD HIP runtime (" + string.Join(", ", HipRuntimeNames) + ") not found in System32; install the AMD Adrenalin driver"), "no_driver");
+            }
+            else
+            {
+                // Linux: the ROCm folders first, then the loader search path, as for NVRTC. The file that was loaded is reported.
+                foreach (string path in HipRuntimeFiles().Where(File.Exists).Concat(HipRuntimeNames.Select(n => LoaderPath(n, keepLoaded: true)).Where(p => p != null)))
+                {
+                    try { driver = NativeLibrary.Load(path); loaded = path; break; }
+                    catch (Exception error) when (error is DllNotFoundException || error is BadImageFormatException) { }
+                }
+                if (driver == IntPtr.Zero)
+                    throw Status(new InvalidOperationException("AMD HIP runtime (" + string.Join(", ", HipRuntimeNames) + ") not found in $ROCM_PATH/lib, $HIP_PATH/lib, /opt/rocm/lib, " +
+                                                               "/opt/rocm/core-*/lib, /opt/rocm-*/lib or the loader search path (LD_LIBRARY_PATH, ldconfig); install ROCm 7 (the HIP runtime), " +
+                                                               "or set INU_GPU_HIP_RUNTIME to the file"), "no_driver");
             }
             BindHip();
             var clock = Stopwatch.StartNew();
@@ -635,7 +673,7 @@ namespace GRAL_2001
             // 8 = hipDeviceMapHost, the same value as CU_CTX_MAP_HOST.
             Check(cuCtxCreate(&ctx, 8, device), "hipCtxCreate");
             context = ctx;
-            SelectHiprtc(HiprtcCandidates(GpuSettings.Value("hiprtc_dir"), runtimeDirectory));
+            SelectHiprtc(HiprtcCandidates(GpuSettings.Value("hiprtc_dir"), runtimeDirectory, Windows || !Path.IsPathFullyQualified(loaded) ? null : Path.GetDirectoryName(loaded)));
             DeviceInfo["nvrtc_version"] = "hiprtc " + NvrtcVersion.Major + "." + NvrtcVersion.Minor;
             DeviceInfo["nvrtc_path"] = NvrtcPath;
             DeviceInfo["hiprtc_comgr"] = ComgrPaths;
@@ -649,8 +687,12 @@ namespace GRAL_2001
             ContextMs = clock.Elapsed.TotalMilliseconds;
         }
 
-        /// <summary>hiprtc libraries to try: INU_GPU_HIPRTC_DIR alone when set; otherwise the runtime folder's <c>hiprtc</c> subfolder, then HIP_PATH, then %LOCALAPPDATA%\GRAL\GpuToolchain\hiprtc.</summary>
-        internal static List<string> HiprtcCandidates(string explicitDirectory, string runtimeDirectory)
+        /// <summary>
+        /// hiprtc libraries to try: INU_GPU_HIPRTC_DIR alone when set; otherwise the runtime folder's <c>hiprtc</c> subfolder, then
+        /// on Windows HIP_PATH\bin and %LOCALAPPDATA%\GRAL\GpuToolchain\hiprtc, on Linux the folder of the loaded HIP runtime, the
+        /// ROCm folders and last the loader search path.
+        /// </summary>
+        internal static List<string> HiprtcCandidates(string explicitDirectory, string runtimeDirectory, string hipRuntimeFolder = null)
         {
             var directories = new List<string>();
             if (explicitDirectory != null)
@@ -661,20 +703,35 @@ namespace GRAL_2001
             else
             {
                 if (runtimeDirectory != null) directories.Add(Path.Combine(runtimeDirectory, "hiprtc"));
-                if (Environment.GetEnvironmentVariable("HIP_PATH") is string root && root.Length > 0 && Path.IsPathFullyQualified(root)) directories.Add(Path.Combine(root, "bin"));
-                if (UserToolchainFolder("hiprtc") is string user) directories.Add(user);
+                if (Windows)
+                {
+                    if (Environment.GetEnvironmentVariable("HIP_PATH") is string root && root.Length > 0 && Path.IsPathFullyQualified(root)) directories.Add(Path.Combine(root, "bin"));
+                    if (UserToolchainFolder("hiprtc") is string user) directories.Add(user);
+                }
+                else
+                {
+                    // ROCm installs hiprtc next to the HIP runtime, so the runtime that was loaded decides first.
+                    if (hipRuntimeFolder != null) directories.Add(hipRuntimeFolder);
+                    directories.AddRange(RocmLibraryFolders());
+                }
             }
             var result = new List<string>();
+            var seen = new HashSet<string>(Windows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
             foreach (string directory in directories)
             {
                 string[] files;
-                try { files = Directory.Exists(directory) ? Directory.GetFiles(directory, "hiprtc*.dll") : Array.Empty<string>(); }
+                try { files = Directory.Exists(directory) ? Directory.GetFiles(directory, HiprtcGlob) : Array.Empty<string>(); }
                 catch (Exception error) when (error is UnauthorizedAccessException || error is IOException) { continue; }
-                result.AddRange(files.Where(p => HiprtcName.IsMatch(Path.GetFileName(p))).OrderByDescending(p => p, StringComparer.Ordinal));
+                foreach (string path in files.Where(p => HiprtcName.IsMatch(Path.GetFileName(p)) && File.Exists(p)).OrderByDescending(p => p, StringComparer.Ordinal))
+                    if (Windows || seen.Add(ResolvedPath(path))) result.Add(path);
             }
+            if (explicitDirectory == null && !Windows && LoaderPath("libhiprtc.so.7", keepLoaded: true) is string loaderPath && seen.Add(ResolvedPath(loaderPath))) result.Add(loaderPath);
             if (result.Count == 0)
-                throw GpuSettings.FromFile(Status(new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) + "; install the HIP SDK or the ROCm Python " +
-                                                       "packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll"), explicitDirectory == null ? "no_hiprtc" : "invalid_setting"), "hiprtc_dir");
+                throw GpuSettings.FromFile(Status(new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) +
+                                                       (Windows ? "; install the HIP SDK or the ROCm Python packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll"
+                                                                : (explicitDirectory == null ? " or the loader search path" : "") + "; install ROCm 7 (hiprtc), or set hiprtc_dir in GPU.txt, or " +
+                                                                  "INU_GPU_HIPRTC_DIR, to the folder that holds libhiprtc.so.7 and libamd_comgr.so.*")),
+                                                  explicitDirectory == null ? "no_hiprtc" : "invalid_setting"), "hiprtc_dir");
             return result;
         }
 
@@ -694,13 +751,15 @@ namespace GRAL_2001
                 }
                 int major, minor;
                 string folder = Path.GetDirectoryName(path);
-                string builtinsPath = Path.Combine(folder, "hiprtc-builtins" + Path.GetFileName(path).Substring("hiprtc".Length));
+                // hiprtc0716.dll -> hiprtc-builtins0716.dll; libhiprtc.so.7 -> libhiprtc-builtins.so.7
+                string libraryName = Path.GetFileName(path);
+                string builtinsPath = Path.Combine(folder, libraryName.Insert(libraryName.IndexOf("hiprtc", StringComparison.OrdinalIgnoreCase) + "hiprtc".Length, "-builtins"));
                 string[] comgrPaths = Array.Empty<string>();
                 try
                 {
-                    // hiprtc needs the code-object manager (amd_comgr.dll, or amd_comgr_N.dll in the HIP SDK) from its own folder.
-                    comgrPaths = Directory.GetFiles(folder, "amd_comgr*.dll").OrderBy(p => p, StringComparer.Ordinal).ToArray();
-                    if (comgrPaths.Length == 0) throw new FileNotFoundException("amd_comgr*.dll not found next to " + path);
+                    // hiprtc needs the code-object manager (amd_comgr.dll, or amd_comgr_N.dll in the HIP SDK; libamd_comgr.so.N in ROCm) from its own folder.
+                    comgrPaths = Directory.GetFiles(folder, ComgrGlob).Where(p => ComgrName.IsMatch(Path.GetFileName(p))).OrderBy(p => p, StringComparer.Ordinal).ToArray();
+                    if (comgrPaths.Length == 0) throw new FileNotFoundException(ComgrGlob + " not found next to " + path);
                     if (!File.Exists(builtinsPath)) throw new FileNotFoundException("Matching hiprtc builtins not found: " + builtinsPath);
                     // hiprtc finds comgr and its builtins by name; loading them by full path first makes that lookup use this folder.
                     foreach (string comgrPath in comgrPaths) comgr.Add(NativeLibrary.Load(comgrPath));
@@ -882,8 +941,11 @@ namespace GRAL_2001
         /// Linux: the file the loader finds for a library name, or null. The library is opened by name and closed again; its file
         /// is read from /proc/self/maps, so that it is then tried by its path like every other candidate (the builtins library is
         /// looked for next to it, and both files enter the module cache key).
+        /// keepLoaded leaves the library open (the AMD libraries): libamdhip64, hiprtc and amd_comgr carry LLVM, whose static
+        /// command-line options are registered again when such a library is closed and opened once more, and LLVM then aborts
+        /// the process ("Option ... registered more than once"). The later load by path finds the open library.
         /// </summary>
-        private static string LoaderPath(string name)
+        private static string LoaderPath(string name, bool keepLoaded = false)
         {
             if (!NativeLibrary.TryLoad(name, out IntPtr handle)) return null;
             try
@@ -899,7 +961,7 @@ namespace GRAL_2001
                 return null;
             }
             catch (Exception error) when (error is UnauthorizedAccessException || error is IOException) { return null; }
-            finally { NativeLibrary.Free(handle); }
+            finally { if (!keepLoaded) NativeLibrary.Free(handle); }
         }
 
         /// <summary>Full path with symbolic links resolved, so one library reached through several links is tried once.</summary>
