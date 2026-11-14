@@ -1270,8 +1270,14 @@ namespace GRAL_2001
         public static bool GeometryAlreadyRead = false;
         ///<summary>
         /// Use a console key if an error occurs or the calculation has been finished (true) or exit console without keystroke (false)
+        /// Always false when the console input is redirected (batch job, nohup, pipe): Console.KeyAvailable and Console.ReadKey throw there
         ///</summary>
-        public static bool WaitForConsoleKey = true;
+        public static bool WaitForConsoleKey
+        {
+            get => waitForConsoleKey && !Console.IsInputRedirected;
+            set => waitForConsoleKey = value;
+        }
+        private static bool waitForConsoleKey = true;
         ///<summary>
         /// Write additional ASCii output
         ///</summary>

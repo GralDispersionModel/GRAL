@@ -178,8 +178,7 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(exc.Message); // also writes to Logfile_GRALCore
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations stopped with errors at: " + DateTime.Now.ToString());
                 ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
-                // not for Soundplan or no keystroke, and not without a keyboard (input redirected: batch job, nohup, pipe), where ReadKey throws
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey && !Console.IsInputRedirected)
+                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                 {
                     Console.WriteLine();
                     Console.WriteLine("GRAL simulations stopped with errors. Press any key to continue...");
@@ -1024,8 +1023,7 @@ FinishGral:
             }
             ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
 
-            // not for Soundplan or no keystroke, and not without a keyboard (input redirected: batch job, nohup, pipe), where ReadKey throws
-            if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey && !Console.IsInputRedirected)
+            if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
             {
                 Console.WriteLine();
                 if (Program.CancelToken.IsCancellationRequested)
