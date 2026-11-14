@@ -106,49 +106,49 @@ namespace GRAL_2001
 
         private static GpuSituationDriver CreateDriver()
         {
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            // Default logs go to the working directory, which is the Computation folder when GRAL is started with the project path.
+            // When the GPU logs cannot be written there, both default logs move to a per-user folder (LocalApplicationData/GRAL/GpuLogs),
+            // on every system; a path set by INU_GPU_METRICS or INU_GPU_STDERR is used as given.
+            string metricsSetting=Environment.GetEnvironmentVariable("INU_GPU_METRICS");
+            string stderrSetting=Environment.GetEnvironmentVariable("INU_GPU_STDERR");
+            string metricsPath=string.IsNullOrEmpty(metricsSetting) ? MetricsFile : metricsSetting;
+            string stderrPath=string.IsNullOrEmpty(stderrSetting) ? StderrFile : stderrSetting;
+            string metrics=null;
+            string failed=null;Exception error=null;
+            try
             {
-                // GPU logs in a user-writable directory
-                string logDirectory = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "GRAL"
-                );
-
-                Directory.CreateDirectory(logDirectory);
-
-                string metricsPath = Setting(
-                    "INU_GPU_METRICS",
-                    Path.Combine(logDirectory, "GRAL_GPU_metrics.jsonl")
-                );
-
-                string metrics = GpuLogFiles.Claim(metricsPath, out metricsLock);
-
-                try
+                metrics=GpuLogFiles.Claim(metricsPath,out metricsLock);
+                // The runtime log is opened later by GpuServerConnection; find out now whether it can be written, so that both logs move together.
+                // Only a denied access counts: a log held by another GRAL process gets its own suffixed file there.
+                if(string.IsNullOrEmpty(stderrSetting))
                 {
-                    string stderrPath = Setting(
-                        "INU_GPU_STDERR",
-                        Path.Combine(logDirectory, "GRAL_GPU_runtime.log")
-                    );
-
-                    return new GpuSituationDriver(
-                        ManifestPath(),
-                        metrics,
-                        stderrPath
-                    );
-                }
-                catch
-                {
-                    ReleaseMetricsLock();
-                    throw;
+                    try { using var probe=new FileStream(stderrPath,FileMode.Append,FileAccess.Write,FileShare.ReadWrite); }
+                    catch(UnauthorizedAccessException e) { failed=stderrPath;error=e; }
                 }
             }
-            else
+            catch(Exception e) when(string.IsNullOrEmpty(metricsSetting) && (e is UnauthorizedAccessException || e is IOException)) { failed=metricsPath;error=e; }
+            if(failed!=null)
             {
-                // Default logs go to the working directory, which is the Computation folder when GRAL is started with the project path.
-                string metrics = GpuLogFiles.Claim(Setting("INU_GPU_METRICS", "GRAL_GPU_metrics.jsonl"), out metricsLock);
-                try { return new GpuSituationDriver(ManifestPath(), metrics, Setting("INU_GPU_STDERR", "GRAL_GPU_runtime.log")); }
-                catch { ReleaseMetricsLock(); throw; }
+                ReleaseMetricsLock();
+                string folder=UserLogFolder() ?? throw new IOException("Cannot write the GPU log "+Path.GetFullPath(failed)+" ("+error.Message+
+                                                                       ") and there is no per-user folder; set INU_GPU_METRICS and INU_GPU_STDERR",error);
+                if(string.IsNullOrEmpty(metricsSetting)) metricsPath=Path.Combine(folder,MetricsFile);
+                if(string.IsNullOrEmpty(stderrSetting)) stderrPath=Path.Combine(folder,StderrFile);
+                metrics=GpuLogFiles.Claim(metricsPath,out metricsLock);
+                string note="GPU logs are written to "+folder+" because "+Path.GetFullPath(failed)+" cannot be written ("+error.GetType().Name+": "+error.Message+")";
+                Console.WriteLine(note);
+                ProgramWriters.LogfileGralCoreWrite(note);
             }
+            try { return new GpuSituationDriver(ManifestPath(),metrics,stderrPath); }
+            catch { ReleaseMetricsLock(); throw; }
+        }
+        private const string MetricsFile="GRAL_GPU_metrics.jsonl";
+        private const string StderrFile="GRAL_GPU_runtime.log";
+        // DoNotVerify: on Linux this folder ($XDG_DATA_HOME or ~/.local/share) need not exist yet; GpuLogFiles creates it.
+        private static string UserLogFolder()
+        {
+            string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData,Environment.SpecialFolderOption.DoNotVerify);
+            return string.IsNullOrEmpty(local) ? null : Path.Combine(local,"GRAL","GpuLogs");
         }
 
         private static void ReleaseMetricsLock()

@@ -86,8 +86,8 @@ With several GRAL instances (`SITUATIONS` argument), each instance writes these 
 |---|---|---|
 | `INU_GPU_EXPERIMENTAL` | unset | `1` or `0` turns the GPU on or off for this run, overriding `use_gpu` in `GPU.txt`; unset or any other value leaves the choice to `GPU.txt` (another value is reported as ignored) |
 | `INU_GPU_MANIFEST` | `fields_manifest.json` in GRAL's `gpu\runtime` folder, which the build writes, else next to GRAL (the first folder that also holds `generated.cu`) | path to `fields_manifest.json`; `generated.cu` is read from the same folder |
-| `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it | JSON-lines file for per-situation metrics |
-| `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
+| `INU_GPU_METRICS` | `GRAL_GPU_metrics.jsonl` in the working directory, which is the Computation folder when GRAL is started with it; when the GPU logs cannot be written there, `GRAL/GpuLogs` in the per-user local application data folder (`%LOCALAPPDATA%` on Windows, `$XDG_DATA_HOME` or `~/.local/share` on Linux), and the console and `Logfile_GRALCore.txt` say so | JSON-lines file for per-situation metrics |
+| `INU_GPU_STDERR` | `GRAL_GPU_runtime.log` in the working directory, or in the same per-user folder as the metrics file | log file of the GPU runtime (appended; a second GRAL process writes a file with a process-specific suffix) |
 
 Missing folders in the two log paths are created.
 
