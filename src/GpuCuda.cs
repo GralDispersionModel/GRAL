@@ -206,7 +206,7 @@ namespace GRAL_2001
         private void InitializeAutomatic(string runtimeDirectory)
         {
             try { Initialize(runtimeDirectory); }
-            catch (Exception cudaError) when (cudaAbsent && HipRuntimePresent())
+            catch (Exception cudaError) when (cudaAbsent && HipRuntimePresent(keepLoaded: true))
             {
                 // NVIDIA does not support unloading the driver after cuInit, so a loaded nvcuda stays loaded for the process.
                 driver = IntPtr.Zero;
@@ -491,11 +491,12 @@ namespace GRAL_2001
         /// <summary>Code-object manager libraries loaded next to hiprtc; they generate the GPU code, so they enter the module cache key.</summary>
         internal string[] ComgrPaths { get; private set; } = Array.Empty<string>();
 
-        internal static bool HipRuntimePresent()
+        /// <summary>keepLoaded: a HIP runtime found only through the loader stays open, for the HIP start that follows (see LoaderPath).</summary>
+        internal static bool HipRuntimePresent(bool keepLoaded = false)
         {
             // A set INU_GPU_HIP_RUNTIME counts as present, so a wrong value is reported by InitializeHip instead of being ignored.
             if (Environment.GetEnvironmentVariable("INU_GPU_HIP_RUNTIME") is string explicitPath && explicitPath.Length > 0) return true;
-            if (!Windows) return HipRuntimeFiles().Any(File.Exists) || HipRuntimeNames.Any(n => LoaderPath(n, keepLoaded: true) != null);
+            if (!Windows) return HipRuntimeFiles().Any(File.Exists) || HipRuntimeNames.Any(n => LoaderPath(n, keepLoaded) != null);
             string system = Environment.GetFolderPath(Environment.SpecialFolder.System);
             return HipRuntimeNames.Any(n => File.Exists(Path.Combine(system, n)));
         }
@@ -737,7 +738,14 @@ namespace GRAL_2001
                 foreach (string path in files.Where(p => HiprtcName.IsMatch(Path.GetFileName(p)) && File.Exists(p)).OrderByDescending(p => p, StringComparer.Ordinal))
                     if (Windows || seen.Add(ResolvedPath(path))) result.Add(path);
             }
-            if (explicitDirectory == null && !Windows && LoaderPath("libhiprtc.so.7", keepLoaded: true) is string loaderPath && seen.Add(ResolvedPath(loaderPath))) result.Add(loaderPath);
+            // Linux, only when no folder holds hiprtc: the library the loader finds. It stays loaded (see LoaderPath), so it is not
+            // asked for when another candidate exists. Its soname link in the same folder is preferred, because the builtins
+            // library is looked up with the same suffix.
+            if (result.Count == 0 && explicitDirectory == null && !Windows && LoaderPath("libhiprtc.so.7", keepLoaded: true) is string loaderPath)
+            {
+                string soname = Path.Combine(Path.GetDirectoryName(loaderPath), "libhiprtc.so.7");
+                result.Add(File.Exists(soname) ? soname : loaderPath);
+            }
             if (result.Count == 0)
                 throw GpuSettings.FromFile(Status(new FileNotFoundException("hiprtc library not found in " + string.Join(", ", directories) +
                                                        (Windows ? "; install the HIP SDK or the ROCm Python packages and set INU_GPU_HIPRTC_DIR to the folder that holds hiprtcNNNN.dll"
@@ -953,7 +961,7 @@ namespace GRAL_2001
         /// Linux: the file the loader finds for a library name, or null. The library is opened by name and closed again; its file
         /// is read from /proc/self/maps, so that it is then tried by its path like every other candidate (the builtins library is
         /// looked for next to it, and both files enter the module cache key).
-        /// keepLoaded leaves the library open (the AMD libraries): libamdhip64, hiprtc and amd_comgr carry LLVM, whose static
+        /// keepLoaded leaves the library open (the AMD libraries): libamdhip64, hiprtc and amd_comgr load LLVM (libamd_comgr, libLLVM), whose static
         /// command-line options are registered again when such a library is closed and opened once more, and LLVM then aborts
         /// the process ("Option ... registered more than once"). The later load by path finds the open library.
         /// </summary>
@@ -979,6 +987,20 @@ namespace GRAL_2001
         /// <summary>Full path with symbolic links resolved, so one library reached through several links is tried once.</summary>
         private static string ResolvedPath(string path)
         {
+            // Linux: realpath also resolves links in every parent folder (for example /opt/rocm -> /opt/rocm-7.2.0), which the
+            // two-step resolution below misses; trying one AMD library file twice can abort the process (see LoaderPath).
+            if (!Windows)
+            {
+                IntPtr resolved = IntPtr.Zero;
+                try
+                {
+                    byte[] name = Encoding.UTF8.GetBytes(path + "\0");
+                    fixed (byte* p = name) resolved = RealPath(p, IntPtr.Zero);
+                    if (resolved != IntPtr.Zero && Marshal.PtrToStringUTF8(resolved) is string real) return real;
+                }
+                catch (Exception error) when (error is DllNotFoundException || error is EntryPointNotFoundException) { }
+                finally { if (resolved != IntPtr.Zero) FreeC(resolved); }
+            }
             try
             {
                 var file = new FileInfo(path);
@@ -989,6 +1011,8 @@ namespace GRAL_2001
             }
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException) { return Path.GetFullPath(path); }
         }
+        [DllImport("libc", EntryPoint = "realpath")] private static extern IntPtr RealPath(byte* path, IntPtr resolved);
+        [DllImport("libc", EntryPoint = "free")] private static extern void FreeC(IntPtr pointer);
 
         private static string[] BuiltinsNames(int major, int minor) => Windows
             ? new[] { "nvrtc-builtins64_" + major + minor + ".dll" }
