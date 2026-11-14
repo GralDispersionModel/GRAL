@@ -133,6 +133,14 @@ namespace GRAL_2001
             // Both log files are opened later; find out now whether a default one can be written, so that both logs move together.
             if(failed==null && metricsDefault && Denied(metrics) is Exception metricsError) { failed=metrics;error=metricsError; }
             if(failed==null && stderrDefault && Denied(stderrPath) is Exception stderrError) { failed=stderrPath;error=stderrError; }
+            // A Computation folder that cannot be written at all cannot take the results either: keep the start failure then,
+            // so that the run does not continue on the GPU and end without result files.
+            if(failed!=null && !FolderWritable(Path.GetDirectoryName(Path.GetFullPath(failed))))
+            {
+                ReleaseMetricsLock();
+                throw new IOException("Cannot write the GPU log "+Path.GetFullPath(failed)+" ("+error.Message+"), and the folder cannot be written at all; "+
+                                      "GRAL could not write its results there either",error);
+            }
             if(failed!=null)
             {
                 string folder=UserLogFolder();
@@ -158,6 +166,12 @@ namespace GRAL_2001
             }
             try { return new GpuSituationDriver(manifest,metrics,stderrPath); }
             catch { ReleaseMetricsLock(); throw; }
+        }
+        private static bool FolderWritable(string folder)
+        {
+            string probe=Path.Combine(folder,".gral_gpu_write_test."+Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            try { using(new FileStream(probe,FileMode.CreateNew,FileAccess.Write,FileShare.None,1,FileOptions.DeleteOnClose)) { } return true; }
+            catch(Exception e) when(e is UnauthorizedAccessException || e is IOException) { return false; }
         }
         // Whether a log file is denied to this user. A file held by another GRAL process (a sharing violation, an IOException)
         // is not: the log writers give that process its own suffixed file.
