@@ -33,7 +33,7 @@ With no backend set, GRAL uses CUDA. Only when the NVIDIA driver library is miss
 ## Requirements (AMD)
 
 - Windows x64 or Linux x64.
-- An AMD GPU that the HIP runtime supports, and the HIP 7 runtime: on Windows the AMD Adrenalin driver installs it (`amdhip64_7.dll` in System32); on Linux it is part of ROCm 7 or later (`libamdhip64.so.7`). On Linux GRAL loads it from `$ROCM_PATH/lib`, `$HIP_PATH/lib`, `/opt/rocm/lib`, `/opt/rocm/core-<version>/lib` (the layout of ROCm 10) or `/opt/rocm-<version>/lib` (versions newest first), and last through the loader (`LD_LIBRARY_PATH`, `ldconfig`).
+- An AMD GPU that the HIP runtime supports, and the HIP 7 runtime: on Windows the AMD Adrenalin driver installs it (`amdhip64_7.dll` in System32); on Linux it is part of ROCm 7 or later (`libamdhip64.so.7`; tested with ROCm 10.1). On Linux GRAL loads it from `$ROCM_PATH/lib`, `$HIP_PATH/lib`, `/opt/rocm/lib`, `/opt/rocm/core-<version>/lib` (the layout of ROCm 10) or `/opt/rocm-<version>/lib` (versions newest first), and last through the loader (`LD_LIBRARY_PATH`, `ldconfig`).
 - On Windows, the Microsoft Visual C++ 2015-2022 x64 runtime, which `amd_comgr.dll` needs.
 - hiprtc, the HIP runtime compiler: `hiprtcNNNN.dll` with its `hiprtc-builtinsNNNN.dll` and the code-object manager (`amd_comgr.dll` or `amd_comgr_N.dll`) in the same folder. GRAL looks in this order:
   1. `INU_GPU_HIPRTC_DIR`, when set (only there);
@@ -41,7 +41,7 @@ With no backend set, GRAL uses CUDA. Only when the NVIDIA driver library is miss
   3. `%HIP_PATH%\bin`, which the AMD HIP SDK installer sets;
   4. the per-user folder `%LOCALAPPDATA%\GRAL\GpuToolchain\hiprtc`.
 
-  On Linux, hiprtc is part of ROCm: `libhiprtc.so.N` with `libhiprtc-builtins.so.N` and `libamd_comgr.so.N` in the same folder. Steps 3 and 4 are then: the folder of the HIP runtime that was loaded, the ROCm folders listed above for the runtime, and last the library that the loader finds under the name `libhiprtc.so.7`.
+  On Linux, hiprtc is part of ROCm: `libhiprtc.so.N` with `libhiprtc-builtins.so.N` and `libamd_comgr.so.N` in the same folder. Steps 3 and 4 are then: the folder of the HIP runtime that was loaded, the ROCm folders listed above for the runtime, and, only when none of these folders holds hiprtc, the library that the loader finds under the name `libhiprtc.so.7`.
 
   The ROCm Python packages also contain hiprtc, for example `pip install --index-url https://stable.repo.amd.com/rocm/whl-next/ "rocm[libraries,devel,device-gfx1201]"` for RDNA4; the libraries are in `Lib\site-packages\_rocm_sdk_core\bin` of that environment.
 - Tested with a Radeon RX 9070 XT (gfx1201), the HIP runtime 7.12 of driver 32.0.32015.12012 and `hiprtc0716.dll` from ROCm 10.1 (its `hiprtcVersion` reports 9.0). On Linux: the same card in WSL2 (Ubuntu 24.04, ROCm 10.1 with its WSL library `librocdxg`, HIP runtime 7.16 and hiprtc 9.0 from `/opt/rocm/core-10.1/lib`); bare-metal Linux with the `amdgpu` kernel driver has not been tried. Other AMD GPUs have not been tried; on any architecture other than gfx1201, GRAL prints `GPU warning: ...` at startup, so compare a test case with a CPU run before relying on the results.
