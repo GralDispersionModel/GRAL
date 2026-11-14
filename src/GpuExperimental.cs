@@ -121,38 +121,51 @@ namespace GRAL_2001
             // Default logs go to the working directory, which is the Computation folder when GRAL is started with the project path.
             // When the GPU logs cannot be written there, both default logs move to a per-user folder (LocalApplicationData/GRAL/GpuLogs),
             // on every system; a path set by INU_GPU_METRICS or INU_GPU_STDERR is used as given.
+            string manifest=ManifestPath();
             string metricsSetting=Environment.GetEnvironmentVariable("INU_GPU_METRICS");
             string stderrSetting=Environment.GetEnvironmentVariable("INU_GPU_STDERR");
-            string metricsPath=string.IsNullOrEmpty(metricsSetting) ? MetricsFile : metricsSetting;
-            string stderrPath=string.IsNullOrEmpty(stderrSetting) ? StderrFile : stderrSetting;
-            string metrics=null;
-            string failed=null;Exception error=null;
-            try
-            {
-                metrics=GpuLogFiles.Claim(metricsPath,out metricsLock);
-                // The runtime log is opened later by GpuServerConnection; find out now whether it can be written, so that both logs move together.
-                // Only a denied access counts: a log held by another GRAL process gets its own suffixed file there.
-                if(string.IsNullOrEmpty(stderrSetting))
-                {
-                    try { using var probe=new FileStream(stderrPath,FileMode.Append,FileAccess.Write,FileShare.ReadWrite); }
-                    catch(UnauthorizedAccessException e) { failed=stderrPath;error=e; }
-                }
-            }
-            catch(Exception e) when(string.IsNullOrEmpty(metricsSetting) && (e is UnauthorizedAccessException || e is IOException)) { failed=metricsPath;error=e; }
+            bool metricsDefault=string.IsNullOrEmpty(metricsSetting),stderrDefault=string.IsNullOrEmpty(stderrSetting);
+            string metricsPath=metricsDefault ? MetricsFile : metricsSetting;
+            string stderrPath=stderrDefault ? StderrFile : stderrSetting;
+            string metrics=null,failed=null;Exception error=null;
+            try { metrics=GpuLogFiles.Claim(metricsPath,out metricsLock); }
+            catch(Exception e) when(metricsDefault && (e is UnauthorizedAccessException || e is IOException)) { failed=metricsPath;error=e; }
+            // Both log files are opened later; find out now whether a default one can be written, so that both logs move together.
+            if(failed==null && metricsDefault && Denied(metrics) is Exception metricsError) { failed=metrics;error=metricsError; }
+            if(failed==null && stderrDefault && Denied(stderrPath) is Exception stderrError) { failed=stderrPath;error=stderrError; }
             if(failed!=null)
             {
-                ReleaseMetricsLock();
-                string folder=UserLogFolder() ?? throw new IOException("Cannot write the GPU log "+Path.GetFullPath(failed)+" ("+error.Message+
-                                                                       ") and there is no per-user folder; set INU_GPU_METRICS and INU_GPU_STDERR",error);
-                if(string.IsNullOrEmpty(metricsSetting)) metricsPath=Path.Combine(folder,MetricsFile);
-                if(string.IsNullOrEmpty(stderrSetting)) stderrPath=Path.Combine(folder,StderrFile);
-                metrics=GpuLogFiles.Claim(metricsPath,out metricsLock);
+                string folder=UserLogFolder();
+                if(folder==null)
+                {
+                    ReleaseMetricsLock();
+                    throw new IOException("Cannot write the GPU log "+Path.GetFullPath(failed)+" ("+error.Message+") and there is no per-user folder; set INU_GPU_METRICS and INU_GPU_STDERR",error);
+                }
+                if(stderrDefault) stderrPath=Path.Combine(folder,StderrFile);
+                if(metricsDefault)
+                {
+                    ReleaseMetricsLock();
+                    try { metrics=GpuLogFiles.Claim(Path.Combine(folder,MetricsFile),out metricsLock); }
+                    catch(Exception e) when(e is UnauthorizedAccessException || e is IOException)
+                    {
+                        throw new IOException("Cannot write the GPU log "+Path.GetFullPath(failed)+" ("+error.Message+") nor in "+folder+" ("+e.Message+
+                                              "); set INU_GPU_METRICS and INU_GPU_STDERR",e);
+                    }
+                }
                 string note="GPU logs are written to "+folder+" because "+Path.GetFullPath(failed)+" cannot be written ("+error.GetType().Name+": "+error.Message+")";
                 Console.WriteLine(note);
                 ProgramWriters.LogfileGralCoreWrite(note);
             }
-            try { return new GpuSituationDriver(ManifestPath(),metrics,stderrPath); }
+            try { return new GpuSituationDriver(manifest,metrics,stderrPath); }
             catch { ReleaseMetricsLock(); throw; }
+        }
+        // Whether a log file is denied to this user. A file held by another GRAL process (a sharing violation, an IOException)
+        // is not: the log writers give that process its own suffixed file.
+        private static UnauthorizedAccessException Denied(string path)
+        {
+            try { using var probe=new FileStream(path,FileMode.Append,FileAccess.Write,FileShare.ReadWrite); return null; }
+            catch(UnauthorizedAccessException e) { return e; }
+            catch(IOException) { return null; }
         }
         private const string MetricsFile="GRAL_GPU_metrics.jsonl";
         private const string StderrFile="GRAL_GPU_runtime.log";
