@@ -989,6 +989,10 @@ namespace GRAL_2001
         ///</summary>
         public static int IEND = Consts.CalculationRunning;
         ///<summary>
+        ///Set when a meteorological input line could not be read; the run ends early with exit code 1
+        ///</summary>
+        public static bool MeteoInputFailed = false;
+        ///<summary>
         ///Volume of the GRAL concentration grid
         ///</summary>
         public static float GridVolume = 0;
@@ -1147,7 +1151,7 @@ namespace GRAL_2001
         ///<summary>
         ///3D concentration sum file
         ///</summary>
-        public static float[][][] ConzSsum = CreateArray<float[][]>(1, () => CreateArray<float[]>(1, () => new float[1]));
+        public static double[][][] ConzSsum = CreateArray<double[][]>(1, () => CreateArray<double[]>(1, () => new double[1]));
         ///<summary>
         ///Sets the lower concentration threshold below which the memory effect in transient simulations is neglected
         ///</summary>
@@ -1243,7 +1247,7 @@ namespace GRAL_2001
         ///<summary>
         /// decay rate for bioaerosols for each source group
         ///</summary>
-        public static readonly double[] DecayRate = new double[102];
+        public static readonly double[] DecayRate = new double[byte.MaxValue + 1];
         ///<summary>
         /// Pollutant name
         ///</summary>
@@ -1266,8 +1270,14 @@ namespace GRAL_2001
         public static bool GeometryAlreadyRead = false;
         ///<summary>
         /// Use a console key if an error occurs or the calculation has been finished (true) or exit console without keystroke (false)
+        /// Always false when the console input is redirected (batch job, nohup, pipe): Console.KeyAvailable and Console.ReadKey throw there
         ///</summary>
-        public static bool WaitForConsoleKey = true;
+        public static bool WaitForConsoleKey
+        {
+            get => waitForConsoleKey && !Console.IsInputRedirected;
+            set => waitForConsoleKey = value;
+        }
+        private static bool waitForConsoleKey = true;
         ///<summary>
         /// Write additional ASCii output
         ///</summary>

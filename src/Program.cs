@@ -54,6 +54,12 @@ namespace GRAL_2001
 
         static void Main(string[] args)
         {
+            // Readiness check of the GPU path for the GUI, before any banner or project file. With this argument GRAL never starts
+            // a run: one more argument is the folder to check in, anything else is a usage error
+            if (Array.IndexOf(args, GpuCheck.Argument) >= 0)
+            {
+                Environment.Exit(GpuCheck.Run(args));
+            }
             int p = (int)Environment.OSVersion.Platform;
             if ((p == 4) || (p == 6) || (p == 128))
             {
@@ -162,6 +168,25 @@ namespace GRAL_2001
 
             //reading main control file in.dat
             ReaderClass.ReadInDat();
+            // Decide the GPU switch here, so that its line is in the GRAL log of every run, also one that ends before the first situation
+            try { _ = GpuExperimental.Enabled; }
+            catch (ArgumentException exc)
+            {
+                // An invalid GPU.txt stops the run before the first situation, also when it would have left the GPU off
+                Console.WriteLine();
+                Console.WriteLine("ERROR: " + exc.Message);
+                ProgramWriters.LogfileProblemreportWrite(exc.Message); // also writes to Logfile_GRALCore
+                ProgramWriters.LogfileGralCoreWrite("GRAL simulations stopped with errors at: " + DateTime.Now.ToString());
+                ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
+                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("GRAL simulations stopped with errors. Press any key to continue...");
+                    Program.CleanUpMemory();
+                    Console.ReadKey(true); 	// wait for a key input
+                }
+                Environment.Exit(1);
+            }
             //override first weather situation when using a command line argument for the 1st and last weather situation
             if (IWETstartstop.Start > 0)
             {
@@ -345,6 +370,13 @@ namespace GRAL_2001
                 Console.WriteLine();
                 Console.WriteLine("Reading file portals.dat");
                 ReadTunnelPortals.Read();
+                if ((TunnelEntr || TunnelOppLane) && TS_Count == 0)
+                {
+                    // The cell flags stay active: tunnel_entrance.txt can still remove area, line and point source particles.
+                    string warn = "Warning: tunnel_entrance.txt or Opposite_lane.txt exists, but portals.dat defines no portal";
+                    Console.WriteLine(warn);
+                    ProgramWriters.LogfileGralCoreWrite(warn);
+                }
             }
             //reading area source data
             if (AS_Count > 0)
@@ -413,6 +445,42 @@ namespace GRAL_2001
             Thread ThreadWriteConz4dFile = null;
             Thread ThreadWrite2DConcentrationFiles = null;
             int recentWeatherSituation = 0;
+            // A GPU failure (startup without fallback, or an error after GPU work started) ends the run like a failed meteorology
+            // input: the reason goes to the console and the logs, the finish sequence runs and the exit code is 1.
+            bool gpuFailed = false;
+            void ReportGpuFailure(Exception exc)
+            {
+                gpuFailed = true;
+                string err = "GPU failure in weather situation " + IWET.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + exc.Message +
+                             (exc.InnerException != null && !exc.Message.Contains(exc.InnerException.Message) ? ": " + exc.InnerException.Message : string.Empty);
+                // A runtime compiler log can be very long; the full text is in the GPU runtime log
+                if (err.Length > 2000) err = err.Substring(0, 2000) + " ... (shortened; see the GPU runtime log)";
+                Console.WriteLine();
+                Console.WriteLine("ERROR: " + err);
+                ProgramWriters.LogfileProblemreportWrite(err); // also writes to Logfile_GRALCore
+            }
+            // A failed GPU situation ends the run; let the writer threads of earlier situations finish their files first.
+            void RunGpuSituation()
+            {
+                try
+                {
+                    GpuExperimental.Run(1, NTEILMAX);
+                }
+                catch (Exception) when (CancelToken.IsCancellationRequested)
+                {
+                    // A cancelled run stops like the CPU path: the caller sees the token and finishes GRAL normally.
+                    ThreadWriteGffFiles?.Join();
+                    ThreadWriteConz4dFile?.Join();
+                    ThreadWrite2DConcentrationFiles?.Join();
+                }
+                catch (Exception exc)
+                {
+                    ThreadWriteGffFiles?.Join();
+                    ThreadWriteConz4dFile?.Join();
+                    ThreadWrite2DConcentrationFiles?.Join();
+                    ReportGpuFailure(exc);
+                }
+            }
 
             bool FirstLoop = true;
             while (IEND == Consts.CalculationRunning)
@@ -437,6 +505,13 @@ namespace GRAL_2001
                 if (CancelToken.IsCancellationRequested)
                 {
                     goto FinishGral;
+                }
+
+                // Odour output reads the current wind and turbulence fields.
+                if (Odour && ThreadWrite2DConcentrationFiles != null)
+                {
+                    ThreadWrite2DConcentrationFiles.Join();
+                    ThreadWrite2DConcentrationFiles = null;
                 }
 
                 //Next weather situation
@@ -677,6 +752,12 @@ namespace GRAL_2001
                     //calculating momentum and bouyancy forces for point sources
                     PointSourceHeight.CalculatePointSourceHeight();
 
+                    // Allocate new particles for the current transient situation.
+                    if (ISTATIONAER == Consts.TransientMode)
+                    {
+                        NTEILMAX = ParticleManagement.Calculate(true);
+                    }
+
                     //defining the initial positions of particles
                     StartCoordinates.Calculate();
 
@@ -685,6 +766,20 @@ namespace GRAL_2001
 
                     //show meteorological parameters on screen
                     OutputOfMeteoData();
+
+                    bool useGpu;
+                    try { useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX); }
+                    catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
+                    {
+                        // A stop during the GPU check or startup finishes GRAL like the checks below.
+                        goto FinishGral;
+                    }
+                    catch (Exception exc)
+                    {
+                        // Only the GPU switch and the GPU startup run in this try block
+                        ReportGpuFailure(exc);
+                        goto FinishGral;
+                    }
 
                     //Transient mode: non-steady-state particles
                     if (ISTATIONAER == Consts.TransientMode)
@@ -711,9 +806,18 @@ namespace GRAL_2001
                         int cellNr = NII * NJJ;
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
-                        ParallelTransientParticleDriver(0, cellNr);
+                        if (useGpu)
+                        {
+                            if (ThreadWriteConz4dFile != null)
+                            {
+                                ThreadWriteConz4dFile.Join();
+                                ThreadWriteConz4dFile = null;
+                            }
+                            RunGpuSituation();
+                        }
+                        else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
-                    if (CancelToken.IsCancellationRequested)
+                    if (CancelToken.IsCancellationRequested || gpuFailed)
                     {
                         goto FinishGral;
                     }
@@ -721,9 +825,10 @@ namespace GRAL_2001
                     Console.Write("Dispersion computation.....");
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    ParallelParticleDriver(1, NTEILMAX + 1);
+                    if (useGpu && ISTATIONAER == Consts.StationaryMode) { RunGpuSituation(); }
+                    else if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
-                    if (CancelToken.IsCancellationRequested)
+                    if (CancelToken.IsCancellationRequested || gpuFailed)
                     {
                         goto FinishGral;
                     }
@@ -805,13 +910,41 @@ namespace GRAL_2001
                 } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
             } // loop for all meteorological situations
 FinishGral:
+            bool gpuShutdownFailed = false;
+            GpuExperimental.LogSummary(gpuFailed);
+            try
+            {
+                GpuExperimental.Close();
+            }
+            catch (Exception exc)
+            {
+                // All situations are computed; finish writing the outputs and report the failure in the exit code.
+                gpuShutdownFailed = true;
+                string err = "GPU server shutdown failed: " + exc.Message + (exc.InnerException != null ? ": " + exc.InnerException.Message : string.Empty);
+                Console.WriteLine();
+                Console.WriteLine("ERROR: " + err);
+                ProgramWriters.LogfileProblemreportWrite(err);
+            }
+            bool verticalOutputFailed = false;
             // Write summarized emission per source group and 3D Concentration file
             if (ISTATIONAER == Consts.TransientMode)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
-                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1) // do not write the files for multiple instances
+                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1 && !gpuFailed) // do not write the files for multiple instances or from a situation that the GPU did not finish
                 {
-                       WriteClass.Write3DTextConcentrations();
+                    try
+                    {
+                        WriteClass.Write3DTextConcentrations();
+                    }
+                    catch (IOException exc)
+                    {
+                        // Finish the remaining output and cleanup steps, then report the failure in the exit code.
+                        verticalOutputFailed = true;
+                        string err = exc.Message + (exc.InnerException != null ? ": " + exc.InnerException.Message : string.Empty);
+                        Console.WriteLine();
+                        Console.WriteLine("ERROR: " + err);
+                        ProgramWriters.LogfileProblemreportWrite(err);
+                    }
                 }
                 Console.WriteLine();
                 ProgramWriters.LogfileGralCoreWrite("");
@@ -830,8 +963,33 @@ FinishGral:
                 ThreadWrite2DConcentrationFiles = null; // Release ressources
             }
 
-            // Clean transient files
-            Delete_Temp_Files();
+            if (ThreadWriteConz4dFile != null) // wait for the last transient checkpoint before the temporary files are deleted
+            {
+                ThreadWriteConz4dFile.Join();
+                ThreadWriteConz4dFile = null;
+            }
+
+            if (gpuFailed)
+            {
+                // Leave the checkpoint of the last finished situation, as the unhandled GPU error did before and as an interrupted run does
+                if (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp"))
+                {
+                    ProgramWriters.LogfileProblemreportWrite("The run stopped with a GPU error. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
+                }
+            }
+            else if (verticalOutputFailed && (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp")))
+            {
+                // Leave the checkpoint as an interrupted run would; GRAL's usual restart rules apply to a rerun in this folder
+                ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
+            }
+            else
+            {
+                Delete_Temp_Files();
+                if (verticalOutputFailed)
+                {
+                    ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written and no transient checkpoint exists; repeat the run to write it.");
+                }
+            }
 
             //Write receptor statistical error
             if (Program.ReceptorsAvailable)
@@ -854,13 +1012,14 @@ FinishGral:
                 SyncWithMutex.Dispose();
             }
 
+            bool runFailed = verticalOutputFailed || gpuShutdownFailed || gpuFailed || MeteoInputFailed;
             if (Program.CancelToken.IsCancellationRequested)
             {
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations cancelled at: " + DateTime.Now.ToString());    
             }
             else
             {
-                ProgramWriters.LogfileGralCoreWrite("GRAL simulations finished at: " + DateTime.Now.ToString());
+                ProgramWriters.LogfileGralCoreWrite((runFailed ? "GRAL simulations stopped with errors at: " : "GRAL simulations finished at: ") + DateTime.Now.ToString());
             }
             ProgramWriters.LogfileGralCoreWrite(new String('-', 80));
 
@@ -873,13 +1032,13 @@ FinishGral:
                 }
                 else
                 {
-                    Console.WriteLine("GRAL simulations finished. Press any key to continue...");
+                    Console.WriteLine(runFailed ? "GRAL simulations stopped with errors. Press any key to continue..." : "GRAL simulations finished. Press any key to continue...");
                 }
                 Program.CleanUpMemory();
                 Console.ReadKey(true); 	// wait for a key input
             }
 
-            Environment.Exit(0);        // Exit console
+            Environment.Exit(runFailed ? 1 : 0);        // Exit console; nonzero if the vertical file, the GPU or the meteorology input failed
         }
     }
 }

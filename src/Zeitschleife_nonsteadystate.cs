@@ -278,7 +278,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -289,7 +289,7 @@ namespace GRAL_2001
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
-            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
             u_rg = (m_z << 16) + m_w;
@@ -472,7 +472,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -586,7 +586,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -599,7 +599,7 @@ namespace GRAL_2001
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
-                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                 u_rg = (m_z << 16) + m_w;
@@ -860,7 +860,7 @@ namespace GRAL_2001
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
-                                u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                                u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
                                 m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                                 m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                                 u_rg = (m_z << 16) + m_w;
@@ -879,7 +879,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -895,7 +895,7 @@ namespace GRAL_2001
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
-                            u1_rg = (u_rg + 1) * 2.328306435454494e-10F;
+                            u1_rg = u_rg == uint.MaxValue ? 1.0F : (u_rg + 1) * 2.328306435454494e-10F;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             u_rg = (m_z << 16) + m_w;
@@ -1240,11 +1240,11 @@ namespace GRAL_2001
                         TransientGridX = (int)(xsi * FFGridXRez) + 1;
                         TransientGridY = (int)(eta * FFGridYRez) + 1;
 
-                        float[] conzsum_L = Program.ConzSsum[TransientGridX][TransientGridY];
+                        double[] conzsum_L = Program.ConzSsum[TransientGridX][TransientGridY];
                         double conc = mass_real * idt / (Area_cart * Program.DZK_Trans[TransientGridZ]);
                         lock (conzsum_L)
                         {
-                            conzsum_L[TransientGridZ] += (float)conc;
+                            conzsum_L[TransientGridZ] += conc;
                         }
                     }
 
@@ -1304,11 +1304,10 @@ namespace GRAL_2001
                         lock (recmit_L)
                         {
                             recmit_L[SG_nteil] += recconc;
-                        }
-
-                        if (recconc > Program.ReceptorParticleMaxConc[ii][SG_nteil])
-                        {
-                            Interlocked.Exchange(ref Program.ReceptorParticleMaxConc[ii][SG_nteil], recconc);
+                            if (recconc > Program.ReceptorParticleMaxConc[ii][SG_nteil])
+                            {
+                                Program.ReceptorParticleMaxConc[ii][SG_nteil] = recconc;
+                            }
                         }
                     }
                 }
