@@ -31,7 +31,7 @@ namespace GRAL_2001
 
             double totalemission = 0;
             int countrealsources = 0;
-            double[] emission_sourcegroup = new double[101];
+            double[] emission_sourcegroup = new double[Program.SourceGroups.Count];
 
             PQ.Add(new SourceData());
 

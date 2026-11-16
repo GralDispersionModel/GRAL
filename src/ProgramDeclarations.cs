@@ -1243,7 +1243,7 @@ namespace GRAL_2001
         ///<summary>
         /// decay rate for bioaerosols for each source group
         ///</summary>
-        public static readonly double[] DecayRate = new double[102];
+        public static readonly double[] DecayRate = new double[byte.MaxValue + 1];
         ///<summary>
         /// Pollutant name
         ///</summary>
