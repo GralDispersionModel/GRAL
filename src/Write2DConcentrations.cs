@@ -686,7 +686,8 @@ namespace GRAL_2001
                         SB.Clear();
                         for (int i = 1; i <= Program.NXL; i++)
                         {
-                            SB.Append(Program.Conz3dDouble[i][j][II][IQ].ToString(ic));
+                            // print the float value that the binary result files store
+                            SB.Append(((float)Program.Conz3dDouble[i][j][II][IQ]).ToString(ic));
                             SB.Append(" ");
                         }
                         myWriter.WriteLine(SB.ToString());
