@@ -51,7 +51,7 @@ public struct TerrainArray
         get 
         {
             index -= Delta; 
-            if (index >= 0 && index < arr.Length) //.Net11+ should remove bound checks after this check
+            if ((uint) index < (uint) arr.Length) //(index >= 0 && index < arr.Length) //.Net11+ should remove bound checks after this check
             {
                 return arr[index];
             }
@@ -75,7 +75,7 @@ public struct TerrainArray
     public Vector<float> GetVector(int index)
     {
         index -= Delta;
-        if (index >= 0 && index < arr.Length - Vector<float>.Count)
+        if (index >= 0 && index <= arr.Length - Vector<float>.Count)
         {
             return new Vector<float>(arr, index);
         }
@@ -86,6 +86,7 @@ public struct TerrainArray
         else if (index < 0)// index < 0 > - Vector<float>.lenght
         {
             Span<float> VectArray = stackalloc float [Vector<float>.Count];
+            VectArray.Clear();
             int _l = Math.Min(arr.Length, Vector<float>.Count + index);
             for (int _c = 0; _c < _l; ++_c)
             {
@@ -96,6 +97,7 @@ public struct TerrainArray
         else // upper end
         {
             Span<float> VectArray = stackalloc float[Vector<float>.Count];
+            VectArray.Clear();
             int _l = Math.Min(arr.Length, Vector<float>.Count + index);
             for (int _c = index; _c < _l; ++_c)
             {
@@ -109,7 +111,7 @@ public struct TerrainArray
     public void SetVector(Vector<float> v, int index)
     {
         index -= Delta;
-        if (index >= 0 && index < arr.Length - Vector<float>.Count)
+        if (index >= 0 && index <= arr.Length - Vector<float>.Count)
         {
             v.CopyTo(arr, index);
         }
@@ -134,7 +136,7 @@ public struct TerrainArray
             int _l = Math.Min(arr.Length, Vector<float>.Count + index);
             for (int _c = index; _c < _l; ++_c)
             {
-                VectArray[_c - index] = arr[_c];
+                arr[_c] = VectArray[_c - index];
             }
         }
     }
@@ -143,7 +145,7 @@ public struct TerrainArray
     public Vector512<float> GetVector512(int index)
     {
         index -= Delta;
-        if (index >= 0 && index < arr.Length - Vector512<float>.Count)
+        if (index >= 0 && index <= arr.Length - Vector512<float>.Count)
         {
             return Vector512.LoadUnsafe<float>(ref MemoryMarshal.GetArrayDataReference(arr), (uint) index);
         }
@@ -154,6 +156,7 @@ public struct TerrainArray
         else if (index < 0) // index < 0 > - Vector<float>.lenght
         {
             Span<float> VectArray = stackalloc float [Vector512<float>.Count];
+            VectArray.Clear();
             int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
             for (int _c = 0; _c < _l; ++_c)
             {
@@ -164,6 +167,7 @@ public struct TerrainArray
         else // upper end
         {
             Span<float> VectArray = stackalloc float[Vector512<float>.Count];
+            VectArray.Clear();
             int _l = Math.Min(arr.Length, Vector512<float>.Count + index);
             for (int _c = index; _c < _l; ++_c)
             {
@@ -177,7 +181,7 @@ public struct TerrainArray
     public void SetVector512(Vector512<float> v, int index)
     {
         index -= Delta;
-        if (index >= 0 && index < arr.Length - Vector512<float>.Count)
+        if (index >= 0 && index <= arr.Length - Vector512<float>.Count)
         {
             v.CopyTo(arr, index);
         }
