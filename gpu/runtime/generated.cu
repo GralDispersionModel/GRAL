@@ -226,7 +226,6 @@ Arr<float,2> Z0Gramm;
 Arr<float,1> ZCoord;
 unsigned int RnGSeed1; unsigned int RnGSeed2; Arr<int,1> GridRecStart; Arr<int,1> GridRecList; int GridRecRow; bool TraceEnabled; Arr<double,2> Trace; Arr<int,1> TraceIds; Arr<double,3> StepTrace; Arr<double,2> ResidualTrace; Arr<double,2> ParticleReceptorScratch; Arr<int,2> ParticleSliceScratch; int ParticleWindowFirst; int DeviceError; int DeviceErrorPhase; int DeviceErrorParticle; };
 extern "C" {__device__ State P;}
-__device__ bool CheckParticleFinite(double x,double y,float z,float t,float dt,int phase,int id){if(isfinite(x)&&isfinite(y)&&isfinite(z)&&isfinite(t)&&isfinite(dt))return true;if(atomicCAS(&P.DeviceError,0,1)==0){P.DeviceErrorPhase=phase;P.DeviceErrorParticle=id;}return false;}
 // GPU-only bound for the wet-deposition droplet drift loop (no CPU equivalent); code 3 aborts the run instead of stalling the kernel.
 #define GRAL_DROP_DRIFT_MAX_ITER 1000000u
 __device__ void RecordDeviceError(int code,int phase,int id){if(atomicCAS(&P.DeviceError,0,code)==0){P.DeviceErrorPhase=phase;P.DeviceErrorParticle=id;}}
@@ -755,9 +754,9 @@ if (m_z_3 % 2422800383u == 0u) m_z_3 = 2232121u;
 zahl1_4 = 0;
 u_rg_5 = 0;
 u1_rg_6 = 0;
-xcoord_nteil_7 = P.Xcoord[ParticleIndex(nteil)];if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;
-ycoord_nteil_8 = P.YCoord[ParticleIndex(nteil)];if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;
-zcoord_nteil_9 = P.ZCoord[ParticleIndex(nteil)];if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;
+xcoord_nteil_7 = P.Xcoord[ParticleIndex(nteil)];
+ycoord_nteil_8 = P.YCoord[ParticleIndex(nteil)];
+zcoord_nteil_9 = P.ZCoord[ParticleIndex(nteil)];
 masse_10 = P.ParticleMass[ParticleIndex(nteil)];
 SG_nteil_11 = P.ParticleSG[ParticleIndex(nteil)];
 for (i_12 = 0;i_12 < P.SourceGroups.size();i_12++) {
@@ -807,7 +806,7 @@ ConcGridYHalf_51 = P.GralDy * 0.5F;
 IFQ_52 = P.TS_Count;
 Kenn_NTeil_53 = P.ParticleSource[ParticleIndex(nteil)];
 if (Kenn_NTeil_53 == 0) {
-{if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;if(P.TraceEnabled && P.Trace.p && nteil<P.Trace.d[0]){P.Trace(nteil,0)=xcoord_nteil_7;P.Trace(nteil,1)=ycoord_nteil_8;P.Trace(nteil,2)=zcoord_nteil_9;P.Trace(nteil,3)=auszeit_87;P.Trace(nteil,4)=timestep_number_76;P.Trace(nteil,5)=m_w_2;P.Trace(nteil,6)=m_z_3;P.Trace(nteil,7)=masse_10;}
+{if(P.TraceEnabled && P.Trace.p && nteil<P.Trace.d[0]){P.Trace(nteil,0)=xcoord_nteil_7;P.Trace(nteil,1)=ycoord_nteil_8;P.Trace(nteil,2)=zcoord_nteil_9;P.Trace(nteil,3)=auszeit_87;P.Trace(nteil,4)=timestep_number_76;P.Trace(nteil,5)=m_w_2;P.Trace(nteil,6)=m_z_3;P.Trace(nteil,7)=masse_10;}
 return ;}
 }
 SourceType_54 = P.SourceType[ParticleIndex(nteil)];
@@ -859,8 +858,8 @@ AHintold_82 = 0;
 varw_83 = 0;
 xturb_84 = 0;
 yturb_85 = 0;
-idt_86 = 0.1F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;
-auszeit_87 = 0;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;
+idt_86 = 0.1F;
+auszeit_87 = 0;
 tunfak_88 = (1);
 DSIGUDX_89 = 0;DSIGUDY_90 = 0;DSIGVDX_91 = 0;DSIGVDY_92 = 0;
 DUDX_93 = 0;DVDX_94 = 0;DUDY_95 = 0;DVDY_96 = 0;
@@ -934,7 +933,7 @@ m_w_2 = 18000 * (m_w_2 & 65535) + (m_w_2 >> 16);
 u_rg_5 = (m_z_3 << 16) + m_w_2;
 zahl1_4 = sqrtf((float)(-2.0f * logf((float)(u1_rg_6)))) * sinf((float)((6.2831855f) * (u_rg_5 + 1) * (2.3283064E-10f)));
 velyold_123 = V0int_121 * zahl1_4;
-{auszeit_87 = 0;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{auszeit_87 = 0;}
 if (SourceType_54 == (0)) {
 horPSExitVelocity_35 = P.PS_HorExitVel[Kenn_NTeil_53];
 exitVelocity_125 = P.PS_V[Kenn_NTeil_53];
@@ -980,9 +979,9 @@ horPSExitVertical_32 = 0;
 exitTemperature_128 = 273 + (exitTemperature_128 - 273) * gral_min((float)(1),(float)(0.2F + horPSExitRnd_31));
 }
 horPSExitDistance_29 = 0.1F;
-{xcoord_nteil_7 += P.PS_D[Kenn_NTeil_53] * 0.5 * cos((double)(P.PS_HorExitDir[Kenn_NTeil_53] * (3.1415927f) / 180)) * exrnd_130;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
-{ycoord_nteil_8 += P.PS_D[Kenn_NTeil_53] * 0.5 * sin((double)(P.PS_HorExitDir[Kenn_NTeil_53] * (3.1415927f) / 180)) * exrnd_130;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
-{zcoord_nteil_9 = gral_max((float)(AHint_81 + 0.1F + gral_abs((float)(P.PS_D[Kenn_NTeil_53] * 0.5F * zahl1_4))),(float)(zcoord_nteil_9 + P.PS_D[Kenn_NTeil_53] * 0.5F * zahl1_4));if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 += P.PS_D[Kenn_NTeil_53] * 0.5 * cos((double)(P.PS_HorExitDir[Kenn_NTeil_53] * (3.1415927f) / 180)) * exrnd_130;}
+{ycoord_nteil_8 += P.PS_D[Kenn_NTeil_53] * 0.5 * sin((double)(P.PS_HorExitDir[Kenn_NTeil_53] * (3.1415927f) / 180)) * exrnd_130;}
+{zcoord_nteil_9 = gral_max((float)(AHint_81 + 0.1F + gral_abs((float)(P.PS_D[Kenn_NTeil_53] * 0.5F * zahl1_4))),(float)(zcoord_nteil_9 + P.PS_D[Kenn_NTeil_53] * 0.5F * zahl1_4));}
 exitVelocity_125 = horPSExitVelocity_35 * 0.019128F;
 exitDiameter_127 = exitDiameter_127 * 7.2305086F;
 horPSPlumeVelocity_36 = horPSExitVelocity_35;
@@ -1128,7 +1127,7 @@ ObLength_168 = 0;
 Ustern_169 = 0;
 MOVE_FORWARD: ;
 while (timestep_number_76 <= Max_Loops_101) {
-{++timestep_number_76;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;if(trace_slot>=0 && timestep_number_76<=P.StepTrace.d[1]){P.StepTrace[trace_slot][timestep_number_76-1][0]=xcoord_nteil_7;P.StepTrace[trace_slot][timestep_number_76-1][1]=ycoord_nteil_8;P.StepTrace[trace_slot][timestep_number_76-1][2]=zcoord_nteil_9;P.StepTrace[trace_slot][timestep_number_76-1][3]=auszeit_87;P.StepTrace[trace_slot][timestep_number_76-1][4]=idt_86;P.StepTrace[trace_slot][timestep_number_76-1][5]=velxold_122;P.StepTrace[trace_slot][timestep_number_76-1][6]=velyold_123;P.StepTrace[trace_slot][timestep_number_76-1][7]=velzold_124;P.StepTrace[trace_slot][timestep_number_76-1][8]=m_w_2;P.StepTrace[trace_slot][timestep_number_76-1][9]=m_z_3;P.StepTrace[trace_slot][timestep_number_76-1][10]=FFCellX_39;P.StepTrace[trace_slot][timestep_number_76-1][11]=FFCellY_40;P.StepTrace[trace_slot][timestep_number_76-1][12]=IndexK_114;P.StepTrace[trace_slot][timestep_number_76-1][13]=ObLength_168;P.StepTrace[trace_slot][timestep_number_76-1][14]=roughZ0_118;P.StepTrace[trace_slot][timestep_number_76-1][15]=windge_115;}}
+{++timestep_number_76;if(trace_slot>=0 && timestep_number_76<=P.StepTrace.d[1]){P.StepTrace[trace_slot][timestep_number_76-1][0]=xcoord_nteil_7;P.StepTrace[trace_slot][timestep_number_76-1][1]=ycoord_nteil_8;P.StepTrace[trace_slot][timestep_number_76-1][2]=zcoord_nteil_9;P.StepTrace[trace_slot][timestep_number_76-1][3]=auszeit_87;P.StepTrace[trace_slot][timestep_number_76-1][4]=idt_86;P.StepTrace[trace_slot][timestep_number_76-1][5]=velxold_122;P.StepTrace[trace_slot][timestep_number_76-1][6]=velyold_123;P.StepTrace[trace_slot][timestep_number_76-1][7]=velzold_124;P.StepTrace[trace_slot][timestep_number_76-1][8]=m_w_2;P.StepTrace[trace_slot][timestep_number_76-1][9]=m_z_3;P.StepTrace[trace_slot][timestep_number_76-1][10]=FFCellX_39;P.StepTrace[trace_slot][timestep_number_76-1][11]=FFCellY_40;P.StepTrace[trace_slot][timestep_number_76-1][12]=IndexK_114;P.StepTrace[trace_slot][timestep_number_76-1][13]=ObLength_168;P.StepTrace[trace_slot][timestep_number_76-1][14]=roughZ0_118;P.StepTrace[trace_slot][timestep_number_76-1][15]=windge_115;}}
 xcoord_nteil_Prev_170 = xcoord_nteil_7;
 ycoord_nteil_Prev_171 = ycoord_nteil_8;
 zcoord_nteil_Prev_172 = zcoord_nteil_9;
@@ -1206,16 +1205,16 @@ curt_179 = 3.5F * varw2_177;
 if (tunfak_88 == (1)) {
 idt_86 = 0.1F * varw_83 / eps_175;
 if (SourceType_54 == (0) && auszeit_87 < 20) {
-{idt_86 = gral_min((float)(0.2F),(float)(idt_86));if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 = gral_min((float)(0.2F),(float)(idt_86));}
 if (horPSExitDistance_29 > 0 && auszeit_87 < 3) {
-{idt_86 = gral_round((float)(gral_max((float)(0.01F),(float)(gral_min((float)(0.2F),(float)(0.5F / (5 + horPSPlumeVelocity_36)))))),(int)(3));if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 = gral_round((float)(gral_max((float)(0.01F),(float)(gral_min((float)(0.2F),(float)(0.5F / (5 + horPSPlumeVelocity_36)))))),(int)(3));}
 }
 }
 idtt_186 = 0.5F * gral_min((float)(P.GralDx),(float)(FFGridX_41)) / (windge_115 + sqrtf((float)(Program_Pow2(velxold_122) + Program_Pow2(velyold_123))));
 if (idtt_186 < idt_86) {
-{idt_86 = idtt_186;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 = idtt_186;}
 }
-{gral_clamp((float)(idt_86),(float)(0.1F),(float)(4.0f));if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{gral_clamp((float)(idt_86),(float)(0.1F),(float)(4.0f));}
 }
 dummyterm_187 = curt_179 - Program_Pow2(skew_178) / varw_83 - varw2_177;
 if (dummyterm_187 == 0) {
@@ -1312,19 +1311,19 @@ DeltaZHurley_26 = gral_max((float)(0),(float)((wpmittel_200 + sigmawpHurley_198 
 MeanHurley_19 += DeltaZHurley_26;
 }
 if (tunfak_88 == (1)) {
-{zcoord_nteil_9 = zcoord_nteil_9 + (velz_192 + UZint_113) * idt_86 + DeltaZHurley_26;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = zcoord_nteil_9 + (velz_192 + UZint_113) * idt_86 + DeltaZHurley_26;}
 }
 velzold_124 = velz_192;
 } else {
 if (tunfak_88 == (1)) {
-{zcoord_nteil_9 += (velz_192 + UZint_113) * idt_86;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 += (velz_192 + UZint_113) * idt_86;}
 }
 velzold_124 = velz_192;
 }
 if (Deposition_type_13 > (0) && vsed_14 > 0) {
-{zcoord_nteil_9 -= vsed_14 * idt_86;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 -= vsed_14 * idt_86;}
 }
-{auszeit_87 += idt_86;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{auszeit_87 += idt_86;}
 if (ISTATIONAER_68 == (0)) {
 if (auszeit_87 >= tgesamt_78) {
 if (SourceType_54 == (0)) {
@@ -1367,7 +1366,7 @@ if (horPSPlumeVelocity_36 > 0.5F) {
 horPSExitDeltaX_33 = -horPSPlumeVelocity_36 * idt_86 * sinf((float)(horPSExitDirection_30));
 horPSExitDeltaY_34 = -horPSPlumeVelocity_36 * idt_86 * cosf((float)(horPSExitDirection_30));
 if (horPSExitDistance_29 < 6 * psDiameter_203) {
-{zcoord_nteil_9 = zcoord_nteil_9 + horPSPlumeVelocity_36 * idt_86 * horPSExitVertical_32 * 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = zcoord_nteil_9 + horPSPlumeVelocity_36 * idt_86 * horPSExitVertical_32 * 0.01F;}
 }
 horPSExitDistance_29 += horPSPlumeVelocity_36 * idt_86;
 } else {
@@ -1424,8 +1423,8 @@ velxold_122 = velx_214;
 velyold_123 = vely_215;
 }
 if (tunfak_88 == (1)) {
-{xcoord_nteil_7 += idt_86 * UXint_111 + corx_201 + horPSExitDeltaX_33;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
-{ycoord_nteil_8 += idt_86 * UYint_112 + cory_202 + horPSExitDeltaY_34;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 += idt_86 * UXint_111 + corx_201 + horPSExitDeltaX_33;}
+{ycoord_nteil_8 += idt_86 * UYint_112 + cory_202 + horPSExitDeltaY_34;}
 }
 if (tunfak_88 == (0)) {
 if ((gral_abs((double)(UXint_111 - tunx_137)) < 0.01) && (gral_abs((double)(UYint_112 - tuny_138)) < 0.01)) {
@@ -1469,10 +1468,10 @@ goto MOVE_FORWARD;
 }
 UXint_111 = UXneu_151;
 UYint_112 = UYneu_152;
-{idt_86 = P.GralDx / (tunpa_116 + 0.05F) * 0.5F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 = P.GralDx / (tunpa_116 + 0.05F) * 0.5F;}
 gral_clamp((float)(idt_86),(float)(0.05F),(float)(0.5F));
 tunpao_216 = tunpa_116;
-{auszeit_87 += idt_86;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{auszeit_87 += idt_86;}
 windpa_217 = (float)((UXint_111 * tuncos_134 + UYint_112 * tunsin_135));
 windqu_218 = (float)((-UXint_111 * tunsin_135 + UYint_112 * tuncos_134));
 if (windqu_218 == 0) {
@@ -1526,15 +1525,15 @@ zturb_145 = buoy_155 * idt_86;
 if (TS_ExitTemperature_162 >= 0) {
 zturb_145 = buoy_155 * idt_86 + velz_192 * idt_86;
 }
-{zcoord_nteil_9 += zturb_145;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 += zturb_145;}
 xoldy_227 = xneuy_143;
 yoldy_228 = yneuy_144;
 xneuy_143 = xtun_17 - yteilchen_141 * tunsin_135;
 yneuy_144 = ytun_18 + yteilchen_141 * tuncos_134;
 xturb_84 += corx_201;
 yturb_85 += cory_202;
-{xcoord_nteil_7 = xtun_17 - yneu_142 * tunsin_135 + xturb_84;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
-{ycoord_nteil_8 = ytun_18 + yneu_142 * tuncos_134 + yturb_85;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 = xtun_17 - yneu_142 * tunsin_135 + xturb_84;}
+{ycoord_nteil_8 = ytun_18 + yneu_142 * tuncos_134 + yturb_85;}
 xsi_97 = xcoord_nteil_7 - IKOOAGRAL_61;
 eta_98 = ycoord_nteil_8 - JKOOAGRAL_62;
 xsi1_99 = xcoord_nteil_7 - P.GrammWest;
@@ -1573,7 +1572,7 @@ goto REMOVE_PARTICLE;
 }
 if (topo_69 == (1)) {
 if ((P.CUTK[FFCellX_39][FFCellY_40] + P.CUTK[FFCellXPrev_173][FFCellYPrev_174]) == 0) {
-{zcoord_nteil_9 += (AHint_81 - AHintold_82);if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 += (AHint_81 - AHintold_82);}
 }
 }
 geschwneu_161 = (float)((sqrt((double)(Program_Pow2(xneuy_143 - xoldy_227) + Program_Pow2(yneuy_144 - yoldy_228))) / idt_86));
@@ -1581,9 +1580,9 @@ if (geschwalt_160 == 0) {
 geschwalt_160 = geschwneu_161;
 }
 faktzeit_159 = Program_FloatMax(faktzeit_159 * geschwneu_161 / (geschwalt_160 + 0.001F),0.001F);
-{idt_86 *= faktzeit_159;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 *= faktzeit_159;}
 if (idt_86 < 0.01) {
-{idt_86 = 0.01f;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 = 0.01f;}
 }
 geschwalt_160 = geschwneu_161;
 if (topo_69 == (1)) {
@@ -1699,7 +1698,7 @@ goto MOVE_FORWARD;
 }
 }
 if (PartHeightAboveTerrain_109 <= 0) {
-{zcoord_nteil_9 = AHint_81 - PartHeightAboveTerrain_109 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = AHint_81 - PartHeightAboveTerrain_109 + 0.01F;}
 PartHeightAboveTerrain_109 = zcoord_nteil_9 - AHint_81;
 PartHeightAboveBuilding_110 = PartHeightAboveTerrain_109;
 if (Deposition_type_13 > (0) && depo_reflection_counter_166 >= 0) {
@@ -1764,9 +1763,9 @@ faktor_254 = 0.0f;
 faktor_254 *= 0.5F;
 }
 if (faktor_254 > 0) {
-{zcoord_nteil_9 += (AHK_252 - P.AHK[FFCellXPrev_173][FFCellYPrev_174]) * faktor_254 * 0.8F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 += (AHK_252 - P.AHK[FFCellXPrev_173][FFCellYPrev_174]) * faktor_254 * 0.8F;}
 if (zcoord_nteil_9 < P.AHK[FFCellX_39][FFCellY_40]) {
-{zcoord_nteil_9 = P.AHK[FFCellX_39][FFCellY_40] + 0.2F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = P.AHK[FFCellX_39][FFCellY_40] + 0.2F;}
 }
 TerrainStepAllowed_167 = false;
 }
@@ -1792,29 +1791,29 @@ IndexK_114 = Zeitschleife_BinarySearch(zcoord_nteil_9 - P.AHMIN);
 if (IndexK_114 <= P.KKART[FFCellX_39][FFCellY_40]) {
 if ((IndexK_114 > P.KKART[FFCellXPrev_173][FFCellYPrev_174]) && (IndexK_114 == IndexKOld_256)) {
 if (idt_86 * UXint_111 + corx_201 <= 0) {
-{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + FFCellX_39 * FFGridX_41) - xcoord_nteil_7 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + FFCellX_39 * FFGridX_41) - xcoord_nteil_7 + 0.01F;}
 } else {
-{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + (FFCellX_39 - 1) * FFGridX_41) - xcoord_nteil_7 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + (FFCellX_39 - 1) * FFGridX_41) - xcoord_nteil_7 - 0.01F;}
 }
 if (idt_86 * UYint_112 + cory_202 <= 0) {
-{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + FFCellY_40 * FFGridY_42) - ycoord_nteil_8 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + FFCellY_40 * FFGridY_42) - ycoord_nteil_8 + 0.01F;}
 } else {
-{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + (FFCellY_40 - 1) * FFGridY_42) - ycoord_nteil_8 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + (FFCellY_40 - 1) * FFGridY_42) - ycoord_nteil_8 - 0.01F;}
 }
 } else if ((IndexK_114 > P.KKART[FFCellXPrev_173][FFCellY_40]) && (IndexK_114 == IndexKOld_256)) {
 if (idt_86 * UXint_111 + corx_201 <= 0) {
-{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + FFCellX_39 * FFGridX_41) - xcoord_nteil_7 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + FFCellX_39 * FFGridX_41) - xcoord_nteil_7 + 0.01F;}
 } else {
-{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + (FFCellX_39 - 1) * FFGridX_41) - xcoord_nteil_7 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 = 2 * (IKOOAGRAL_61 + (FFCellX_39 - 1) * FFGridX_41) - xcoord_nteil_7 - 0.01F;}
 }
 } else if ((IndexK_114 > P.KKART[FFCellX_39][FFCellYPrev_174]) && (IndexK_114 == IndexKOld_256)) {
 if (idt_86 * UYint_112 + cory_202 <= 0) {
-{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + FFCellY_40 * FFGridY_42) - ycoord_nteil_8 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + FFCellY_40 * FFGridY_42) - ycoord_nteil_8 + 0.01F;}
 } else {
-{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + (FFCellY_40 - 1) * FFGridY_42) - ycoord_nteil_8 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{ycoord_nteil_8 = 2 * (JKOOAGRAL_62 + (FFCellY_40 - 1) * FFGridY_42) - ycoord_nteil_8 - 0.01F;}
 }
 } else if ((IndexKOld_256 > P.KKART[FFCellX_39][FFCellY_40]) && (FFCellX_39 == FFCellXPrev_173) && (FFCellY_40 == FFCellYPrev_174)) {
-{zcoord_nteil_9 = 2 * P.AHK[FFCellX_39][FFCellY_40] - zcoord_nteil_9 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = 2 * P.AHK[FFCellX_39][FFCellY_40] - zcoord_nteil_9 + 0.01F;}
 PartHeightAboveTerrain_109 = zcoord_nteil_9 - AHint_81;
 if (topo_69 == (1)) {
 PartHeightAboveBuilding_110 = PartHeightAboveTerrain_109;
@@ -1852,7 +1851,7 @@ goto REMOVE_PARTICLE;
 }
 }
 terrainHeight_267 = P.AHK[FFCellX_39][FFCellY_40];
-{zcoord_nteil_9 = gral_max((float)(terrainHeight_267),(float)(2 * terrainHeight_267 - zcoord_nteil_9 + 0.01F));if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = gral_max((float)(terrainHeight_267),(float)(2 * terrainHeight_267 - zcoord_nteil_9 + 0.01F));}
 } else {
 if (Deposition_type_13 > (0) && depo_reflection_counter_166 >= 0) {
 Pd1_268 = Zeitschleife_Pd(varw_83,vsed_14,vdep_15,Deposition_type_13,FFCellX_39,FFCellY_40);
@@ -1871,12 +1870,12 @@ goto REMOVE_PARTICLE;
 }
 if (tunpa_116 == 0) {
 if (P.CUTK[FFCellX_39][FFCellY_40] < 1 && (P.AHK[FFCellX_39][FFCellY_40] - zcoord_nteil_9) < 10) {
-{zcoord_nteil_9 = P.AHK[FFCellX_39][FFCellY_40] + gral_abs((float)((idt_86 * (UZint_113 + velz_192) + DeltaZHurley_26)));if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = P.AHK[FFCellX_39][FFCellY_40] + gral_abs((float)((idt_86 * (UZint_113 + velz_192) + DeltaZHurley_26)));}
 } else {
 deltax_273 = xcoord_nteil_7 - xcoord_nteil_Prev_170;
 deltay_274 = ycoord_nteil_8 - ycoord_nteil_Prev_171;
-{xcoord_nteil_7 -= deltax_273 * 1.05;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
-{ycoord_nteil_8 -= deltay_274 * 1.05;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{xcoord_nteil_7 -= deltax_273 * 1.05;}
+{ycoord_nteil_8 -= deltay_274 * 1.05;}
 FFCellXPrev_173 = FFCellX_39;
 FFCellYPrev_174 = FFCellY_40;
 FFCellX_39 = cs_cast<int>(((xcoord_nteil_7 - IKOOAGRAL_61) * FFGridXRez_43)) + 1;
@@ -1886,7 +1885,7 @@ goto REMOVE_PARTICLE;
 }
 newTerrainHeight_275 = P.AHK[FFCellX_39][FFCellY_40];
 if (zcoord_nteil_9 < newTerrainHeight_275) {
-{zcoord_nteil_9 = 2 * newTerrainHeight_275 - zcoord_nteil_9;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = 2 * newTerrainHeight_275 - zcoord_nteil_9;}
 }
 if (topo_69 == (1)) {
 PartHeightAboveTerrain_109 = zcoord_nteil_9 - newTerrainHeight_275;
@@ -1938,7 +1937,7 @@ u_rg_5 = (m_z_3 << 16) + m_w_2;
 zahl1_4 = sqrtf((float)(-2.0f * logf((float)(u1_rg_6)))) * sinf((float)((6.2831855f) * (u_rg_5 + 1) * (2.3283064E-10f)));
 velyold_123 = gral_abs((float)(zahl1_4 * V0int_121 * 3)) * vorzeichen1_277;
 back_247 = 1;
-{idt_86 = Program_FloatMax(idt_86 * 0.5F,0.05F);if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{idt_86 = Program_FloatMax(idt_86 * 0.5F,0.05F);}
 if (tunpa_116 > 0) {
 goto MOVE_FORWARD;
 }
@@ -1977,13 +1976,13 @@ if ((PartHeightAboveBuilding_110 >= blh_55) && (ObL_117 < 0)) {
 if ((topo_69 == (1)) && (UZint_113 >= 0) && P.ISTATIONAER != (0)) {
 goto REMOVE_PARTICLE;
 }
-{zcoord_nteil_9 = blh_55 + AHint_81 - (PartHeightAboveBuilding_110 - blh_55) - 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = blh_55 + AHint_81 - (PartHeightAboveBuilding_110 - blh_55) - 0.01F;}
 velzold_124 = -velzold_124;
 PartHeightAboveTerrain_109 = zcoord_nteil_9 - AHint_81;
 PartHeightAboveBuilding_110 = PartHeightAboveTerrain_109;
 }
 if (PartHeightAboveTerrain_109 <= 0) {
-{zcoord_nteil_9 = AHint_81 - PartHeightAboveTerrain_109 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 = AHint_81 - PartHeightAboveTerrain_109 + 0.01F;}
 velzold_124 = -velzold_124;
 PartHeightAboveTerrain_109 = zcoord_nteil_9 - AHint_81;
 PartHeightAboveBuilding_110 = PartHeightAboveTerrain_109;
@@ -2027,7 +2026,7 @@ zko_286 = cs_cast<int>(((zcoordRelative_285 - AHint_81) * ConcGridZRez_49));
 if (iko_283 == ConcCellPrevX_103 && jko_284 == ConcCellPrevY_104 && zko_286 == ConcCellPrevZ_105) {
 ConcCellTime_107 += idt_86;
 if (ConcCellTime_107 > ConcCellTimeMax_106 - 10) {
-{zcoord_nteil_9 += 2;if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;}
+{zcoord_nteil_9 += 2;}
 if (ConcCellTime_107 > ConcCellTimeMax_106) {
 goto REMOVE_PARTICLE;
 }
@@ -2265,7 +2264,7 @@ atomic_max(&(P.ReceptorParticleMaxConc[ii_334][SG_nteil_11]),recconc_335);
 }
 }
 }
-{if(!CheckParticleFinite(xcoord_nteil_7,ycoord_nteil_8,zcoord_nteil_9,auszeit_87,idt_86,1,nteil))return;if(P.TraceEnabled && P.Trace.p && nteil<P.Trace.d[0]){P.Trace(nteil,0)=xcoord_nteil_7;P.Trace(nteil,1)=ycoord_nteil_8;P.Trace(nteil,2)=zcoord_nteil_9;P.Trace(nteil,3)=auszeit_87;P.Trace(nteil,4)=timestep_number_76;P.Trace(nteil,5)=m_w_2;P.Trace(nteil,6)=m_z_3;P.Trace(nteil,7)=masse_10;}
+{if(P.TraceEnabled && P.Trace.p && nteil<P.Trace.d[0]){P.Trace(nteil,0)=xcoord_nteil_7;P.Trace(nteil,1)=ycoord_nteil_8;P.Trace(nteil,2)=zcoord_nteil_9;P.Trace(nteil,3)=auszeit_87;P.Trace(nteil,4)=timestep_number_76;P.Trace(nteil,5)=m_w_2;P.Trace(nteil,6)=m_z_3;P.Trace(nteil,7)=masse_10;}
 return ;}
 }
 
@@ -2559,24 +2558,24 @@ m_z_8 = 36969 * (m_z_8 & 65535) + (m_z_8 >> 16);
 m_w_7 = 18000 * (m_w_7 & 65535) + (m_w_7 >> 16);
 u_rg_10 = (m_z_8 << 16) + m_w_7;
 u1_rg_11 = -1 + (u_rg_10 + 1) * (2.3283064E-10f) * 2;
-xcoord_nteil_12 = P.IKOOAGRAL + i * P.DXK - (0.5 + u1_rg_11 * 0.5) * P.DXK;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;
+xcoord_nteil_12 = P.IKOOAGRAL + i * P.DXK - (0.5 + u1_rg_11 * 0.5) * P.DXK;
 m_z_8 = 36969 * (m_z_8 & 65535) + (m_z_8 >> 16);
 m_w_7 = 18000 * (m_w_7 & 65535) + (m_w_7 >> 16);
 u_rg_10 = (m_z_8 << 16) + m_w_7;
 u1_rg_11 = -1 + (u_rg_10 + 1) * (2.3283064E-10f) * 2;
-ycoord_nteil_13 = P.JKOOAGRAL + j * P.DYK - (0.5 + u1_rg_11 * 0.5) * P.DYK;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;
+ycoord_nteil_13 = P.JKOOAGRAL + j * P.DYK - (0.5 + u1_rg_11 * 0.5) * P.DYK;
 m_z_8 = 36969 * (m_z_8 & 65535) + (m_z_8 >> 16);
 m_w_7 = 18000 * (m_w_7 & 65535) + (m_w_7 >> 16);
 u_rg_10 = (m_z_8 << 16) + m_w_7;
 u1_rg_11 = -1 + (u_rg_10 + 1) * (2.3283064E-10f) * 2;
-zcoord_nteil_14 = (float)((P.AHK[i][j] + P.HoKartTrans[k] - (0.5 + u1_rg_11 * 0.4) * P.DZK_Trans[k]));if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;
+zcoord_nteil_14 = (float)((P.AHK[i][j] + P.HoKartTrans[k] - (0.5 + u1_rg_11 * 0.4) * P.DZK_Trans[k]));
 Vol_ratio_15 = P.DXK * P.DYK * P.DZK_Trans[k] / P.GridVolume;
 Vol_cart_16 = P.DXK * P.DYK * P.DZK_Trans[k];
 Area_cart_17 = P.DXK * P.DYK;
 masse_18 = TransConcentration * Vol_ratio_15 / P.TAUS;
 mass_real_19 = TransConcentration * Vol_cart_16 / P.TAUS;
 if (mass_real_19 == 0 || masse_18 == 0) {
-{if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;if(trace_slot>=0){P.ResidualTrace(trace_slot,7)=xcoord_nteil_12;P.ResidualTrace(trace_slot,8)=ycoord_nteil_13;P.ResidualTrace(trace_slot,9)=zcoord_nteil_14;P.ResidualTrace(trace_slot,10)=auszeit_63;P.ResidualTrace(trace_slot,11)=timestep_number_104;P.ResidualTrace(trace_slot,12)=m_w_7;P.ResidualTrace(trace_slot,13)=m_z_8;P.ResidualTrace(trace_slot,14)=masse_18;P.ResidualTrace(trace_slot,15)=1;}
+{if(trace_slot>=0){P.ResidualTrace(trace_slot,7)=xcoord_nteil_12;P.ResidualTrace(trace_slot,8)=ycoord_nteil_13;P.ResidualTrace(trace_slot,9)=zcoord_nteil_14;P.ResidualTrace(trace_slot,10)=auszeit_63;P.ResidualTrace(trace_slot,11)=timestep_number_104;P.ResidualTrace(trace_slot,12)=m_w_7;P.ResidualTrace(trace_slot,13)=m_z_8;P.ResidualTrace(trace_slot,14)=masse_18;P.ResidualTrace(trace_slot,15)=1;}
 return ;}
 }
 SG_nteil_20 = SG;
@@ -2624,8 +2623,8 @@ GrammCellX_56 = 1;GrammCellY_57 = 1;
 AHint_58 = 0;
 AHintold_59 = 0;
 varw_60 = 0;sigmauhurly_61 = 0;
-idt_62 = 0.1F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;
-auszeit_63 = 0;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;
+idt_62 = 0.1F;
+auszeit_63 = 0;
 DSIGUDX_64 = 0;DSIGUDY_65 = 0;DSIGVDX_66 = 0;DSIGVDY_67 = 0;
 DUDX_68 = 0;DVDX_69 = 0;DUDY_70 = 0;DVDY_71 = 0;
 decay_rate_72 = P.DecayRate[P.SourceGroups[SG]];
@@ -2634,7 +2633,7 @@ eta_74 = ycoord_nteil_13 - JKOOAGRAL_44;
 xsi1_75 = xcoord_nteil_12 - P.GrammWest;
 eta1_76 = ycoord_nteil_13 - P.GrammSouth;
 if ((eta_74 <= P.EtaMinGral) || (xsi_73 <= P.XsiMinGral) || (eta_74 >= P.EtaMaxGral) || (xsi_73 >= P.XsiMaxGral)) {
-{if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;if(trace_slot>=0){P.ResidualTrace(trace_slot,7)=xcoord_nteil_12;P.ResidualTrace(trace_slot,8)=ycoord_nteil_13;P.ResidualTrace(trace_slot,9)=zcoord_nteil_14;P.ResidualTrace(trace_slot,10)=auszeit_63;P.ResidualTrace(trace_slot,11)=timestep_number_104;P.ResidualTrace(trace_slot,12)=m_w_7;P.ResidualTrace(trace_slot,13)=m_z_8;P.ResidualTrace(trace_slot,14)=masse_18;P.ResidualTrace(trace_slot,15)=1;}
+{if(trace_slot>=0){P.ResidualTrace(trace_slot,7)=xcoord_nteil_12;P.ResidualTrace(trace_slot,8)=ycoord_nteil_13;P.ResidualTrace(trace_slot,9)=zcoord_nteil_14;P.ResidualTrace(trace_slot,10)=auszeit_63;P.ResidualTrace(trace_slot,11)=timestep_number_104;P.ResidualTrace(trace_slot,12)=m_w_7;P.ResidualTrace(trace_slot,13)=m_z_8;P.ResidualTrace(trace_slot,14)=masse_18;P.ResidualTrace(trace_slot,15)=1;}
 return ;}
 }
 Max_Reflections_77 = gral_min((int)(100000),(int)(P.NII * P.NJJ * 2));
@@ -2705,7 +2704,7 @@ m_w_7 = 18000 * (m_w_7 & 65535) + (m_w_7 >> 16);
 u_rg_10 = (m_z_8 << 16) + m_w_7;
 zahl1_9 = sqrtf((float)(-2.0f * logf((float)(u1_rg_11)))) * sinf((float)((6.2831855f) * (u_rg_10 + 1) * (2.3283064E-10f)));
 velyold_100 = V0int_98 * zahl1_9;
-{auszeit_63 = 0;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{auszeit_63 = 0;}
 depo_reflection_counter_102 = -5;
 reflexion_number_103 = 0;
 timestep_number_104 = 0;
@@ -2714,7 +2713,7 @@ ObLength_106 = 0;
 Ustern_107 = 0;
 MOVE_FORWARD: ;
 while (timestep_number_104 <= Max_Loops_105) {
-{++timestep_number_104;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{++timestep_number_104;}
 xcoord_nteil_Prev_108 = xcoord_nteil_12;
 ycoord_nteil_Prev_109 = ycoord_nteil_13;
 zcoord_nteil_Prev_110 = zcoord_nteil_14;
@@ -2795,10 +2794,10 @@ curt_117 = 3.5F * varw2_115;
 idt_62 = 0.1F * varw_60 / eps_113;
 idtt_124 = 0.5F * gral_min((float)(P.GralDx),(float)(FFGridX_25)) / (windge_92 + sqrtf((float)(Program_Pow2(velxold_99) + Program_Pow2(velyold_100))));
 if (idtt_124 < idt_62) {
-{idt_62 = idtt_124;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{idt_62 = idtt_124;}
 }
-{gral_clamp((float)(idt_62),(float)(0.1F),(float)(4.0f));if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
-{auszeit_63 += idt_62;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{gral_clamp((float)(idt_62),(float)(0.1F),(float)(4.0f));}
+{auszeit_63 += idt_62;}
 if (auszeit_63 >= P.DispTimeSum) {
 TransientConcentration_Conz5dZeitschleifeTransient(reflexion_flag_49,zcoord_nteil_14,AHint_58,mass_real_19,Area_cart_17,idt_62,xsi_73,eta_74,SG_nteil_20);
 goto REMOVE_PARTICLE;
@@ -2843,10 +2842,10 @@ gral_clamp((float)(velz_130),(float)(-3),(float)(3));
 } else {
 gral_clamp((float)(velz_130),(float)(-5),(float)(5));
 }
-{zcoord_nteil_14 += (velz_130 + UZint_90) * idt_62;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 += (velz_130 + UZint_90) * idt_62;}
 velzold_101 = velz_130;
 if (Deposition_type_21 > 0 && vsed_22 > 0) {
-{zcoord_nteil_14 -= vsed_22 * idt_62;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 -= vsed_22 * idt_62;}
 }
 if (zcoord_nteil_14 >= P.ModelTopHeight) {
 goto REMOVE_PARTICLE;
@@ -2900,8 +2899,8 @@ velx_143 = velxold_99 - (termp_136 * velxold_99 + termq_137 * velyold_100) * idt
 vely_144 = velyold_100 - (termp_136 * velyold_100 - termq_137 * velxold_99) * idt_62 + V0int_98 * sqrtf((float)(2 * termp_136 * idt_62)) * zuff2_140 + idt_62 * (DVDX_69 * velX_141 + DVDY_71 * velY_142 + V0int_98 * DSIGVDY_67) + idt_62 * (velyold_100 / V0int_98 * (DSIGVDX_66 * velX_141 + DSIGVDY_67 * velY_142));
 velxold_99 = velx_143;
 velyold_100 = vely_144;
-{xcoord_nteil_12 += idt_62 * UXint_88 + corx_132;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
-{ycoord_nteil_13 += idt_62 * UYint_89 + cory_133;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{xcoord_nteil_12 += idt_62 * UXint_88 + corx_132;}
+{ycoord_nteil_13 += idt_62 * UYint_89 + cory_133;}
 reflexion_flag_49 = (0);
 back_145 = 1;
 while (back_145 == 1) {
@@ -2938,29 +2937,29 @@ IndexK_91 = Zeitschleife_BinarySearch(zcoord_nteil_14 - P.AHMIN);
 if (IndexK_91 <= P.KKART[FFCellX_84][FFCellY_85]) {
 if ((IndexK_91 > P.KKART[FFCellXPrev_111][FFCellYPrev_112]) && (IndexK_91 == IndexKOld_146)) {
 if (idt_62 * UXint_88 + corx_132 <= 0) {
-{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + FFCellX_84 * FFGridX_25) - xcoord_nteil_12 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + FFCellX_84 * FFGridX_25) - xcoord_nteil_12 + 0.01F;}
 } else {
-{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + (FFCellX_84 - 1) * FFGridX_25) - xcoord_nteil_12 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + (FFCellX_84 - 1) * FFGridX_25) - xcoord_nteil_12 - 0.01F;}
 }
 if (idt_62 * UYint_89 + cory_133 <= 0) {
-{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + FFCellY_85 * FFGridY_26) - ycoord_nteil_13 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + FFCellY_85 * FFGridY_26) - ycoord_nteil_13 + 0.01F;}
 } else {
-{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + (FFCellY_85 - 1) * FFGridY_26) - ycoord_nteil_13 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + (FFCellY_85 - 1) * FFGridY_26) - ycoord_nteil_13 - 0.01F;}
 }
 } else if ((IndexK_91 > P.KKART[FFCellXPrev_111][FFCellY_85]) && (IndexK_91 == IndexKOld_146)) {
 if (idt_62 * UXint_88 + corx_132 <= 0) {
-{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + FFCellX_84 * FFGridX_25) - xcoord_nteil_12 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + FFCellX_84 * FFGridX_25) - xcoord_nteil_12 + 0.01F;}
 } else {
-{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + (FFCellX_84 - 1) * FFGridX_25) - xcoord_nteil_12 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{xcoord_nteil_12 = 2 * (IKOOAGRAL_43 + (FFCellX_84 - 1) * FFGridX_25) - xcoord_nteil_12 - 0.01F;}
 }
 } else if ((IndexK_91 > P.KKART[FFCellX_84][FFCellYPrev_112]) && (IndexK_91 == IndexKOld_146)) {
 if (idt_62 * UYint_89 + cory_133 <= 0) {
-{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + FFCellY_85 * FFGridY_26) - ycoord_nteil_13 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + FFCellY_85 * FFGridY_26) - ycoord_nteil_13 + 0.01F;}
 } else {
-{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + (FFCellY_85 - 1) * FFGridY_26) - ycoord_nteil_13 - 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{ycoord_nteil_13 = 2 * (JKOOAGRAL_44 + (FFCellY_85 - 1) * FFGridY_26) - ycoord_nteil_13 - 0.01F;}
 }
 } else if ((IndexKOld_146 > P.KKART[FFCellX_84][FFCellY_85]) && (FFCellX_84 == FFCellXPrev_111) && (FFCellY_85 == FFCellYPrev_112)) {
-{zcoord_nteil_14 = 2 * P.AHK[FFCellX_84][FFCellY_85] - zcoord_nteil_14 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 = 2 * P.AHK[FFCellX_84][FFCellY_85] - zcoord_nteil_14 + 0.01F;}
 PartHeightAboveTerrain_86 = zcoord_nteil_14 - AHint_58;
 if (topo_52 == (1)) {
 PartHeightAboveBuilding_87 = PartHeightAboveTerrain_86;
@@ -2998,7 +2997,7 @@ goto REMOVE_PARTICLE;
 }
 }
 terrainHeight_157 = P.AHK[FFCellX_84][FFCellY_85];
-{zcoord_nteil_14 = gral_max((float)(terrainHeight_157),(float)(2 * terrainHeight_157 - zcoord_nteil_14 + 0.01F));if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 = gral_max((float)(terrainHeight_157),(float)(2 * terrainHeight_157 - zcoord_nteil_14 + 0.01F));}
 } else {
 if (Deposition_type_21 > (0) && depo_reflection_counter_102 >= 0) {
 Pd1_158 = Zeitschleife_Pd(varw_60,vsed_22,vdep_23,Deposition_type_21,FFCellX_84,FFCellY_85);
@@ -3017,12 +3016,12 @@ goto REMOVE_PARTICLE;
 }
 if (tunpa_93 == 0) {
 if (P.CUTK[FFCellX_84][FFCellY_85] < 1 && (P.AHK[FFCellX_84][FFCellY_85] - zcoord_nteil_14) < 10) {
-{zcoord_nteil_14 = P.AHK[FFCellX_84][FFCellY_85] + gral_abs((float)(idt_62 * (UZint_90 + velz_130)));if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 = P.AHK[FFCellX_84][FFCellY_85] + gral_abs((float)(idt_62 * (UZint_90 + velz_130)));}
 } else {
 deltax_163 = xcoord_nteil_12 - xcoord_nteil_Prev_108;
 deltay_164 = ycoord_nteil_13 - ycoord_nteil_Prev_109;
-{xcoord_nteil_12 -= deltax_163 * 1.05;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
-{ycoord_nteil_13 -= deltay_164 * 1.05;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{xcoord_nteil_12 -= deltax_163 * 1.05;}
+{ycoord_nteil_13 -= deltay_164 * 1.05;}
 FFCellXPrev_111 = FFCellX_84;
 FFCellYPrev_112 = FFCellY_85;
 FFCellX_84 = cs_cast<int>(((xcoord_nteil_12 - IKOOAGRAL_43) * FFGridXRez_27)) + 1;
@@ -3032,7 +3031,7 @@ goto REMOVE_PARTICLE;
 }
 newTerrainHeight_165 = P.AHK[FFCellX_84][FFCellY_85];
 if (zcoord_nteil_14 < newTerrainHeight_165) {
-{zcoord_nteil_14 = 2 * newTerrainHeight_165 - zcoord_nteil_14;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 = 2 * newTerrainHeight_165 - zcoord_nteil_14;}
 }
 if (topo_52 == (1)) {
 PartHeightAboveTerrain_86 = zcoord_nteil_14 - newTerrainHeight_165;
@@ -3084,7 +3083,7 @@ u_rg_10 = (m_z_8 << 16) + m_w_7;
 zahl1_9 = sqrtf((float)(-2.0f * logf((float)(u1_rg_11)))) * sinf((float)((6.2831855f) * (u_rg_10 + 1) * (2.3283064E-10f)));
 velyold_100 = gral_abs((float)(zahl1_9 * V0int_98 * 3)) * vorzeichen1_167;
 back_145 = 1;
-{idt_62 = Program_FloatMax(idt_62 * 0.5F,0.05F);if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{idt_62 = Program_FloatMax(idt_62 * 0.5F,0.05F);}
 if (tunpa_93 > 0) {
 goto MOVE_FORWARD;
 }
@@ -3119,13 +3118,13 @@ if (P.AdaptiveRoughnessMax > 0) {
 ObL_94 = P.OLGral[FFCellX_84][FFCellY_85];
 }
 if ((PartHeightAboveBuilding_87 >= blh_37) && (ObL_94 < 0)) {
-{zcoord_nteil_14 = blh_37 + AHint_58 - (PartHeightAboveBuilding_87 - blh_37) - 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 = blh_37 + AHint_58 - (PartHeightAboveBuilding_87 - blh_37) - 0.01F;}
 velzold_101 = -velzold_101;
 PartHeightAboveTerrain_86 = zcoord_nteil_14 - AHint_58;
 PartHeightAboveBuilding_87 = PartHeightAboveTerrain_86;
 }
 if (PartHeightAboveTerrain_86 <= 0) {
-{zcoord_nteil_14 = AHint_58 - PartHeightAboveTerrain_86 + 0.01F;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 = AHint_58 - PartHeightAboveTerrain_86 + 0.01F;}
 velzold_101 = -velzold_101;
 PartHeightAboveTerrain_86 = zcoord_nteil_14 - AHint_58;
 PartHeightAboveBuilding_87 = PartHeightAboveTerrain_86;
@@ -3168,7 +3167,7 @@ zko_176 = cs_cast<int>(((zcoordRelative_175 - AHint_58) * ConcGridZRez_33));
 if (iko_173 == ConcCellPrevX_78 && jko_174 == ConcCellPrevY_79 && zko_176 == ConcCellPrevZ_80) {
 ConcCellTime_82 += idt_62;
 if (ConcCellTime_82 > ConcCellTimeMax_81 - 10) {
-{zcoord_nteil_14 += 2;if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;}
+{zcoord_nteil_14 += 2;}
 if (ConcCellTime_82 > ConcCellTimeMax_81) {
 goto REMOVE_PARTICLE;
 }
@@ -3352,7 +3351,7 @@ atomic_max(&(P.ReceptorParticleMaxConc[ii_224][SG_nteil_20]),recconc_225);
 }
 }
 }
-{if(!CheckParticleFinite(xcoord_nteil_12,ycoord_nteil_13,zcoord_nteil_14,auszeit_63,idt_62,2,trace_index))return;if(trace_slot>=0){P.ResidualTrace(trace_slot,7)=xcoord_nteil_12;P.ResidualTrace(trace_slot,8)=ycoord_nteil_13;P.ResidualTrace(trace_slot,9)=zcoord_nteil_14;P.ResidualTrace(trace_slot,10)=auszeit_63;P.ResidualTrace(trace_slot,11)=timestep_number_104;P.ResidualTrace(trace_slot,12)=m_w_7;P.ResidualTrace(trace_slot,13)=m_z_8;P.ResidualTrace(trace_slot,14)=masse_18;P.ResidualTrace(trace_slot,15)=1;}
+{if(trace_slot>=0){P.ResidualTrace(trace_slot,7)=xcoord_nteil_12;P.ResidualTrace(trace_slot,8)=ycoord_nteil_13;P.ResidualTrace(trace_slot,9)=zcoord_nteil_14;P.ResidualTrace(trace_slot,10)=auszeit_63;P.ResidualTrace(trace_slot,11)=timestep_number_104;P.ResidualTrace(trace_slot,12)=m_w_7;P.ResidualTrace(trace_slot,13)=m_z_8;P.ResidualTrace(trace_slot,14)=masse_18;P.ResidualTrace(trace_slot,15)=1;}
 return ;}
 }
 

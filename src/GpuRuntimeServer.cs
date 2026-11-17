@@ -1476,7 +1476,7 @@ namespace GRAL_2001
                 2 => "droplet state invalid", 3 => "wet-deposition droplet did not reach ground (updraft >= fall speed)",
                 5 => "reproducible sums: an addend is not finite or its magnitude is 2^62 or more (INU_GPU_REPRODUCIBLE_SUMS=0 turns reproducible sums off)",
                 6 => "reproducible sums: a total exceeds the 64-bit integer range (INU_GPU_REPRODUCIBLE_SUMS=0 turns reproducible sums off)",
-                _ => "nonfinite trajectory"
+                _ => "device error " + error
             };
             long particle = I("DeviceErrorParticle");
             if (I("DeviceErrorPhase") == 2 && particle < 0)
