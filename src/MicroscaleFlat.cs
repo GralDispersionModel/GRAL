@@ -157,7 +157,6 @@ namespace GRAL_2001
                                         VK_L[k] = 0;
                                     }
                                 }
-                                Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
                                 Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
                             }
                             else
@@ -192,6 +191,13 @@ namespace GRAL_2001
                 }
             });
             obj = null;
+
+            //wind component UK at the eastern border of the domain = last cell row; set here by one thread,
+            //because every row of the loop above would write these cells while the last row computes its values
+            for (int j = 1; j <= Program.NJJ; j++)
+            {
+                Array.Copy(Program.UK[Program.NII][j], 1, Program.UK[Program.NII + 1][j], 1, Program.NKK);
+            }
 
             //maximum z-index up to which the microscale flow field is being computed
             Program.KADVMAX = Math.Min(Program.NKK, Program.KADVMAX + Program.VertCellsFF);

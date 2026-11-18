@@ -58,8 +58,8 @@ namespace GRAL_2001
             
             int maxTasks = Math.Max(1, Program.IPROC + Math.Abs(Environment.TickCount % 8));
             int minL = Math.Min(64, Program.NII - 4); // Avoid too large slices due to perf issues
-            Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Min(Math.Max(4, (Program.NII / maxTasks)), minL)), Program.pOptions, range =>
-            //Parallel.For(2, Program.NII, Program.pOptions, i1 =>
+            //columns i1First..i1Last x j1First..j1Last of the sweep
+            OrderedSweep.Tile tile = (i1First, i1Last, j1First, j1Last) =>
             {
                 Span<float> PIMV = stackalloc float[Program.KADVMAX + 1];
                 Span<float> QIMV = stackalloc float[Program.KADVMAX + 1];
@@ -91,7 +91,7 @@ namespace GRAL_2001
                 Vector<float> Mask_V = Vector<float>.Zero;
                 Vector<float> DUDZ, DVDZ;
 
-                for (int i1 = range.Item1; i1 < range.Item2; i1++)
+                for (int i1 = i1First; i1 <= i1Last; i1++)
                 {
                     int i = i1;
                     if (IS == -1)
@@ -99,7 +99,7 @@ namespace GRAL_2001
                         i = Program.NII - i1 + 1;
                     }
 
-                    for (int j1 = 3; j1 <= Program.NJJ - 1; ++j1)
+                    for (int j1 = j1First; j1 <= j1Last; ++j1)
                     {
                         int j = j1;
                         if (JS == -1)
@@ -519,7 +519,19 @@ namespace GRAL_2001
                         }
                     }
                 }
-            });
+            };
+            if (OrderedSweep.Enabled)
+            {
+                OrderedSweep.Run(2, Program.NII - 1, 3, Program.NJJ - 1, IS, JS, tile);
+            }
+            else
+            {
+                Parallel.ForEach(Partitioner.Create(2, Program.NII, Math.Min(Math.Max(4, (Program.NII / maxTasks)), minL)), Program.pOptions, range =>
+                //Parallel.For(2, Program.NII, Program.pOptions, i1 =>
+                {
+                    tile(range.Item1, range.Item2 - 1, 3, Program.NJJ - 1);
+                });
+            }
         }
 
     }
