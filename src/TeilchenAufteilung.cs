@@ -20,13 +20,13 @@ namespace GRAL_2001
         /// Calculate the Sum of all Emission Rates 
         /// Assign the particles to the sources
         /// </summary>
-        public static int Calculate()
+        public static int Calculate(bool activeOnly = false)
         {
             //total emissions (all sources)
-            Program.PS_PartNumb.Initialize(); Program.PS_PartSum = 0;
-            Program.LS_PartNumb.Initialize(); Program.LS_PartSum = 0;
-            Program.AS_PartNumb.Initialize(); Program.AS_PartSum = 0;
-            Program.TS_PartNumb.Initialize(); Program.TS_PartSum = 0;
+            Array.Clear(Program.PS_PartNumb); Program.PS_PartSum = 0;
+            Array.Clear(Program.LS_PartNumb); Program.LS_PartSum = 0;
+            Array.Clear(Program.AS_PartNumb); Program.AS_PartSum = 0;
+            Array.Clear(Program.TS_PartNumb); Program.TS_PartSum = 0;
 
             double sum_emission = 0.0; // Sum for all sources
             int Sum_of_Particles = 0; // sum for alternative approach
@@ -34,22 +34,26 @@ namespace GRAL_2001
             // Calculate sum of all emissions
             for (int i = 1; i <= Program.PS_Count; i++) // Point sources
             {
-                sum_emission += Program.PS_ER[i];
+                if (IsActive(Program.PS_ER[i], Program.PS_ER_Dep[i], Program.PS_Mode[i], Program.PS_SG[i], activeOnly))
+                    sum_emission += Program.PS_ER[i];
             }
 
             for (int i = 1; i <= Program.LS_Count; i++) // Line sources
             {
-                sum_emission += Program.LS_ER[i];
+                if (IsActive(Program.LS_ER[i], Program.LS_ER_Dep[i], Program.LS_Mode[i], Program.LS_SG[i], activeOnly))
+                    sum_emission += Program.LS_ER[i];
             }
 
             for (int i = 1; i <= Program.TS_Count; i++) // Portals
             {
-                sum_emission += Program.TS_ER[i];
+                if (IsActive(Program.TS_ER[i], Program.TS_ER_Dep[i], Program.TS_Mode[i], Program.TS_SG[i], activeOnly))
+                    sum_emission += Program.TS_ER[i];
             }
 
             for (int i = 1; i <= Program.AS_Count; i++) // Area sources
             {
-                sum_emission += Program.AS_ER[i];
+                if (IsActive(Program.AS_ER[i], Program.AS_ER_Dep[i], Program.AS_Mode[i], Program.AS_SG[i], activeOnly))
+                    sum_emission += Program.AS_ER[i];
             }
 
             int PS_Min_Particles = Set_Min_Particles_PS_TS(Program.PS_Count);
@@ -58,11 +62,12 @@ namespace GRAL_2001
             int AS_Min_Particles = Set_Min_Particles_AS(Program.AS_Count);
 
             //assignment of particles for each source
-            double unit = (float)Program.NTEILMAX / sum_emission;
+            double unit = sum_emission > 0 ? (float)(activeOnly ? (int)(Program.TAUS * Program.TPS) : Program.NTEILMAX) / sum_emission : 0;
 
             int sum = 0;
             for (int i = 1; i <= Program.PS_Count; i++)
             {
+                if (!IsActive(Program.PS_ER[i], Program.PS_ER_Dep[i], Program.PS_Mode[i], Program.PS_SG[i], activeOnly)) continue;
                 Program.PS_PartNumb[i] = Convert.ToInt32(unit * Program.PS_ER[i]);
 
                 if (Program.PS_PartNumb[i] < PS_Min_Particles)
@@ -82,6 +87,7 @@ namespace GRAL_2001
 
             for (int i = 1; i <= Program.LS_Count; i++)
             {
+                if (!IsActive(Program.LS_ER[i], Program.LS_ER_Dep[i], Program.LS_Mode[i], Program.LS_SG[i], activeOnly)) continue;
                 Program.LS_PartNumb[i] = Convert.ToInt32(unit * Program.LS_ER[i]);
 
                 if (Program.LS_PartNumb[i] < LS_Min_Particles) // avoid Null particle sources
@@ -101,6 +107,7 @@ namespace GRAL_2001
 
             for (int i = 1; i <= Program.TS_Count; i++)
             {
+                if (!IsActive(Program.TS_ER[i], Program.TS_ER_Dep[i], Program.TS_Mode[i], Program.TS_SG[i], activeOnly)) continue;
                 Program.TS_PartNumb[i] = Convert.ToInt32(unit * Program.TS_ER[i]);
 
                 if (Program.TS_PartNumb[i] < TS_Min_Particles)
@@ -120,6 +127,7 @@ namespace GRAL_2001
 
             for (int i = 1; i <= Program.AS_Count; i++)
             {
+                if (!IsActive(Program.AS_ER[i], Program.AS_ER_Dep[i], Program.AS_Mode[i], Program.AS_SG[i], activeOnly)) continue;
                 Program.AS_PartNumb[i] = Convert.ToInt32(unit * Program.AS_ER[i]);
 
                 if (Program.AS_PartNumb[i] < AS_Min_Particles) // avoid Null particle sources
@@ -137,7 +145,26 @@ namespace GRAL_2001
                 }
             }
 
-            Program.ParticleMassMean = sum_emission / 3600 / Program.TPS * 1000000000 / Program.GridVolume / Program.TAUS;
+            if (!activeOnly)
+                Program.ParticleMassMean = sum_emission / 3600 / Program.TPS * 1000000000 / Program.GridVolume / Program.TAUS;
+
+            if (!activeOnly && Program.ISTATIONAER == Consts.TransientMode && Program.TransientDepo == null)
+            {
+                Program.TransientDepo = new TransientDeposition[Program.SourceGroups.Count];
+                int[] counts = new int[Program.SourceGroups.Count];
+                for (int i = 0; i < Program.TransientDepo.Length; i++)
+                    Program.TransientDepo[i] = new TransientDeposition();
+                AddDeposition(Program.PS_Count, Program.PS_PartNumb, Program.PS_SG, Program.PS_Mode, Program.PS_V_Dep, Program.PS_V_sed, counts);
+                AddDeposition(Program.TS_Count, Program.TS_PartNumb, Program.TS_SG, Program.TS_Mode, Program.TS_V_Dep, Program.TS_V_sed, counts);
+                AddDeposition(Program.LS_Count, Program.LS_PartNumb, Program.LS_SG, Program.LS_Mode, Program.LS_V_Dep, Program.LS_V_sed, counts);
+                AddDeposition(Program.AS_Count, Program.AS_PartNumb, Program.AS_SG, Program.AS_Mode, Program.AS_V_Dep, Program.AS_V_sed, counts);
+                for (int i = 0; i < counts.Length; i++)
+                {
+                    if (counts[i] == 0) continue;
+                    Program.TransientDepo[i].Vdep /= counts[i];
+                    Program.TransientDepo[i].Vsed /= counts[i];
+                }
+            }
 
             string err = "Using a total of " + Sum_of_Particles.ToString() + " particles (" + Math.Round((Sum_of_Particles / Program.TAUS), 0).ToString() + " part./s) within the model domain";
             Console.WriteLine(err);
@@ -145,20 +172,51 @@ namespace GRAL_2001
             ProgramWriters.LogfileGralCoreWrite("");
 
             // Resize Arrays 
-            Program.ParticleSource = GC.AllocateUninitializedArray<Int32>(Sum_of_Particles + 1);
-            Program.ParticleSG = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
-            Program.Xcoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
-            Program.YCoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
-            Program.ZCoord = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);
-            Program.ParticleMass = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
-            Program.SourceType = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
-            Program.ParticleVsed = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);         // sedimentation velocity of one lagrangian particle
-            Program.ParticleVdep = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);         // deposition velocity of one lagrangian particle
-            Program.ParticleMode = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+            if (Program.ParticleSource == null || Program.ParticleSource.Length < Sum_of_Particles + 1)
+            {
+                Program.ParticleSource = GC.AllocateUninitializedArray<Int32>(Sum_of_Particles + 1);
+                Program.ParticleSG = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+                Program.Xcoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
+                Program.YCoord = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
+                Program.ZCoord = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);
+                Program.ParticleMass = GC.AllocateUninitializedArray<double>(Sum_of_Particles + 1);
+                Program.SourceType = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+                Program.ParticleVsed = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);         // sedimentation velocity of one lagrangian particle
+                Program.ParticleVdep = GC.AllocateUninitializedArray<float>(Sum_of_Particles + 1);         // deposition velocity of one lagrangian particle
+                Program.ParticleMode = GC.AllocateUninitializedArray<byte>(Sum_of_Particles + 1);
+            }
 
             Console.WriteLine();
 
             return Sum_of_Particles;
+        }
+
+        private static void AddDeposition(int sourceCount, int[] particles, byte[] groups, byte[] modes, float[] vdep, float[] vsed, int[] counts)
+        {
+            for (int i = 1; i <= sourceCount; i++)
+            {
+                if (modes[i] >= Consts.DepoOnly || particles[i] == 0) continue;
+                int group = Program.Get_Internal_SG_Number(groups[i]);
+                TransientDeposition deposition = Program.TransientDepo[group];
+                deposition.DepositionMode = Math.Max(deposition.DepositionMode, modes[i]);
+                counts[group] += particles[i];
+                if (modes[i] == Consts.DepoAndConc)
+                {
+                    deposition.Vdep += (double)vdep[i] * particles[i];
+                    deposition.Vsed += (double)vsed[i] * particles[i];
+                }
+            }
+        }
+
+        private static bool IsActive(double emission, float depositionEmission, byte mode, byte sourceGroup, bool activeOnly)
+        {
+            if (!activeOnly) return true;
+            if ((mode == Consts.DepoOnly ? depositionEmission : emission) <= 0) return false;
+            int group = Program.Get_Internal_SG_Number(sourceGroup);
+            return !(Program.ISTATIONAER == Consts.TransientMode && Program.EmissionTimeseriesExist &&
+                     Program.IWET <= Program.EmFacTimeSeries.GetUpperBound(0) && group >= 0 &&
+                     group <= Program.EmFacTimeSeries.GetUpperBound(1)) ||
+                   Program.EmFacTimeSeries[Program.IWET - 1, group] > 0;
         }
 
         private static int Set_Min_Particles_PS_TS(int source_count)

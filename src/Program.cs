@@ -677,6 +677,12 @@ namespace GRAL_2001
                     //calculating momentum and bouyancy forces for point sources
                     PointSourceHeight.CalculatePointSourceHeight();
 
+                    // Allocate new particles for the current transient situation.
+                    if (ISTATIONAER == Consts.TransientMode)
+                    {
+                        NTEILMAX = ParticleManagement.Calculate(true);
+                    }
+
                     //defining the initial positions of particles
                     StartCoordinates.Calculate();
 
