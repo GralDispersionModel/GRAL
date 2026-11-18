@@ -27,5 +27,10 @@
     -->
   </PropertyGroup>
 
+  <!-- GPU runtime files, so a GPU run finds them next to GRAL without INU_GPU_MANIFEST -->
+  <ItemGroup>
+    <None Include="..\gpu\runtime\fields_manifest.json;..\gpu\runtime\generated.cu" Link="gpu\runtime\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
  

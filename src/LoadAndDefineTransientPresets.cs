@@ -90,7 +90,7 @@ namespace GRAL_2001
             if (File.Exists("GRAL_Vert_Conc.txt"))
             {
                 Program.WriteVerticalConcentration = true;
-                Program.ConzSsum = Program.CreateArray<float[][]>(Program.NII + 2, () => Program.CreateArray<float[]>(Program.NJJ + 2, () => new float[Program.NKK_Transient + 2]));
+                Program.ConzSsum = Program.CreateArray<double[][]>(Program.NII + 2, () => Program.CreateArray<double[]>(Program.NJJ + 2, () => new double[Program.NKK_Transient + 2]));
             }
 
             Program.EmissionPerSG = new double[Program.SourceGroups.Count];

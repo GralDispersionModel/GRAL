@@ -40,48 +40,7 @@ namespace GRAL_2001
                     Program.TunnelOppLane = true;
                     Console.WriteLine();
                     Console.WriteLine("Reading file Opposite_lane.txt: ");
-                    int block = 0;
-
-                    try
-                    {
-                        using (StreamReader read = new StreamReader("Opposite_lane.txt"))
-                        {
-                            string[] text = new string[1];
-                            string text1;
-                            Int32 IXCUT;
-                            Int32 IYCUT;
-                            while ((text1 = read.ReadLine()) != null)
-                            {
-                                block++;
-                                text = text1.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                                double ci = Convert.ToDouble(text[0].Replace(".", Program.Decsep));
-                                double cj = Convert.ToDouble(text[1].Replace(".", Program.Decsep));
-                                IXCUT = (int)((ci - Program.XsiMinGral) / Program.DXK) + 1;
-                                IYCUT = (int)((cj - Program.EtaMinGral) / Program.DYK) + 1;
-                                if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
-                                {
-                                    Program.OPP_LANE[IXCUT][IYCUT] = 1;
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        string err = "Error when reading fileOpposite_lane.txt in line " + block.ToString() + " Execution stopped: press ESC to stop";
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-
-                        if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        {
-                            Program.CleanUpMemory();
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                            {
-                                ;
-                            }
-                        }
-
-                        Environment.Exit(0);
-                    }
+                    ReadCellFlagFile("Opposite_lane.txt", Program.OPP_LANE);
                 }
 
                 if (File.Exists("tunnel_entrance.txt") == true)
@@ -89,51 +48,64 @@ namespace GRAL_2001
                     Program.TunnelEntr = true;
                     Console.WriteLine();
                     Console.WriteLine("Reading file tunnel_entrance.txt: ");
-                    int block = 0;
-
-                    try
-                    {
-                        using (StreamReader read = new StreamReader("tunnel_entrance.txt"))
-                        {
-                            string[] text = new string[1];
-                            string text1;
-                            Int32 IXCUT;
-                            Int32 IYCUT;
-                            while ((text1 = read.ReadLine()) != null)
-                            {
-                                block++;
-                                text = text1.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                                double ci = Convert.ToDouble(text[0].Replace(".", Program.Decsep));
-                                double cj = Convert.ToDouble(text[1].Replace(".", Program.Decsep));
-                                IXCUT = (int)((ci - Program.XsiMinGral) / Program.DXK) + 1;
-                                IYCUT = (int)((cj - Program.EtaMinGral) / Program.DYK) + 1;
-                                if ((IXCUT <= Program.NII) && (IXCUT >= 1) && (IYCUT <= Program.NJJ) && (IYCUT >= 1))
-                                {
-                                    Program.TUN_ENTR[IXCUT][IYCUT] = 1;
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        string err = "Error when reading file tunnel_entrance.txt in line " + block.ToString() + " Execution stopped: press ESC to stop";
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-
-                        if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        {
-                            Program.CleanUpMemory();
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                            {
-                                ;
-                            }
-                        }
-
-                        Environment.Exit(0);
-                    }
+                    ReadCellFlagFile("tunnel_entrance.txt", Program.TUN_ENTR);
                 }
             }
         }//reading optional files used to define areas where either the tunnel jet stream is destroyed due to traffic
          //on the opposite lanes of a highway or where pollutants are sucked into a tunnel portal
+
+        /// <summary>
+        /// Mark the flow-field cells listed in a coordinate file (x, y per line).
+        /// Blank lines, comment lines ('#' or '//') and other lines that do not start with a number are skipped;
+        /// points outside the GRAL domain are ignored.
+        /// </summary>
+        private static void ReadCellFlagFile(string fileName, byte[][] cells)
+        {
+            int block = 0;
+            try
+            {
+                using (StreamReader read = new StreamReader(fileName))
+                {
+                    string text1;
+                    while ((text1 = read.ReadLine()) != null)
+                    {
+                        block++;
+                        string line = text1.Trim();
+                        if (line.Length == 0 || line.StartsWith("#") || line.StartsWith("//") ||
+                            !(char.IsDigit(line[0]) || line[0] == '-' || line[0] == '+' || line[0] == '.'))
+                        {
+                            continue;
+                        }
+                        string[] text = line.Split(new char[] { ' ', ',', '\r', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        double ci = Convert.ToDouble(text[0].Replace(".", Program.Decsep));
+                        double cj = Convert.ToDouble(text[1].Replace(".", Program.Decsep));
+                        // Floor, so points west or south of the domain are rejected instead of truncated into cell 1.
+                        double fx = Math.Floor((ci - Program.XsiMinGral) / Program.DXK) + 1;
+                        double fy = Math.Floor((cj - Program.EtaMinGral) / Program.DYK) + 1;
+                        if ((fx <= Program.NII) && (fx >= 1) && (fy <= Program.NJJ) && (fy >= 1))
+                        {
+                            cells[(int)fx][(int)fy] = 1;
+                        }
+                    }
+                }
+            }
+            catch (Exception exc)
+            {
+                string err = "Error when reading file " + fileName + " in line " + block.ToString() + ": " + exc.Message + " Execution stopped: press ESC to stop";
+                Console.WriteLine(err);
+                ProgramWriters.LogfileProblemreportWrite(err);
+
+                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
+                {
+                    Program.CleanUpMemory();
+                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                    {
+                        ;
+                    }
+                }
+
+                Environment.Exit(1);
+            }
+        }
     }
 }
