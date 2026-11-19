@@ -18,9 +18,10 @@ template<class T> struct Arr<T,1> {
  __device__ void clear(){for(int i=0;i<d[0];i++)p[i]=T{};}
 };
 struct TimeSeriesColumn {Arr<float,1> Value;};
-template<class T>__device__ Arr<T,1> ParticleScratchRow(Arr<T,2> scratch,int length){
+template<bool Clear,class T>__device__ Arr<T,1> ParticleScratchRow(Arr<T,2> scratch,int length){
  Arr<T,1> row=scratch[blockIdx.x*blockDim.x+threadIdx.x];
- row.clear();row.d[0]=length;return row;
+ if(Clear)row.clear();
+ row.d[0]=length;return row;
 }
 template<class A,class B>struct Tuple2{A v0;B v1;};
 template<class A,class B,class C,class D>struct Tuple4{A v0;B v1;C v2;D v3;};
@@ -816,9 +817,9 @@ blhRez2_57 = 1 / Program_Pow2(blh_55);
 cachedObLength_58 = (__int_as_float((int)0xFFC00000));cachedUstern_59 = (__int_as_float((int)0xFFC00000));cachedVariance_60 = 0;
 IKOOAGRAL_61 = P.IKOOAGRAL;
 JKOOAGRAL_62 = P.JKOOAGRAL;
-kko_63 = ParticleScratchRow(P.ParticleSliceScratch,P.NS);
+kko_63 = ParticleScratchRow<false>(P.ParticleSliceScratch,P.NS);
 receptorCount_64 = P.ReceptorNumber == 0 ? 0 : P.ReceptorNumber + 1;
-ReceptorConcentration_65 = ParticleScratchRow(P.ParticleReceptorScratch,receptorCount_64);
+ReceptorConcentration_65 = ParticleScratchRow<true>(P.ParticleReceptorScratch,receptorCount_64);
 
 reflexion_flag_66 = (0);
 ISTATISTIK_67 = P.IStatistics;
@@ -2085,7 +2086,6 @@ depoVelVertical_304 = P.WetDepoDropVelocity(dropDataIndex_293,dropSizeClass_294)
 unsigned int depoDriftIter = 0;
 while (depoZcoord_309 > depoAH_310) {
 if(++depoDriftIter > GRAL_DROP_DRIFT_MAX_ITER){RecordDeviceError(3,1,nteil);return;}
-if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
 depoZcoord_309 += depoZ_308 * depoTime_305 - (float)(depoCellH_299) * 4;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
 if (depoZcoord_309 > depo1stCell_303) {
 depoX_296 += depoTime_305 * depoU_306;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
@@ -2093,13 +2093,13 @@ depoY_297 += depoTime_305 * depoV_307;if(!gral_drop_finite(depoX_296,depoY_297,d
 depoFFX_301 = cs_cast<int>(((depoX_296 - IKOOAGRAL_61) * FFGridXRez_43)) + 1;
 depoFFY_302 = cs_cast<int>(((depoY_297 - JKOOAGRAL_62) * FFGridYRez_44)) + 1;
 if ((depoFFX_301 < 1) || (depoFFX_301 > P.NII) || (depoFFY_302 < 1) || (depoFFY_302 > P.NJJ)) {
-depoEpsilonW_298 = 0;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
+depoEpsilonW_298 = 0;
 break;
 }
 depoAH_310 = P.AHK[depoFFX_301][depoFFY_302];if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
 {tuple_tmp_4 = Zeitschleife_IntWindCalculate(depoFFX_301,depoFFY_302,depoAH_310,depoX_296,depoY_297,depoZcoord_309); depoU_306 = tuple_tmp_4.v0; depoV_307 = tuple_tmp_4.v1; depoZ_308 = tuple_tmp_4.v2; depoIndexK_300 = tuple_tmp_4.v3;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}}
 if (P.BuildingsExist == false) {
-depoCellH_299 = 2;if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
+depoCellH_299 = 2;
 } else {
 depoCellH_299 = P.DZK[depoIndexK_300];if(!gral_drop_finite(depoX_296,depoY_297,depoZcoord_309,depoU_306,depoV_307,depoZ_308,depoAH_310,depoCellH_299,depoTime_305,depoVelVertical_304,depoEpsilonW_298,depo1stCell_303)){RecordDeviceError(2,1,nteil);return;}
 }
@@ -2607,9 +2607,9 @@ blhRez2_39 = 1 / Program_Pow2(blh_37);
 cachedObLength_40 = (__int_as_float((int)0xFFC00000));cachedUstern_41 = (__int_as_float((int)0xFFC00000));cachedVariance_42 = 0;
 IKOOAGRAL_43 = P.IKOOAGRAL;
 JKOOAGRAL_44 = P.JKOOAGRAL;
-kko_45 = ParticleScratchRow(P.ParticleSliceScratch,P.NS);
+kko_45 = ParticleScratchRow<false>(P.ParticleSliceScratch,P.NS);
 receptorCount_46 = P.ReceptorNumber == 0 ? 0 : P.ReceptorNumber + 1;
-ReceptorConcentration_47 = ParticleScratchRow(P.ParticleReceptorScratch,receptorCount_46);
+ReceptorConcentration_47 = ParticleScratchRow<true>(P.ParticleReceptorScratch,receptorCount_46);
 
 a3_48 = 1.1F;
 reflexion_flag_49 = (0);
@@ -3226,7 +3226,6 @@ depoVelVertical_194 = P.WetDepoDropVelocity(dropDataIndex_183,dropSizeClass_184)
 unsigned int depoDriftIter = 0;
 while (depoZcoord_199 > depoAH_200) {
 if(++depoDriftIter > GRAL_DROP_DRIFT_MAX_ITER){RecordDeviceError(3,2,trace_index);return;}
-if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
 depoZcoord_199 += depoZ_198 * depoTime_195 - (float)(depoCellH_189) * 4;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
 if (depoZcoord_199 > depo1stCell_193) {
 depoX_186 += depoTime_195 * depoU_196;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
@@ -3234,13 +3233,13 @@ depoY_187 += depoTime_195 * depoV_197;if(!gral_drop_finite(depoX_186,depoY_187,d
 depoFFX_191 = cs_cast<int>(((depoX_186 - IKOOAGRAL_43) * FFGridXRez_27)) + 1;
 depoFFY_192 = cs_cast<int>(((depoY_187 - JKOOAGRAL_44) * FFGridYRez_28)) + 1;
 if ((depoFFX_191 < 1) || (depoFFX_191 > P.NII) || (depoFFY_192 < 1) || (depoFFY_192 > P.NJJ)) {
-depoEpsilonW_188 = 0;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
+depoEpsilonW_188 = 0;
 break;
 }
 depoAH_200 = P.AHK[depoFFX_191][depoFFY_192];if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
 {tuple_tmp_4 = Zeitschleife_IntWindCalculate(depoFFX_191,depoFFY_192,depoAH_200,depoX_186,depoY_187,depoZcoord_199); depoU_196 = tuple_tmp_4.v0; depoV_197 = tuple_tmp_4.v1; depoZ_198 = tuple_tmp_4.v2; depoIndexK_190 = tuple_tmp_4.v3;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}}
 if (P.BuildingsExist == false) {
-depoCellH_189 = 2;if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
+depoCellH_189 = 2;
 } else {
 depoCellH_189 = P.DZK[depoIndexK_190];if(!gral_drop_finite(depoX_186,depoY_187,depoZcoord_199,depoU_196,depoV_197,depoZ_198,depoAH_200,depoCellH_189,depoTime_195,depoVelVertical_194,depoEpsilonW_188,depo1stCell_193)){RecordDeviceError(2,2,trace_index);return;}
 }

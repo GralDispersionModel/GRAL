@@ -127,7 +127,7 @@ cache_dir =               ! folder for compiled kernels, or off
 | `device_name` | none | name of the device chosen with `device` |
 | `backend` | `INU_GPU_BACKEND` | `cuda` or `hip` |
 | `allow_integrated` | none | `1`: an integrated AMD GPU may be used when the automatic choice finds no other (otherwise `only_integrated`); `0` or no entry: it may not |
-| `fallback_on_startup` | `INU_GPU_FALLBACK_ON_STARTUP` | `0` or `1` |
+| `fallback_on_startup` | `INU_GPU_FALLBACK_ON_STARTUP` | `0` or `1`. With `1`, GRAL also computes flow fields and GPU dispersion in sequence. |
 | `nvrtc_dir` | `INU_GPU_NVRTC_DIR` | absolute folder of this machine |
 | `hiprtc_dir` | `INU_GPU_HIPRTC_DIR` | absolute folder of this machine |
 | `chunk` | `INU_GRAL_GPU_CHUNK` | as the variable |
@@ -198,6 +198,10 @@ For developers (variables only, not in `GPU.txt` and not checked by `--gpu-check
 - `INU_GPU_TRACE_SITUATION` (default 1) selects the situation that is traced; `INU_GPU_DEVICE_TRACE`, `INU_GPU_DEVICE_STEP_TRACE` (needs `INU_GPU_DEVICE_TRACE`) and `INU_GPU_DEVICE_RESIDUAL_TRACE` name the files for the per-particle final state, the per-step state of a fixed set of particles and the residual-particle state; `INU_GPU_RESIDUAL_TRACE_COUNT` (default 64, 1 to 65536) sets the number of traced residual particles. These are diagnostic outputs of the kernel for one situation.
 
 ## What runs on the GPU
+
+GRAL can prepare the next weather situation's flow field on the CPU while the GPU tracks fresh particles for the current situation. This works with `meteopgt.all` on complex terrain or on flat terrain with buildings or initialized vegetation. GRAL uses the computed field in memory and writes each situation's results in order. The console identifies both situations and reports the time the CPU spent preparing the next field. Part of that time can fall after the GPU finishes.
+
+GRAL keeps the serial order when `fallback_on_startup = 1` or the next wind field is already available as a `.gff` file. It also uses the serial order for receptors, odour, vertical concentration output, online flow output and the VDI and IDAHO diagnostic runs. Runs with a specified range of weather situations or an external GFF folder can share wind files, so they also run in sequence.
 
 Transient and stationary runs with terrain or flat terrain; meteopgt.all meteorology, and in stationary mode also ZR, EKI and Sonic profiles; point, line, area and portal sources including tunnel entrances and opposite lanes; buildings; dry and wet deposition; decay; odour output; vertical concentration output; receptors; and up to nine concentration layers.
 
