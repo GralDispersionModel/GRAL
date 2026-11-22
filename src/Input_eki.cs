@@ -42,6 +42,11 @@ namespace GRAL_2001
 
                         for (int n = 1; n <= Program.IWETstart; n++)
                         {
+                            if (sr.EndOfStream == true) // at the end of the stream -> computation finished
+                            {
+                                Program.IEND = Consts.CalculationFinished;
+                                return;
+                            }
                             string text1 = sr.ReadLine();
                             if (text1 == null)
                             {
