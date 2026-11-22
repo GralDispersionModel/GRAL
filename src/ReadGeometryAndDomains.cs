@@ -163,7 +163,13 @@ namespace GRAL_2001
                         {
                             text[i] = text[i].Trim();
                             text[i] = text[i].Replace(".", decsep);
-                            Program.SourceGroups.Add(Convert.ToInt32(text[i], ic));
+                            int sourceGroup = Convert.ToInt32(text[i], ic);
+                            if (sourceGroup < byte.MinValue || sourceGroup > byte.MaxValue)
+                            {
+                                Console.Error.WriteLine("Source group must be between 0 and 255: " + sourceGroup);
+                                Environment.Exit(1);
+                            }
+                            Program.SourceGroups.Add(sourceGroup);
                         }
                         catch { }
                     }

@@ -281,6 +281,7 @@ namespace GRAL_2001
                                             Program.UseFixedRndSeedVal = true;
                                         }
                                     }
+                                    WarnInvalidSwitch(_line, "reproducible results", text, "0");
                                 }
                                 catch
                                 { }
@@ -327,5 +328,19 @@ namespace GRAL_2001
                 Environment.Exit(0);
             }
         } //read main control file in.dat
+
+        /// <summary>
+        /// Warning on the console and in the GRAL log when a 0/1 line of in.dat holds another value; the value is still read as before
+        /// </summary>
+        private void WarnInvalidSwitch(int line, string option, string[] text, string treatedAs)
+        {
+            if (text.Length == 0 || (int.TryParse(text[0], System.Globalization.NumberStyles.Any, ic, out int r) && (r == 0 || r == 1)))
+            {
+                return;
+            }
+            string warn = "Warning: in.dat line " + line.ToString(ic) + " (" + option + ") has the invalid value '" + text[0].Trim() + "' (use 0 or 1); it is treated as " + treatedAs;
+            Console.WriteLine(warn);
+            ProgramWriters.LogfileGralCoreWrite(warn);
+        }
     }
 }
