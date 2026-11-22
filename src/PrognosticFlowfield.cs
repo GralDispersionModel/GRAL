@@ -580,6 +580,19 @@ namespace GRAL_2001
                 }
             });
 
+            //reproducible results on several threads: the sweeps of the pressure and of the momentum solvers run as ordered sweeps
+            float[][] PIMPLine = null;
+            float[][] QIMPLine = null;
+            float[] DeltaUMaxLine = null;
+            bool orderedSweeps = OrderedSweep.Enabled;
+            if (orderedSweeps)
+            {
+                OrderedSweep.Prepare(Program.ADVDOM);
+                //in an ordered sweep the lines of the pressure are solved step by step; each line keeps its TDMA coefficients and its maximum
+                PIMPLine = Program.CreateArray<float[]>(NJJ + 1, () => new float[NKK + 2]);
+                QIMPLine = Program.CreateArray<float[]>(NJJ + 1, () => new float[NKK + 2]);
+                DeltaUMaxLine = new float[NJJ + 1];
+            }
             
         //START OF THE ITERATIVE LOOP TO SOLVE THE PRESSURE AND ADVECTION-DIFFUSION EQUATIONS 
         CONTINUE_SIMULATION:
@@ -806,16 +819,15 @@ namespace GRAL_2001
                 DeltaUMax = 0;
                 {
                     int coresOriginal = 1;
+                    //the pressure sweep runs on one thread, unless it runs as an ordered sweep (OrderedSweep.Enabled is true)
                     if (Program.UseFixedRndSeedVal)
                     {
                         coresOriginal = Program.pOptions.MaxDegreeOfParallelism;
                         Program.pOptions.MaxDegreeOfParallelism = 1;
                     }
-                    Parallel.For(2, NJJ, Program.pOptions, j1 =>
+                    //columns i1First..i1Last of the line j1; PIMP, QIMP and DeltaUMaxIntern are carried on from column to column of a line
+                    Func<int, int, int, float[], float[], float, float> pressureLine = (j1, i1First, i1Last, PIMP, QIMP, DeltaUMaxIntern) =>
                     {
-                        float DeltaUMaxIntern = 0;
-                        Span<float> PIMP = new float[NKK + 2];
-                        Span<float> QIMP = new float[NKK + 2];
                         float APP;
                         float ABP;
                         float ATP;
@@ -828,7 +840,7 @@ namespace GRAL_2001
                             j = NJJ - j1 + 1;
                         }
 
-                        for (int i1 = 2; i1 <= NII - 1; ++i1)
+                        for (int i1 = i1First; i1 <= i1Last; ++i1)
                         {
                             int i = i1;
                             if (IS == -1)
@@ -888,14 +900,50 @@ namespace GRAL_2001
                                 }
                             }
                         }
-                        lock (obj)
+                        return DeltaUMaxIntern;
+                    };
+                    if (orderedSweeps)
+                    {
+                        for (int j1 = 2; j1 <= NJJ - 1; ++j1)
                         {
-                            if (DeltaUMaxIntern > DeltaUMax)
+                            Array.Clear(PIMPLine[j1]);
+                            Array.Clear(QIMPLine[j1]);
+                            DeltaUMaxLine[j1] = 0;
+                        }
+                        OrderedSweep.Run(2, NII - 1, 2, NJJ - 1, IS, JS, (int i1First, int i1Last, int j1First, int j1Last) =>
+                        {
+                            for (int j1 = j1First; j1 <= j1Last; ++j1)
                             {
-                                Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
+                                float DeltaUMaxIntern = pressureLine(j1, i1First, i1Last, PIMPLine[j1], QIMPLine[j1], DeltaUMaxLine[j1]);
+                                //write a new maximum only: neighbouring lines of two threads share a cache line
+                                if (DeltaUMaxIntern != DeltaUMaxLine[j1])
+                                {
+                                    DeltaUMaxLine[j1] = DeltaUMaxIntern;
+                                }
+                            }
+                        });
+                        for (int j1 = 2; j1 <= NJJ - 1; ++j1)
+                        {
+                            if (DeltaUMaxLine[j1] > DeltaUMax)
+                            {
+                                DeltaUMax = DeltaUMaxLine[j1];
                             }
                         }
-                    });
+                    }
+                    else
+                    {
+                        Parallel.For(2, NJJ, Program.pOptions, j1 =>
+                        {
+                            float DeltaUMaxIntern = pressureLine(j1, 2, NII - 1, new float[NKK + 2], new float[NKK + 2], 0);
+                            lock (obj)
+                            {
+                                if (DeltaUMaxIntern > DeltaUMax)
+                                {
+                                    Interlocked.Exchange(ref DeltaUMax, DeltaUMaxIntern);
+                                }
+                            }
+                        });
+                    }
                     if (Program.UseFixedRndSeedVal)
                     {
                         Program.pOptions.MaxDegreeOfParallelism = coresOriginal;
@@ -1059,6 +1107,7 @@ namespace GRAL_2001
                     }
                     else
                     {
+                        //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                         int cores = Program.pOptions.MaxDegreeOfParallelism;
                         Program.pOptions.MaxDegreeOfParallelism = 1;
                         U_PrognosticMicroscaleV0.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax);
@@ -1092,6 +1141,7 @@ namespace GRAL_2001
                         }
                         else
                         {
+                            //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                             int cores = Program.pOptions.MaxDegreeOfParallelism;
                             Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1_Vec512.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
@@ -1117,6 +1167,7 @@ namespace GRAL_2001
                         }
                         else
                         {
+                            //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                             int cores = Program.pOptions.MaxDegreeOfParallelism;
                             Program.pOptions.MaxDegreeOfParallelism = 1;
                             U_PrognosticMicroscaleV1.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, relax);
@@ -1140,6 +1191,7 @@ namespace GRAL_2001
                     }
                     else
                     {
+                        //the solvers run on one thread, unless they run as ordered sweeps (OrderedSweep.Enabled is true)
                         int cores = Program.pOptions.MaxDegreeOfParallelism;
                         Program.pOptions.MaxDegreeOfParallelism = 1;
                         U_PrognosticMicroscaleV2.Calculate(IS, JS, Cmueh, VISHMIN, AREAxy, UG, building_Z0, relax);

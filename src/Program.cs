@@ -979,6 +979,11 @@ FinishGral:
                     ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written and no transient checkpoint exists; repeat the run to write it.");
                 }
             }
+            //end the threads of the ordered flow field sweeps
+            OrderedSweep.Stop();
+
+            // Clean transient files
+            Delete_Temp_Files();
 
             //Write receptor statistical error
             if (Program.ReceptorsAvailable)

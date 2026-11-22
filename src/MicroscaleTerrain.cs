@@ -53,6 +53,13 @@ namespace GRAL_2001
             // Search the reference point within the prognostic sub domains
             Program.SubDomainRefPos = GetSubDomainPoint(Program.SubDomainRefPos);
 
+            //wind component UK of the last cell row as it is before the loops below compute the new wind field
+            float[][] UKEastOld = new float[Program.NJJ + 1][];
+            for (int j = 1; j <= Program.NJJ; j++)
+            {
+                UKEastOld[j] = (float[])Program.UK[Program.NII][j].Clone();
+            }
+
             //optional: orographical data as used in the GRAMM model is used
             if (File.Exists("GRAL_topofile.txt") == false || Program.AHKOriMin > 999999) // No GRAL topography or GRAL topography = corrupt
             {
@@ -263,7 +270,12 @@ namespace GRAL_2001
                                     }
                                 }
 
-                                Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
+                                //eastern border of the domain: the old value of the last cell row. All rows write the same value;
+                                //the new value of the last cell row is not complete before the end of this loop
+                                if (i < Program.NII)
+                                {
+                                    Program.UK[Program.NII + 1][j][k] = UKEastOld[j][k];
+                                }
                                 Program.VK[i][Program.NJJ + 1][k] = Program.VK[i][Program.NJJ][k];
                             }
                             else
@@ -313,6 +325,13 @@ namespace GRAL_2001
                         vec_y += vec_y_loc;
                     }
                 });
+
+                //eastern border of the domain: the new value of the last cell row, where this row is above terrain and buildings
+                for (int j = 1; j <= Program.NJJ; j++)
+                {
+                    int k1 = Program.KKART[Program.NII][j] + 1;
+                    Array.Copy(Program.UK[Program.NII][j], k1, Program.UK[Program.NII + 1][j], k1, Program.NKK + 1 - k1);
+                }
             }
 
             //optional: original orographical data is used
@@ -527,9 +546,10 @@ namespace GRAL_2001
                                     }
                                 }
 
+                                //eastern border of the domain: the old value of the last cell row; the last row writes its new value at the same time
                                 if (i == 1)
                                 {
-                                    Program.UK[Program.NII + 1][j][k] = Program.UK[Program.NII][j][k];
+                                    Program.UK[Program.NII + 1][j][k] = UKEastOld[j][k];
                                 }
                                 if (j == 1)
                                 {
