@@ -21,6 +21,7 @@ namespace GRAL_2001
     // Experimental export only. Does not enable or dispatch a GPU model.
     internal static class GpuFieldExport
     {
+        private static readonly byte[] SharedZeros = new byte[ChunkSize];
         private static Type ElementType(Type type)
         {
             while (type.IsArray) type = type.GetElementType();
@@ -90,27 +91,46 @@ namespace GRAL_2001
             if (shape.Count <= depth) shape.Add(0);
             shape[depth] = Math.Max(shape[depth], length);
         }
+
         private static object At(object node, int[] indices, ref int depth)
         {
-            if (node == null) return null;
-            if (node is Array a)
+            if (node is not Array a) return node;
+
+            for (int i = 0; i < a.Rank; i++)
+                if (indices[depth + i] >= a.GetLength(i)) return null;
+
+            object next = a.Rank switch
             {
-                int[] current = new int[a.Rank];
-                for (int i=0;i<a.Rank;i++)
-                {
-                    int index=indices[depth++];
-                    if (index>=a.GetLength(i)) return null;
-                    current[i]=index;
-                }
-                return At(a.GetValue(current),indices,ref depth);
-            }
-            return node;
+                1 => a.GetValue(indices[depth]),
+                2 => a.GetValue(indices[depth], indices[depth + 1]),
+                3 => a.GetValue(indices[depth], indices[depth + 1], indices[depth + 2]),
+                _ => a.GetValue(indices.AsSpan(depth, a.Rank).ToArray())
+            };
+            depth += a.Rank;
+            return At(next, indices, ref depth);
         }
+
+        //private static object At(object node, int[] indices, ref int depth)
+        //{
+        //    if (node == null) return null;
+        //    if (node is Array a)
+        //    {
+        //        int[] current = new int[a.Rank];
+        //        for (int i=0;i<a.Rank;i++)
+        //        {
+        //            int index=indices[depth++];
+        //            if (index>=a.GetLength(i)) return null;
+        //            current[i]=index;
+        //        }
+        //        return At(a.GetValue(current),indices,ref depth);
+        //    }
+        //    return node;
+        //}
 
         private static void WritePrimitive(BinaryWriter w,Type t,object value)
         {
-            if(value==null) value=Activator.CreateInstance(t);
-            if(t==typeof(byte)) w.Write((byte)value);
+            if (value == null) { WriteZeros(w, Size(t)); return; }
+            if (t==typeof(byte)) w.Write((byte)value);
             else if(t==typeof(bool)) w.Write((byte)((bool)value?1:0));
             else if(t==typeof(short)) w.Write((short)value);
             else if(t==typeof(ushort)) w.Write((ushort)value);
@@ -143,16 +163,29 @@ namespace GRAL_2001
             }
         }
 
-        private static void WriteZeros(BinaryWriter writer, long bytes, byte[] zero)
+        private static void WriteZeros(BinaryWriter writer, long bytes)
         {
-            if(bytes<=0)return;
-            Array.Clear(zero,0,(int)Math.Min(bytes,zero.Length));
-            while (bytes > 0) { int n = (int)Math.Min(bytes, zero.Length); writer.Write(zero,0,n); bytes-=n; }
+            if (bytes <= 0) return;
+
+            ReadOnlySpan<byte> zeros = SharedZeros;
+            while (bytes > 0)
+            {
+                int n = (int)Math.Min(bytes, zeros.Length);
+                writer.Write(zeros[..n]);
+                bytes -= n;
+            }
         }
-        private static void WriteZerosLazy(BinaryWriter writer, long bytes, ref byte[] buffer)
+
+        //private static void WriteZeros(BinaryWriter writer, long bytes, byte[] zero)
+        //{
+        //    if(bytes<=0)return;
+        //    Array.Clear(zero,0,(int)Math.Min(bytes,zero.Length));
+        //    while (bytes > 0) { int n = (int)Math.Min(bytes, zero.Length); writer.Write(zero,0,n); bytes-=n; }
+        //}
+        private static void WriteZerosLazy(BinaryWriter writer, long bytes)
         {
             if(bytes<=0)return;
-            WriteZeros(writer,bytes,buffer ??= new byte[ChunkSize]);
+            WriteZeros(writer,bytes);
         }
         private static long SuffixBytes(List<int> shape, int depth, int elementSize)
         {
@@ -160,36 +193,63 @@ namespace GRAL_2001
             for (int i=depth;i<shape.Count;i++) n=checked(n*shape[i]);
             return n;
         }
-        private static void WriteNested(BinaryWriter w, object node, List<int> shape, int depth, Type elem, ref byte[] buffer)
+        private static void WriteNested(BinaryWriter w, object node, List<int> shape, int depth, Type elem)
         {
-            if (node==null) { WriteZerosLazy(w,SuffixBytes(shape,depth,Size(elem)),ref buffer); return; }
+            if (node==null) { WriteZerosLazy(w,SuffixBytes(shape,depth,Size(elem))); return; }
             Array a=(Array)node; Type et=a.GetType().GetElementType();
-            if (et.IsPrimitive && a.Rank==1)
+
+            if (et.IsPrimitive)
             {
-                int total=Buffer.ByteLength(a);
-                if (TryPrimitiveBytes(a, out Span<byte> bytes))
-                    for(int pos=0;pos<total;) { int n=Math.Min(ChunkSize,total-pos); w.Write(bytes.Slice(pos,n)); pos+=n; }
-                else if (total>0)
+                if (a.Rank == 1)
                 {
-                    byte[] scratch=buffer ??= new byte[ChunkSize];
-                    for(int pos=0;pos<total;) { int n=Math.Min(scratch.Length,total-pos); Buffer.BlockCopy(a,pos,scratch,0,n); w.Write(scratch,0,n); pos+=n; }
+                    w.Write(AsBytes(a));
+                    WriteZerosLazy(w, checked((long)(shape[depth] - a.Length) * Size(elem)));
+                    return;
                 }
-                WriteZerosLazy(w,checked((long)(shape[depth]-a.Length)*Size(elem)),ref buffer);return;
-            }
-            if (et.IsPrimitive && a.Rank>1)
-            {
-                bool same=true;for(int i=0;i<a.Rank;i++)same &= a.GetLength(i)==shape[depth+i];
-                if(!same) throw new NotSupportedException("Ragged multidimensional arrays require explicit layout");
-                int total=Buffer.ByteLength(a);
-                if (total>0)
-                {
-                    byte[] scratch=buffer ??= new byte[ChunkSize];
-                    for(int pos=0;pos<total;) { int n=Math.Min(scratch.Length,total-pos); Buffer.BlockCopy(a,pos,scratch,0,n); w.Write(scratch,0,n); pos+=n; }
-                }
+
+                for (int i = 0; i < a.Rank; i++)
+                    if (a.GetLength(i) != shape[depth + i])
+                        throw new NotSupportedException("Ragged multidimensional arrays require explicit layout");
+
+                w.Write(AsBytes(a));
                 return;
             }
+
+            //if (et.IsPrimitive && a.Rank==1)
+            //{
+            //    int total=Buffer.ByteLength(a);
+            //    if (TryPrimitiveBytes(a, out Span<byte> bytes))
+            //        for(int pos=0;pos<total;) { int n=Math.Min(ChunkSize,total-pos); w.Write(bytes.Slice(pos,n)); pos+=n; }
+            //    else if (total>0)
+            //    {
+            //        byte[] scratch=buffer ??= new byte[ChunkSize];
+            //        for(int pos=0;pos<total;) { int n=Math.Min(scratch.Length,total-pos); Buffer.BlockCopy(a,pos,scratch,0,n); w.Write(scratch,0,n); pos+=n; }
+            //    }
+            //    WriteZerosLazy(w,checked((long)(shape[depth]-a.Length)*Size(elem)),ref buffer);return;
+            //}
+            //if (et.IsPrimitive && a.Rank>1)
+            //{
+            //    bool same=true;for(int i=0;i<a.Rank;i++)same &= a.GetLength(i)==shape[depth+i];
+            //    if(!same) throw new NotSupportedException("Ragged multidimensional arrays require explicit layout");
+            //    int total=Buffer.ByteLength(a);
+            //    if (total>0)
+            //    {
+            //        byte[] scratch=buffer ??= new byte[ChunkSize];
+            //        for(int pos=0;pos<total;) { int n=Math.Min(scratch.Length,total-pos); Buffer.BlockCopy(a,pos,scratch,0,n); w.Write(scratch,0,n); pos+=n; }
+            //    }
+            //    return;
+            //}
+
             if(a.Rank!=1) throw new NotSupportedException("Non-primitive rectangular array");
-            for(int i=0;i<shape[depth];i++) WriteNested(w,i<a.Length?(a is object[] children?children[i]:a.GetValue(i)):null,shape,depth+1,elem,ref buffer);
+            for(int i=0;i<shape[depth];i++) WriteNested(w,i<a.Length?(a is object[] children?children[i]:a.GetValue(i)):null,shape,depth+1,elem);
+        }
+
+
+        private static ReadOnlySpan<byte> AsBytes(Array array)
+        {
+            int byteLength = Buffer.ByteLength(array);
+            ref byte firstByte = ref MemoryMarshal.GetArrayDataReference(array);
+            return MemoryMarshal.CreateReadOnlySpan(ref firstByte, byteLength);
         }
 
         // Null branches and ragged padding are serialized as positive zero.
@@ -198,28 +258,39 @@ namespace GRAL_2001
             if (node == null) return true;
             Array a = (Array)node;
             Type et = a.GetType().GetElementType();
+
             if (et.IsPrimitive)
             {
                 if (a.Rank > 1)
                     for (int i = 0; i < a.Rank; i++)
                         if (a.GetLength(i) != shape[depth + i])
                             throw new NotSupportedException("Ragged multidimensional arrays require explicit layout");
-                if (TryPrimitiveBytes(a, out Span<byte> bytes))
-                {
-                    foreach (byte b in bytes) if (b != 0) return false;
-                    return true;
-                }
-                byte[] scratch = new byte[ChunkSize];
-                int total = Buffer.ByteLength(a);
-                for (int pos = 0; pos < total;)
-                {
-                    int n = Math.Min(scratch.Length, total - pos);
-                    Buffer.BlockCopy(a, pos, scratch, 0, n);
-                    for (int i = 0; i < n; i++) if (scratch[i] != 0) return false;
-                    pos += n;
-                }
-                return true;
+
+                return AsBytes(a).IndexOfAnyExcept((byte)0) == -1;
             }
+            
+            //if (et.IsPrimitive)
+            //{
+            //    if (a.Rank > 1)
+            //        for (int i = 0; i < a.Rank; i++)
+            //            if (a.GetLength(i) != shape[depth + i])
+            //                throw new NotSupportedException("Ragged multidimensional arrays require explicit layout");
+            //    if (TryPrimitiveBytes(a, out Span<byte> bytes))
+            //    {
+            //        foreach (byte b in bytes) if (b != 0) return false;
+            //        return true;
+            //    }
+            //    byte[] scratch = new byte[ChunkSize];
+            //    int total = Buffer.ByteLength(a);
+            //    for (int pos = 0; pos < total;)
+            //    {
+            //        int n = Math.Min(scratch.Length, total - pos);
+            //        Buffer.BlockCopy(a, pos, scratch, 0, n);
+            //        for (int i = 0; i < n; i++) if (scratch[i] != 0) return false;
+            //        pos += n;
+            //    }
+            //    return true;
+            //}
             if (a.Rank != 1) throw new NotSupportedException("Non-primitive rectangular array");
             foreach (object child in a) if (!AllZero(child, shape, depth + 1)) return false;
             return true;
@@ -269,9 +340,9 @@ namespace GRAL_2001
                                                                            ["scalars"] = scalars, ["arrays"] = arrays, ["payload_bytes"] = payloadBytes });
             var frame = new BinaryWriter(output, System.Text.Encoding.UTF8, true);
             frame.Write((ulong)header.Length); frame.Write(header);
-            byte[] buffer = null;
+            //byte[] buffer = null;
             foreach (var r in records)
-                if (r.Value != null && !r.ZeroFill) WriteNested(frame, r.Value, r.Shape, 0, r.Element, ref buffer);
+                if (r.Value != null && !r.ZeroFill) WriteNested(frame, r.Value, r.Shape, 0, r.Element);
             output.Flush();
             return checked(8L + header.Length + payloadBytes);
         }
