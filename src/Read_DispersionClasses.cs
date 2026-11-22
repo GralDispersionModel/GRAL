@@ -135,7 +135,7 @@ namespace GRAL_2001
 
                 _GRAMMhorgridsize = stability.ReadSingle();
 
-                if (Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
+                if (Scl_Array == null || Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
                 {
                     Scl_Array = null; // delete array -
                     Scl_Array = new float[NI, NJ]; // create new array

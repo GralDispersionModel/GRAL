@@ -1008,8 +1008,7 @@ namespace GRAL_2001
                     WriteClass.Write3DTempConcentrations();
                 }
                 //write conz4d File 
-                int checkpointSituation = IWET;
-                TreadWriteConz4dFile = new Thread(() => WriteClass.WriteTransientConcentration(checkpointSituation));
+                TreadWriteConz4dFile = new Thread(() => WriteClass.WriteTransientConcentration(IWET));
                 TreadWriteConz4dFile.Start(); // start writing thread
             }
         }

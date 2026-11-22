@@ -195,13 +195,14 @@ namespace GRAL_2001
             var current=metricsLock;metricsLock=null;
             current?.Dispose();
         }
-        internal static void Run(int first,int count,Action<System.Threading.Tasks.Task> whileFreshRuns = null)
+        internal static void Run(int first,int count)
         {
+            GpuSituationDriver.Guard(first,count);
             if(driver==null)
             {
                 driver=CreateDriver();started=true;
             }
-            try { driver.RunSituation(first,count,FallbackOnStartup ? null : whileFreshRuns); gpuSituations++; }
+            try { driver.RunSituation(first,count); gpuSituations++; }
             catch(Exception runError)
             {
                 try { Close(); }

@@ -307,7 +307,7 @@ namespace GRAL_2001
             return result;
         }
         private static bool TraceThisSituation() => Program.IWET==Setting("INU_GPU_TRACE_SITUATION",1,1,int.MaxValue);
-        internal void RunSituation(int first,int count,Action<System.Threading.Tasks.Task> whileFreshRuns = null)
+        internal void RunSituation(int first,int count)
         {
             Guard(first,count);
             long activeFresh=ActiveFreshCount(first,count);
@@ -367,23 +367,9 @@ namespace GRAL_2001
                     freshExtra=new Dictionary<string,object>();
                     AddExecutionSeeds(freshExtra,executionSeeds,"fresh",count);
                 }
-                step.Restart();
-                server.Execute("fresh",first,count,Array.Empty<string>(),freshExtra,chunk,block);
-                (double Seconds, double KernelMs) ReadFreshAck()
-                {
-                    using var ack=server.ReadHeader();
-                    if(ack.RootElement.GetProperty("payload_bytes").GetInt64()!=0)
-                        throw new InvalidDataException("Unexpected fresh payload");
-                    return (step.Elapsed.TotalSeconds,ack.RootElement.GetProperty("kernel_ms").GetDouble());
-                }
-                if (whileFreshRuns == null)
-                    (freshRoundTrip, freshKernel) = ReadFreshAck();
-                else
-                {
-                    var acknowledgment = System.Threading.Tasks.Task.Run(ReadFreshAck);
-                    try { whileFreshRuns(acknowledgment); }
-                    finally { (freshRoundTrip, freshKernel) = acknowledgment.GetAwaiter().GetResult(); }
-                }
+                step.Restart();server.Execute("fresh",first,count,Array.Empty<string>(),freshExtra,chunk,block);using(var ack=server.ReadHeader())
+                {if(ack.RootElement.GetProperty("payload_bytes").GetInt64()!=0)throw new InvalidDataException("Unexpected fresh payload");freshKernel=ack.RootElement.GetProperty("kernel_ms").GetDouble();}
+                freshRoundTrip=step.Elapsed.TotalSeconds;
             }
             step.Restart();server.SendControl("result");using var result=server.ReadHeader();double resultHeader=step.Elapsed.TotalSeconds;
             step.Restart();server.ApplyResult(result);

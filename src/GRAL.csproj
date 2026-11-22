@@ -3,9 +3,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <VersionPrefix>26.0.1</VersionPrefix>
+    <VersionPrefix>27.0.1</VersionPrefix>
     <Authors>Dietmar Oettl;Markus Kuntner</Authors>
-    <Copyright>2025 Oettl, Kuntner [GPLv3]</Copyright>
+    <Copyright>2026 Oettl, Kuntner [GPLv3]</Copyright>
     <NeutralLanguage>en-US</NeutralLanguage>
     <AssemblyTitle>GRAL</AssemblyTitle>
     <ServerGarbageCollection>false</ServerGarbageCollection>

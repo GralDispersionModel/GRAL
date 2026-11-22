@@ -71,7 +71,7 @@ namespace GRAL_2001
             Console.WriteLine("");
             Console.WriteLine("+------------------------------------------------------+");
             Console.WriteLine("|                                                      |");
-            string Info =     "+  > >         G R A L Version 27.01Beta1        < <   +";
+            string Info =     "+  > >         G R A L Version 27.01             < <   +";
             Console.WriteLine(Info);
             if (RunOnUnix)
             {
@@ -448,8 +448,6 @@ namespace GRAL_2001
             // A GPU failure (startup without fallback, or an error after GPU work started) ends the run like a failed meteorology
             // input: the reason goes to the console and the logs, the finish sequence runs and the exit code is 1.
             bool gpuFailed = false;
-            MicroscaleFlowAhead prepared = null;
-            bool aheadFailed = false;
             void ReportGpuFailure(Exception exc)
             {
                 gpuFailed = true;
@@ -466,15 +464,7 @@ namespace GRAL_2001
             {
                 try
                 {
-                    void PrepareNextFlow(System.Threading.Tasks.Task freshCompletion)
-                    {
-                        if (freshCompletion.IsCompleted) return;
-                        ThreadWriteGffFiles?.Join();
-                        ThreadWriteGffFiles = null;
-                        if (freshCompletion.IsCompleted) return;
-                        prepared = PrepareMicroscaleFlow(InputMetTimeSeries, ReaderClass);
-                    }
-                    GpuExperimental.Run(1, NTEILMAX, CanPrepareMicroscaleFlow() ? PrepareNextFlow : null);
+                    GpuExperimental.Run(1, NTEILMAX);
                 }
                 catch (Exception) when (CancelToken.IsCancellationRequested)
                 {
@@ -548,26 +538,11 @@ namespace GRAL_2001
                 //time stamp to evaluate computation times
                 int StartTime = Environment.TickCount;
 
-                bool usePreparedFlow = prepared != null && prepared.Weather == IWET && !prepared.CachedFieldAvailable;
-                if (usePreparedFlow)
-                {
-                    prepared.ReplayLog?.Invoke();
-                    if (prepared.Error != null)
-                    {
-                        aheadFailed = true;
-                        string err = "Flow field failure in weather situation " + IWET + ": " + prepared.Error.Message;
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-                        goto FinishGral;
-                    }
-                    prepared.Activate();
-                }
-
                 //Set the maximum number of threads to be used in each parallelized region
-                if (!usePreparedFlow) ReaderClass.ReadMaxNumbProc();
+                ReaderClass.ReadMaxNumbProc();
 
                 //read meteorological input data 
-                if (!usePreparedFlow && IStatistics == Consts.MeteoPgtAll)
+                if (IStatistics == Consts.MeteoPgtAll)
                 {
                     if (ISTATIONAER == Consts.TransientMode)
                     {
@@ -600,9 +575,9 @@ namespace GRAL_2001
                     break; // reached last weather situation from console command line input
                 }
 
-                string WindfieldPath = !usePreparedFlow && Topo == Consts.TerrainAvailable ? ReadWindfeldTXT() : string.Empty;
+                String WindfieldPath = ReadWindfeldTXT();
 
-                if (!usePreparedFlow && Topo == Consts.TerrainAvailable)
+                if (Topo == Consts.TerrainAvailable)
                 {
                     Console.Write("Reading GRAMM wind field: ");
                 }
@@ -614,7 +589,7 @@ namespace GRAL_2001
                     Console.WriteLine(Info);
                     ProgramWriters.LogfileGralCoreWrite(Info);
                 }
-                else if (usePreparedFlow || Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
+                else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
                 {
                     if (Program.IWETstartstop.Start < 2) // //GUI status output for the 1st instance only
                     {
@@ -627,10 +602,38 @@ namespace GRAL_2001
                         }
                         catch { }
                     }
-                    if (!usePreparedFlow && Topo == Consts.TerrainAvailable) ReadTerrainStability(WindfieldPath);
+                    //Topography mode -> read GRAMM stability classes
+                    if (Topo == Consts.TerrainAvailable)
+                    {
+                        string SclFileName = String.Empty;
+                        if (WindfieldPath == String.Empty)
+                        {
+                            //case 1: stability fields are located in the same sub-directory as the GRAL executable
+                            SclFileName = Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".scl";
+                        }
+                        else
+                        {
+                            //case 2: wind fields are imported from a different project
+                            SclFileName = Path.Combine(WindfieldPath, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".scl");
+                        }
+
+                        if (File.Exists(SclFileName))
+                        {
+                            Console.WriteLine("Reading GRAMM stability classes: " + SclFileName);
+
+                            ReadSclUstOblClasses Reader = new ReadSclUstOblClasses
+                            {
+                                FileName = SclFileName,
+                                Stabclasses = AKL_GRAMM
+                            };
+                            Reader.ReadSclFile();
+                            AKL_GRAMM = Reader.Stabclasses;
+                            Reader.Close();
+                        }
+                    }
 
                     //Read meteorological input data depending on the input type IStatisitcs
-                    if (!usePreparedFlow) ReadMeteoData();
+                    ReadMeteoData();
 
                     //Check if all weather situations have been computed
                     if (IEND == Consts.CalculationFinished)
@@ -639,14 +642,27 @@ namespace GRAL_2001
                     }
 
                     //potential temperature gradient
-                    if (!usePreparedFlow) CalculateTemperatureGradient();
+                    CalculateTemperatureGradient();
 
                     //optional: read pre-computed GRAL flow fields
-                    bool GffFiles = !usePreparedFlow && ReadGralFlowFields.Read();
+                    bool GffFiles = ReadGralFlowFields.Read();
 
                     if (GffFiles == false) // Reading of GRAL Flowfields not successful
                     {
-                        if (!usePreparedFlow) CalculateMicroscaleFlow(FirstLoop);
+                        //microscale flow field: complex terrain
+                        if (Topo == Consts.TerrainAvailable)
+                        {
+                            MicroscaleTerrain.Calculate(FirstLoop);
+                        }
+                        //microscale flow field: flat terrain
+                        else if ((Topo == Consts.TerrainFlat) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
+                        {
+                            MicroscaleFlat.Calculate();
+                        }
+                        if (Topo == Consts.TerrainFlat)
+                        {
+                            Program.AHMIN = 0;
+                        }
 
                         //optional: write GRAL flow fields
                         ThreadWriteGffFiles = new Thread(WriteGRALFlowFields.Write);
@@ -673,8 +689,6 @@ namespace GRAL_2001
 
                     //time needed for wind-field computations
                     double CalcTimeWindfield = (Environment.TickCount - StartTime) * 0.001;
-                    double previousOverlap = usePreparedFlow ? prepared.Seconds : 0;
-                    prepared = null;
 
                     //reset receptor concentrations
                     if (ReceptorsAvailable) // if receptors are acitvated
@@ -845,10 +859,7 @@ namespace GRAL_2001
                     Console.WriteLine();
                     Console.WriteLine("Total simulation time [s]: " + (CalcTimeWindfield + CalcTimeDispersion).ToString("0.0"));
                     Console.WriteLine("Dispersion [s]: " + CalcTimeDispersion.ToString("0.0"));
-                    Console.WriteLine("Flow field [s]: " + (CalcTimeWindfield + previousOverlap).ToString("0.0"));
-                    if (previousOverlap > 0)
-                        Console.WriteLine("GPU flow lookahead: fresh situation " + (IWET - 1) + ", prepared situation " +
-                                          IWET + ", wind field " + IDISP + ", CPU preparation [s]: " + previousOverlap.ToString("0.000"));
+                    Console.WriteLine("Flow field [s]: " + CalcTimeWindfield.ToString("0.0"));
 
                     if (LogLevel > Consts.LogLevelOff) // additional LOG-Output
                     {
@@ -919,7 +930,7 @@ FinishGral:
             if (ISTATIONAER == Consts.TransientMode)
             {
                 ProgramWriters WriteClass = new ProgramWriters();
-                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1 && !gpuFailed && !aheadFailed && !MeteoInputFailed)
+                if (WriteVerticalConcentration && Program.IWETstartstop.Start < 1 && !gpuFailed) // do not write the files for multiple instances or from a situation that the GPU did not finish
                 {
                     try
                     {
@@ -958,12 +969,12 @@ FinishGral:
                 ThreadWriteConz4dFile = null;
             }
 
-            if (gpuFailed || aheadFailed || MeteoInputFailed)
+            if (gpuFailed)
             {
                 // Leave the checkpoint of the last finished situation, as the unhandled GPU error did before and as an interrupted run does
                 if (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp"))
                 {
-                    ProgramWriters.LogfileProblemreportWrite("The run stopped with an input, GPU or flow field error. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
+                    ProgramWriters.LogfileProblemreportWrite("The run stopped with a GPU error. The transient checkpoint files were kept, as after an interrupted run; delete the *.tmp files to repeat the run from the start.");
                 }
             }
             else if (verticalOutputFailed && (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp")))
@@ -979,11 +990,6 @@ FinishGral:
                     ProgramWriters.LogfileProblemreportWrite("Vertical_Concentrations.txt was not written and no transient checkpoint exists; repeat the run to write it.");
                 }
             }
-            //end the threads of the ordered flow field sweeps
-            OrderedSweep.Stop();
-
-            // Clean transient files
-            Delete_Temp_Files();
 
             //Write receptor statistical error
             if (Program.ReceptorsAvailable)
@@ -1006,7 +1012,7 @@ FinishGral:
                 SyncWithMutex.Dispose();
             }
 
-            bool runFailed = verticalOutputFailed || gpuShutdownFailed || gpuFailed || aheadFailed || MeteoInputFailed;
+            bool runFailed = verticalOutputFailed || gpuShutdownFailed || gpuFailed || MeteoInputFailed;
             if (Program.CancelToken.IsCancellationRequested)
             {
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations cancelled at: " + DateTime.Now.ToString());    

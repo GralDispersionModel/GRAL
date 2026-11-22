@@ -11,31 +11,14 @@
 #endregion
 
 using System;
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading;
 
 namespace GRAL_2001
 {
     public partial class ProgramWriters
     {
-        // Hold a prospective situation's diagnostics until the main loop accepts its field.
-        private static readonly AsyncLocal<ConcurrentQueue<Action>> flowLog = new();
-
-        internal static void BeginFlowLogCapture() => flowLog.Value = new();
-
-        internal static Action EndFlowLogCapture()
-        {
-            var entries = flowLog.Value;
-            flowLog.Value = null;
-            return () =>
-            {
-                foreach (var write in entries) write();
-            };
-        }
-
         /// <summary>
         ///Output of GRAL logging file
         /// </summary>
@@ -346,11 +329,6 @@ namespace GRAL_2001
         /// </summary>
         public static void LogfileGralCoreWrite(string a)
         {
-            if (flowLog.Value is { } entries)
-            {
-                entries.Enqueue(() => LogfileGralCoreWrite(a));
-                return;
-            }
             try
             {
                 String filename = "Logfile_GRALCore.txt";
@@ -370,25 +348,38 @@ namespace GRAL_2001
         /// <summary>
         ///Output of GRAL Problem report
         /// </summary>
-        public static void LogfileProblemreportWrite(string a)
+        public async static void LogfileProblemreportWrite(string a)
         {
-            if (flowLog.Value is { } entries)
+            if (Program.SyncWithMutex != null && Program.SyncWithMutex.WaitOne(1000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 1000 ms.
             {
-                entries.Enqueue(() => LogfileProblemreportWrite(a));
-                return;
+                a = "GRAL Error: " + a;
+                try
+                {
+                    using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
+                    {
+                        await sw.WriteLineAsync(a);
+                    }
+                }
+                catch { }
+                finally
+                {
+                    if (Program.SyncWithMutex != null)
+                    {
+                        Program.SyncWithMutex.ReleaseMutex(); // release the mutex
+                    }
+                }
             }
-            a = "GRAL Error: " + a;
-            var mutex = Program.SyncWithMutex;
-            bool ownsMutex = mutex != null && mutex.WaitOne(1000);
-            try
+            else
             {
-                using var writer = new StreamWriter("Problemreport_GRAL.txt", true);
-                writer.WriteLine(a);
-            }
-            catch { }
-            finally
-            {
-                if (ownsMutex) mutex.ReleaseMutex();
+                a = "GRAL Error: " + a;
+                try
+                {
+                    using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
+                    {
+                        await sw.WriteLineAsync(a);
+                    }
+                }
+                catch { }
             }
             LogfileGralCoreWrite(a); // Write error to LogfileCore
         }
