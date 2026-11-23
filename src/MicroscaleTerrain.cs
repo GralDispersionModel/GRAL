@@ -25,10 +25,13 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="firstloop">True if the calculation starts with the first weather situation</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Calculate(bool firstloop)
+        public static void Calculate(bool firstloop, int Weathersituation, bool Synchron)
         {
-            Console.WriteLine();
-            Console.WriteLine("FLOW FIELD COMPUTATION WITH TOPOGRAPHY");
+            if (Synchron)
+            {
+                Console.WriteLine();
+                Console.WriteLine("FLOW FIELD COMPUTATION WITH TOPOGRAPHY");
+            }
             float DXK = Program.DXK;
             float DYK = Program.DYK;
             float DDX1 = Program.DDX[1];
@@ -648,11 +651,11 @@ namespace GRAL_2001
             }
 
             //optional: write GRAL orography
-            if (Program.IDISP == 1 || firstloop)
+            if (Weathersituation == 1 || firstloop)
             {
                 if (File.Exists("GRAL_Topography.txt") == true)
                 {
-                    Console.WriteLine("Writing the file GRAL_Topography.txt");
+                    if (Synchron) { Console.WriteLine("Writing the file GRAL_Topography.txt"); }
 
                     try
                     {
@@ -863,18 +866,18 @@ namespace GRAL_2001
                     ProgramReaders Readclass = new ProgramReaders();
                     Readclass.ReadVegetation();
                 }
-                Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES");
-                PrognosticFlowfield.Calculate();
+                if (Synchron) { Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES"); }
+                PrognosticFlowfield.Calculate(Weathersituation, Synchron);
             }
 
             //Final mass conservation using poisson equation for pressure
             if (Program.FlowFieldLevel == Consts.FlowFieldDiag)
             {
-                Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
+                if (Synchron) { Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES"); }
             }
             else if (Program.FlowFieldLevel == Consts.FlowFieldNoBuildings)
             {
-                Console.WriteLine("DIAGNOSTIC WIND FIELD CALCULATION");
+                if (Synchron) { Console.WriteLine("DIAGNOSTIC WIND FIELD CALCULATION"); }
             }
 
             DiagnosticFlowfield.Calculate();

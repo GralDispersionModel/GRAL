@@ -21,11 +21,13 @@ namespace GRAL_2001
         /// <summary>
         /// Pre calculations for flat microscale terrain
         /// </summary>
-        public static void Calculate()
+        public static void Calculate(int Weathersituation, bool Synchron)
         {
-            Console.WriteLine();
-            Console.WriteLine("FLOW FIELD COMPUTATION WITHOUT TOPOGRAPHY");
-
+            if (Synchron)
+            {
+                Console.WriteLine();
+                Console.WriteLine("FLOW FIELD COMPUTATION WITHOUT TOPOGRAPHY");
+            }
             Program.KADVMAX = 1;
             
             // Search the reference point within the prognostic sub domains
@@ -368,7 +370,7 @@ namespace GRAL_2001
                 //diagnostic approach
                 if (Program.FlowFieldLevel == Consts.FlowFieldDiag)
                 {
-                    Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
+                    if (Synchron) { Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES"); }
                     DiagnosticFlowfield.Calculate();
                 }
 
@@ -383,8 +385,8 @@ namespace GRAL_2001
                         Readclass.ReadVegetation();
                     }
 
-                    Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES");
-                    PrognosticFlowfield.Calculate();
+                    if (Synchron) { Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES"); }
+                    PrognosticFlowfield.Calculate(Weathersituation, Synchron);
                 
                     //Final mass conservation using poisson equation for pressure after advection has been computed with level 2
                     DiagnosticFlowfield.Calculate();

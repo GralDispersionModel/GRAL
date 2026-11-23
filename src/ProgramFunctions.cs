@@ -730,28 +730,32 @@ namespace GRAL_2001
         /// <summary>
         /// Read the user defined meteo data
         /// </summary>
-        private static void ReadMeteoData()
+        ///<returns>Next weather situation, Calculation Finished</returns>
+        private static (int, int) ReadMeteoData(int RecentSituation)
         {
+            int thisWeatherSit = 0;
+            int finished = 0;
             //read meteorological input data (wind speed, wind direction, stability class)
             if (IStatistics == Consts.MeteoPgtAll) // meteopgt.all 
             {
-                Input_MeteopgtAll.Read();
+                (thisWeatherSit, finished) = Input_MeteopgtAll.Read(RecentSituation, CancelToken);
             }
             //read meteorological input data (friction velocity, Obukhov length, boundary-layer height, standard deviation of horizontal wind fluctuations, u- and v-wind components)
             if (IStatistics == Consts.MeteoZR)
             {
-                Input_zr.Read();
+                (thisWeatherSit, finished) = Input_zr.Read(RecentSituation, CancelToken);
             }
             //read meteorological input data (friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components)
             if (IStatistics == Consts.MeteoEKI)
             {
-                Input_Eki.Read();
+                (thisWeatherSit, finished) = Input_Eki.Read(RecentSituation, CancelToken);
             }
             //read meteorological input data (velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters)
             if (IStatistics == Consts.MeteoSonic)
             {
-                Input_Sonic.Read();
+                (thisWeatherSit, finished) = Input_Sonic.Read(RecentSituation, CancelToken);
             }
+            return (thisWeatherSit, finished);
         }
 
         /// <summary>
@@ -1228,6 +1232,10 @@ namespace GRAL_2001
                     Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, nteil =>
                     {
                         Interlocked.Increment(ref advance);
+                        if (Program.CancelToken.IsCancellationRequested)
+                        {
+                            throw new Exception();
+                        }
                         if (advance > percent10)
                         {
                             if (Interlocked.Exchange(ref advance, 0) > advance)  // set advance to 0
@@ -1354,6 +1362,10 @@ namespace GRAL_2001
                 {
                     Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, cell =>
                     {
+                        if (Program.CancelToken.IsCancellationRequested)
+                        {
+                            throw new Exception();
+                        }
                         Interlocked.Increment(ref advancenss);
                         if (advancenss > percent10nss)
                         {

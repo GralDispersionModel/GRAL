@@ -11,9 +11,10 @@
 #endregion
 
 using System;
-using System.IO;
-using System.Collections.Generic;
 using System.Collections.Frozen;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -28,9 +29,9 @@ namespace GRAL_2001
             if (File.Exists("Receptor.dat") == true)
             {
                 int block = 1;
-                using (StreamReader sr = new StreamReader("Receptor.dat"))
+                try
                 {
-                    try
+                    using (StreamReader sr = new StreamReader("Receptor.dat"))
                     {
                         string[] text = new string[1];
                         text = sr.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
@@ -180,20 +181,20 @@ namespace GRAL_2001
                             }
                         }
                     }
-                    catch
-                    {
-                        string err = "Error when reading file 'Receptor.dat' in line " + (block + 1).ToString();
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-                        Program.ReceptorNumber = 0;
-                        Program.ReceptorsAvailable = false;
-                        return;
-
-                        // if (Program.IOUTPUT <= 0) // Soundplan
-                        //     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                        // Environment.Exit(0);
-                    }
                 } // using
+                catch
+                {
+                    string err = "Error when reading file 'Receptor.dat' in line " + (block + 1).ToString();
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileProblemreportWrite(err);
+                    Program.ReceptorNumber = 0;
+                    Program.ReceptorsAvailable = false;
+                    return;
+
+                    // if (Program.IOUTPUT <= 0) // Soundplan
+                    //     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    // Environment.Exit(0);
+                }
 
                 if (block < Program.ReceptorNumber)
                 {
@@ -294,6 +295,55 @@ namespace GRAL_2001
                 for (int k = 0; k < Program.SourceGroups.Count; k++)
                 {
                     Program.ReceptorConc[i][k] = 0;
+                }
+                // store Meteo Data for the receptors
+                if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
+                {
+                    try
+                    {
+                        int I_SC = (int)((Program.ReceptorX[i] - Program.GrammWest) / Program.DDX[1]) + 1;
+                        int J_SC = (int)((Program.ReceptorY[i] - Program.GrammSouth) / Program.DDY[1]) + 1;
+
+                        // receptor flow field indices not defined
+                        if (Program.ReceptorIIndFF[i] == 0 && Program.ReceptorJIndFF[i] == 0 && Program.ReceptorKIndFF[i] == 0)
+                        {
+                            double xsi = Program.ReceptorX[i] - Program.IKOOAGRAL;
+                            double eta = Program.ReceptorY[i] - Program.JKOOAGRAL;
+                            //receptor indices in the GRAL concentration grid
+                            Program.ReceptorIIndFF[i] = (int)(xsi / Program.DXK) + 1;
+                            Program.ReceptorJIndFF[i] = (int)(eta / Program.DYK) + 1;
+                            Program.ReceptorKIndFF[i] = 1;
+
+                            for (int k = Program.NKK; k >= 1; k--)
+                            {
+                                if (Program.HOKART[k] + Program.AHMIN > Program.ReceptorZ[i] + Program.AHK[Program.ReceptorIIndFF[i]][Program.ReceptorJIndFF[i]])
+                                {
+                                    Program.ReceptorKIndFF[i] = k;
+                                }
+                            }
+                        }
+                        Program.ReceptorMeteoData[i].UK = Program.UK[Program.ReceptorIIndFF[i]][Program.ReceptorJIndFF[i]][Program.ReceptorKIndFF[i]];
+                        Program.ReceptorMeteoData[i].VK = Program.VK[Program.ReceptorIIndFF[i]][Program.ReceptorJIndFF[i]][Program.ReceptorKIndFF[i]];
+                        int Ak = 0;
+                        if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1 && Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
+                        {
+                            Ak = Program.SC_Gral[I_SC][J_SC];
+                        }
+                        else
+                        {
+                            if (Program.StabClassGramm > 0)
+                            {
+                                Ak = Program.StabClassGramm;
+                            }
+                            else
+                            {
+                                Ak = Program.StabClass;
+                            }
+                        }
+                        Program.ReceptorMeteoData[i].AK = Ak;
+                        Program.ReceptorMeteoData[i].BdLH = MathF.Round(Program.BdLayHeight);                        
+                    }
+                    catch { }
                 }
             }
         }

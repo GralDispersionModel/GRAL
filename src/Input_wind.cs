@@ -17,7 +17,7 @@ namespace GRAL_2001
 {
     class ReadWndFile
     {
-        public static bool Read(string pfad)
+        public static bool Read(string pfad, int WeatherSituation)
         {
             bool GRAMMwfhere = true;
             try
@@ -27,12 +27,12 @@ namespace GRAL_2001
                 if (pfad != String.Empty)
                 {
                     //case 2: wind fields are imported from a different project
-                    wndfilename = Path.Combine(pfad, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".wnd");
+                    wndfilename = Path.Combine(pfad, Convert.ToString(WeatherSituation).PadLeft(5, '0') + ".wnd");
                 }
                 else
                 {
                     //case 1: wind fields are located in the same sub-directory as the GRAL executable
-                    wndfilename = Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".wnd";
+                    wndfilename = Convert.ToString(WeatherSituation).PadLeft(5, '0') + ".wnd";
                 }
 
                 Console.WriteLine(wndfilename);

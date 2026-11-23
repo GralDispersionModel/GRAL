@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -20,8 +21,9 @@ namespace GRAL_2001
     /// </summary>
     class Input_Sonic
     {
-        public static void Read()
+        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
         {
+            int n = 0;
             try
             {
                 StreamReader sr = new StreamReader("sonic.dat");
@@ -37,13 +39,12 @@ namespace GRAL_2001
                     Console.WriteLine();
                     Console.WriteLine("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
                     
-                    for (int n = 1; n <= Program.IWETstart; n++)
+                    for (n = 1; n <= RecentSituation; n++)
                     {
                         string text1 = sr.ReadLine();
-                        if (text1 == null)
+                        if (sr.EndOfStream == true) // at the end of the stream -> computation finished
                         {
-                            Program.IEND = Consts.CalculationFinished;
-                            return;
+                            return (RecentSituation + 1, Consts.CalculationFinished); // read meteopgt.all OK
                         }
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
@@ -84,8 +85,6 @@ namespace GRAL_2001
                             Program.Ob[ix][iy] = Program.Ob[1][1];
                         }
                     }
-
-                    Program.IWETstart = Program.IDISP + 1;
                 }
                 catch
                 {
@@ -101,15 +100,15 @@ namespace GRAL_2001
                             ;
                         }
                     }
-
-                    Environment.Exit(0);
+                    cancelToken.Cancel();
+                    return (0, Consts.CalculationFinished);
                 }
                 sr.Close();
                 sr.Dispose();
             }
             catch
             {
-                string err = "Error when reading file sonic.dat. -> Execution stopped: press ESC to stop";
+                string err = "Error when reading file sonic.dat in line " + (n).ToString() + " Execution stopped: press ESC to stop";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
 
@@ -121,9 +120,10 @@ namespace GRAL_2001
                         ;
                     }
                 }
-
-                Environment.Exit(0);
+                cancelToken.Cancel();
+                return (0, Consts.CalculationFinished);
             }
+             return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
     }
 }

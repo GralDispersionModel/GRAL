@@ -15,6 +15,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,7 +25,22 @@ namespace GRAL_2001
     {
         //global variables declaration block
         //note that arrays are defined as jagged-arrays as they have a much better computational performance than matrices
-
+        ///<summary>
+        ///Task for starting the windfield calculation
+        /// </summary>
+        public static Task<(int, bool)> WindFieldTask = null;
+        ///<summary>
+        ///Thread for writing *.gff files
+        /// </summary>
+        public static Thread ThreadWriteGffFiles = null;
+        ///<summary>
+        ///Path for windd data
+        /// </summary>
+        public static String WindfieldPath = string.Empty;
+        ///<summary>
+        ///Times series for the transient GRAL mode 
+        /// </summary>
+        public static InputMettimeSeries InputMetTimeSeries;
         ///<summary>
         ///Sets the maximum number of cores to be used in the parallelisation
         /// </summary>
@@ -600,6 +616,10 @@ namespace GRAL_2001
         ///Array containing the total concentration of one particle at a receptor to estimate the statistical error
         ///</summary>
         public static double[][] ReceptorTotalConc = CreateArray<double[]>(1, () => new double[1]);
+        ///<summary>
+        ///Store the meteo data for all receptor points
+        ///</summary>
+        public static ReceptorMeteoDataClass[] ReceptorMeteoData = new ReceptorMeteoDataClass[1];
         ///<summary>
         ///Factor to decrease the standard deviation of the horizontal wind fluctuations in dependency on the averaging time
         ///</summary>
@@ -1381,7 +1401,7 @@ namespace GRAL_2001
             public DeterministicRandomGenerator(int Situation, float WindSpeed, float WindDirection)
             {
                 // Absolute value because wind direction can be negative (i.e., a 270-degree wind direction)
-                Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + WindSpeed * 100) + (uint)(Situation << 2);
+                Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + Math.Abs(WindSpeed) * 100) + (uint)(Situation << 2);
                 Seed2 = 2232121 + Convert.ToUInt32(Math.Abs(WindDirection) * 2) + (uint)(Situation << 1);
                 if (Seed1 == 0)
                 {
@@ -1430,6 +1450,14 @@ namespace GRAL_2001
             public int End { get; init; }
 
             public override string ToString() => $"({Start}_{End})";
+        }
+
+        public class ReceptorMeteoDataClass()
+        {
+           public float UK;
+           public float VK;
+           public int AK;
+           public float BdLH;
         }
     }
 }

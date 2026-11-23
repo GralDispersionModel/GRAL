@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -23,8 +24,10 @@ namespace GRAL_2001
         /// <summary>
     	/// Read the current line of the variable Program.IWETstart from the classified meteo data file meteopgt.all
     	/// </summary> 
-        public static int Read()
+        /// <returns>(Next Weather Situation number, Last Weather Situation reached)</returns>
+        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
         {
+            int n = 0;
             try
             {
                 if (!File.Exists("meteopgt.all"))
@@ -37,7 +40,8 @@ namespace GRAL_2001
                         Program.CleanUpMemory();
                         while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
                     }
-                    Environment.Exit(0);
+                    cancelToken.Cancel();
+                    return (0, Consts.CalculationFinished);
                 }
 
                 using (StreamReader sr = new StreamReader("meteopgt.all"))
@@ -50,18 +54,17 @@ namespace GRAL_2001
                     double akla_sum = 0; int akla_count = 0;
 
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    for (int n = 1; n <= Program.IWETstart; n++)
+                    string text1 = string.Empty;
+                    for (n = 1; n <= RecentSituation; n++)
                     {
                         if (sr.EndOfStream == true) // at the end of the stream -> computation finished
                         {
-                            return 1;
+                            return (n + 1, Consts.CalculationFinished); // read meteopgt.all OK
                         }
 
-                        string text1 = sr.ReadLine();
-
-                        text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        text1 = sr.ReadLine();
                     }
+                    text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
                     Program.MetProfileNumb = 1;
                     Program.MeasurementHeight[1] = anemoHeight;
@@ -76,7 +79,7 @@ namespace GRAL_2001
                         float rngVal = (float) Random.Shared.NextDouble();
                         if (Program.UseFixedRndSeedVal)
                         {
-                            Program.DeterministicRandomGenerator rnGSeed = new Program.DeterministicRandomGenerator(Program.IWET, Program.WindVelGral, Program.WindDirGral);
+                            Program.DeterministicRandomGenerator rnGSeed = new Program.DeterministicRandomGenerator(RecentSituation, Program.WindVelGral, Program.WindDirGral);
                             uint m_w = Program.RnGSeed.Seed1;
                             uint m_z = Program.RnGSeed.Seed2;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
@@ -144,21 +147,16 @@ namespace GRAL_2001
                                 (Program.OLGral[ix][iy], Program.USternGral[ix][iy]) = CalcMetParams(stabilityclass, anemoHeight, IUstern, JUstern, Program.Z0Gral[ix][iy]);
                             }
                         }
-
                     }
-
-                    Program.IWETstart = Program.IDISP + 1;
                     if (akla_count > 0)
                     {
                         Program.StabClassGramm = Convert.ToInt32(akla_sum / akla_count);
                     }
                 }
-
-                return Consts.CalculationRunning; // read meteopgt.all OK
             }
             catch (Exception ex)
             {
-                string err = "Error when reading file meteopgt.all in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop";
+                string err = "Error when reading file meteopgt.all in line " + (n).ToString() + " Execution stopped: press ESC to stop";
                 Console.WriteLine(ex.Message + Environment.NewLine + err);
                 ProgramWriters.LogfileProblemreportWrite(err);
 
@@ -166,9 +164,10 @@ namespace GRAL_2001
                 {
                     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
                 }
-                Environment.Exit(0);
-                return Consts.CalculationFinished; // read meteopgt.all Error
+                cancelToken.Cancel();
+                return (0, Consts.CalculationFinished);
             }
+            return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
 
         /// <summary>

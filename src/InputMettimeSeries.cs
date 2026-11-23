@@ -17,7 +17,7 @@ using System.Linq;
 
 namespace GRAL_2001
 {
-    class InputMettimeSeries
+    public class InputMettimeSeries
     {
         private List<WindData> _winddata;
         /// <summary>
@@ -128,12 +128,12 @@ namespace GRAL_2001
         /// <summary>
     	/// Search the corresponding meteo situation for one line in mettimeseries.txt in meteopgt.all
     	/// </summary> 
-        /// <result>
+        /// <returns>
         /// Returns the line number in Meteopgt[], -1 if last line in MetTimeSer[] has been reached, -3 if no match could be found
-        /// </result>
-        public int SearchWeatherSituation()
+        /// </returns>
+        public int SearchWeatherSituation(int Weathersituation)
         {
-            if (Program.MeteoTimeSer.Count() <= (Program.IWET - 1)) // if last line in Met_Time_Ser[] has been reached -> exit with -1
+            if (Program.MeteoTimeSer.Count() <= (Weathersituation - 1)) // if last line in Met_Time_Ser[] has been reached -> exit with -1
             {
                 return -1;
             }
@@ -141,11 +141,11 @@ namespace GRAL_2001
             int iwet = -3; // if no best match can be found -> throw an ecxeption in Program.cs() and try the next situation
             for (int n = 0; n < Program.MeteopgtLst.Count; n++)
             {
-                //if (Program.Met_Time_Ser.Count() > (Program.IWET - 1))
+                //if (Program.Met_Time_Ser.Count() > (Weathersituation - 1))
                 //{
-                if (MathF.Abs(Program.MeteopgtLst[n].Vel - Program.MeteoTimeSer[Program.IWET - 1].Vel) < 0.01F
-                   && MathF.Abs(Program.MeteopgtLst[n].Dir - Program.MeteoTimeSer[Program.IWET - 1].Dir) < 0.01F
-                   && (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Program.IWET - 1].Stab_Class))
+                if (MathF.Abs(Program.MeteopgtLst[n].Vel - Program.MeteoTimeSer[Weathersituation - 1].Vel) < 0.01F
+                   && MathF.Abs(Program.MeteopgtLst[n].Dir - Program.MeteoTimeSer[Weathersituation - 1].Dir) < 0.01F
+                   && (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Weathersituation - 1].Stab_Class))
                 {
                     iwet = n;
                     break;
@@ -155,14 +155,14 @@ namespace GRAL_2001
 
             if (iwet == -3) // found no exact match -> try to find the best fitting match
             {
-                float richtung = (270F - Program.MeteoTimeSer[Program.IWET - 1].Dir) * MathF.PI / 180F;
-                float u_Mettime = Program.MeteoTimeSer[Program.IWET - 1].Vel * MathF.Cos(richtung);
-                float v_Mettime = Program.MeteoTimeSer[Program.IWET - 1].Vel * MathF.Sin(richtung);
+                float richtung = (270F - Program.MeteoTimeSer[Weathersituation - 1].Dir) * MathF.PI / 180F;
+                float u_Mettime = Program.MeteoTimeSer[Weathersituation - 1].Vel * MathF.Cos(richtung);
+                float v_Mettime = Program.MeteoTimeSer[Weathersituation - 1].Vel * MathF.Sin(richtung);
                 float error_min = 1000000;
 
                 for (int n = 0; n < Program.MeteopgtLst.Count; n++)
                 {
-                    if (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Program.IWET - 1].Stab_Class) // use exact stability class
+                    if (Program.MeteopgtLst[n].Stab_Class == Program.MeteoTimeSer[Weathersituation - 1].Stab_Class) // use exact stability class
                     {
                         richtung = (270 - Program.MeteopgtLst[n].Dir) * MathF.PI / 180F;
                         float u_Meteopgt = Program.MeteopgtLst[n].Vel * MathF.Cos(richtung);

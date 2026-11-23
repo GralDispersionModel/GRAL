@@ -55,6 +55,11 @@ namespace GRAL_2001
                             Program.ReceptorJIndFF = new Int32[Program.ReceptorNumber + 1];
                             Program.ReceptorKIndFF = new Int32[Program.ReceptorNumber + 1];
                             Program.ReceptorNearbyBuilding = new bool[Program.ReceptorNumber + 1];
+                            Program.ReceptorMeteoData = new Program.ReceptorMeteoDataClass[Program.ReceptorNumber + 1];
+                            for (int i = 0; i <= Program.ReceptorNumber; i++)
+                            {
+                                Program.ReceptorMeteoData[i] = new Program.ReceptorMeteoDataClass();
+                            }
                         }
                     }
                     catch

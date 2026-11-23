@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -23,7 +24,8 @@ namespace GRAL_2001
         /// <summary>
     	/// Read the meteo input file elimakidata.prn
     	/// </summary> 
-        public static void Read()
+        /// <returns>(Next Weather Situation number, Last Weather Situation reached)</returns>
+        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
         {
             try
             {
@@ -32,7 +34,7 @@ namespace GRAL_2001
                 {
                     string[] text = new string[1];
 
-                    if (Program.IDISP == Program.IWETstart)
+                    if (RecentSituation == Program.IWETstart)
                     {
                         //number of observations of the vertical profile                    
                         Program.MetProfileNumb = 3;
@@ -40,29 +42,18 @@ namespace GRAL_2001
                         Program.MeasurementHeight[2] = 6;
                         Program.MeasurementHeight[3] = 10;
 
-                        for (int n = 1; n <= Program.IWETstart; n++)
+                        for (int n = 1; n <= RecentSituation; n++)
                         {
+                            string text1 = sr.ReadLine();
                             if (sr.EndOfStream == true) // at the end of the stream -> computation finished
                             {
-                                Program.IEND = Consts.CalculationFinished;
-                                return;
-                            }
-                            string text1 = sr.ReadLine();
-                            if (text1 == null)
-                            {
-                                Program.IEND = Consts.CalculationFinished;
-                                return;
+                                return (RecentSituation + 1, Consts.CalculationFinished); // read meteopgt.all OK
                             }
                             text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                         }
                     }
 
-                    float observedObukhovLength = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
-                    // Ob = 0 would give infinite dissipation and a zero time step; same substitution as inputzr.dat and sonic.dat
-                    if (observedObukhovLength == 0)
-                    {
-                        observedObukhovLength = 1.0F;
-                    }
+                    Program.Ob[1][1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
 
                     //read wind components along the vertical profile
                     int n1 = 0;
@@ -101,8 +92,6 @@ namespace GRAL_2001
                     {
                         for (int iy = 1; iy <= Program.NY; iy++)
                         {
-                            // EKI supplies one meteorological profile for the entire domain.
-                            Program.Ob[ix][iy] = observedObukhovLength;
                             if ((Program.Ob[ix][iy] >= 0) && (Program.Ob[ix][iy] < 100))
                             {
                                 double phim = 1 + 5 * Program.MeasurementHeight[Program.MetProfileNumb] / Program.Ob[ix][iy];
@@ -123,8 +112,6 @@ namespace GRAL_2001
                             Program.Ustern[ix][iy] = (float)Math.Max(Program.Ustern[ix][iy], 0.02);
                         }
                     }
-
-                    Program.IWETstart = Program.IDISP + 1;
                 }
                 catch
                 {
@@ -139,8 +126,8 @@ namespace GRAL_2001
                             ;
                         }
                     }
-
-                    Environment.Exit(0);
+                    cancelToken.Cancel();
+                    return (0, Consts.CalculationFinished);
                 }
                 sr.Close();
                 sr.Dispose();
@@ -158,9 +145,10 @@ namespace GRAL_2001
                         ;
                     }
                 }
-
-                Environment.Exit(0);
+                cancelToken.Cancel();
+                return (0, Consts.CalculationFinished);
             }
+            return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
     }
 }

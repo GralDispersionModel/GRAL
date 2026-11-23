@@ -12,6 +12,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -20,12 +21,13 @@ namespace GRAL_2001
     /// </summary>
     class Input_zr
     {
-        public static void Read()
+        /// <returns>(Next Weather Situation number, Last Weather Situation reached)</returns>
+        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
         {
+            int n = 0;
             try
             {
                 StreamReader sr = new StreamReader("inputzr.dat");
-                int errorLine = 1; // file line reported if reading fails
                 try
                 {
                     string[] text = new string[1];
@@ -35,40 +37,22 @@ namespace GRAL_2001
                     Program.MetProfileNumb = Convert.ToInt16(text[0].Replace(".", Program.Decsep));
 
                     //height of these observations above ground in m
-                    errorLine = 2;
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
                     Console.WriteLine();
                     Console.Write("Observational heights: ");
-                    for (int n = 1; n <= Program.MetProfileNumb; n++)
+                    for (n = 1; n <= Program.MetProfileNumb; n++)
                     {
                         Program.MeasurementHeight[n] = Convert.ToSingle(text[n - 1].Replace(".", Program.Decsep));
                         Console.Write(Program.MeasurementHeight[n].ToString("0.00") + "m  ");
                     }
                     Console.WriteLine();
 
-                    errorLine = Program.IWETstart + 2;
-                    for (int n = 1; n <= Program.IWETstart; n++)
+                    for (n = 1; n <= RecentSituation; n++)
                     {
                         string text1 = sr.ReadLine();
-                        if (text1 == null)
+                        if (sr.EndOfStream == true) // at the end of the stream -> computation finished
                         {
-                            Program.IEND = Consts.CalculationFinished;
-                            return;
-                        }
-                        if (string.IsNullOrWhiteSpace(text1))
-                        {
-                            // Trailing blank lines end the data; a blank line followed by more data is an input error
-                            string rest;
-                            while ((rest = sr.ReadLine()) != null && string.IsNullOrWhiteSpace(rest))
-                            {
-                            }
-                            if (rest == null)
-                            {
-                                Program.IEND = Consts.CalculationFinished;
-                                return;
-                            }
-                            errorLine = n + 2;
-                            throw new FormatException("blank line is followed by more data");
+                            return (0, Consts.CalculationFinished); // reading OK
                         }
                         text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
@@ -133,13 +117,10 @@ namespace GRAL_2001
                         Program.V0[k] = Program.U0[k];
                     }
 
-                    Program.IWETstart = Program.IDISP + 1;
                 }
-                catch (Exception exc)
+                catch
                 {
-                    string err = "Error when reading file inputzr.dat in line " + errorLine.ToString() + ": " + exc.Message + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
+                    Console.WriteLine("Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop");
 
                     if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
                     {
@@ -147,21 +128,19 @@ namespace GRAL_2001
                         {
                             ;
                         }
+                        sr.Close();
+                        sr.Dispose();
+                        cancelToken.Cancel();
+                        return (RecentSituation, Consts.CalculationFinished);
                     }
-                    // Continuing would reuse the previous situation's meteorology without notice.
-                    // End the run through the normal finish sequence so pending output writers complete; exit code 1.
-                    Program.MeteoInputFailed = true;
-                    Program.IEND = Consts.CalculationFinished;
-                    sr.Close();
-                    sr.Dispose();
-                    return;
                 }
+
                 sr.Close();
                 sr.Dispose();
             }
             catch
             {
-                string err = "Error when reading file inputzr.dat. -> Execution stopped: press ESC to stop";
+                string err = "Error when reading file inputzr.dat in line " + (n).ToString() + " Execution stopped: press ESC to stop";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
 
@@ -173,9 +152,10 @@ namespace GRAL_2001
                         ;
                     }
                 }
-
-                Environment.Exit(0);
+                cancelToken.Cancel();
+                return (RecentSituation, Consts.CalculationFinished);
             }
+            return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
     }
 }

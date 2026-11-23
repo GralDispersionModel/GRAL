@@ -13,6 +13,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace GRAL_2001
 {
@@ -52,7 +53,7 @@ namespace GRAL_2001
           TRANSIENT GRAL MODE					GRAL_Vert_Conc.txt
          */
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             // Readiness check of the GPU path for the GUI, before any banner or project file. With this argument GRAL never starts
             // a run: one more argument is the folder to check in, anything else is a usage error
@@ -398,7 +399,7 @@ namespace GRAL_2001
             IWET = IWETstart - 1;
 
             //read mettimeseries.dat, meteopgt.all and Precipitation.txt in case of transient simulations
-            InputMettimeSeries InputMetTimeSeries = new InputMettimeSeries();
+            InputMetTimeSeries = new InputMettimeSeries();
 
             // read vegetation deposition factors
             VegetationDepoVelFactors = ReaderClass.ReadVegetationDeposition();
@@ -444,7 +445,7 @@ namespace GRAL_2001
             Thread ThreadWriteGffFiles = null;
             Thread ThreadWriteConz4dFile = null;
             Thread ThreadWrite2DConcentrationFiles = null;
-            int recentWeatherSituation = 0;
+            
             // A GPU failure (startup without fallback, or an error after GPU work started) ends the run like a failed meteorology
             // input: the reason goes to the console and the logs, the finish sequence runs and the exit code is 1.
             bool gpuFailed = false;
@@ -482,31 +483,21 @@ namespace GRAL_2001
                 }
             }
 
+            int recentWeatherSituation = 0;
+            int calculationFinished = Consts.CalculationRunning;
             bool FirstLoop = true;
+            
             while (IEND == Consts.CalculationRunning)
             {
-                // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
-                if (ThreadWriteGffFiles != null)
-                {
-                    ThreadWriteGffFiles.Join(5000); // wait up to 5s or until thread has been finished
-                    if (ThreadWriteGffFiles.IsAlive)
-                    {
-                        Console.Write("Writing *.gff file..");
-                        while (ThreadWriteGffFiles.IsAlive)
-                        {
-                            ThreadWriteGffFiles.Join(30000); // wait up to 30s or until thread has been finished
-                            Console.Write(".");
-                        }
-                        Console.WriteLine();
-                    }
-                    ThreadWriteGffFiles = null; // Release ressources				
-                }
-
                 if (CancelToken.IsCancellationRequested)
                 {
                     goto FinishGral;
                 }
-
+                //Check if all weather situations have been computed
+                if (calculationFinished == Consts.CalculationFinished)
+                {
+                    break;
+                }
                 // Odour output reads the current wind and turbulence fields.
                 if (Odour && ThreadWrite2DConcentrationFiles != null)
                 {
@@ -547,7 +538,7 @@ namespace GRAL_2001
                     if (ISTATIONAER == Consts.TransientMode)
                     {
                         //search for the corresponding weather situation in meteopgt.all
-                        IDISP = InputMetTimeSeries.SearchWeatherSituation() + 1;
+                        IDISP = Program.InputMetTimeSeries.SearchWeatherSituation(IWET) + 1;
                         IWETstart = IDISP;
                         if (IWET > MeteoTimeSer.Count)
                         {
@@ -557,11 +548,14 @@ namespace GRAL_2001
                     else
                     {
                         //in stationary mode, meteopgt.all is read here, because we need IEND
-                        IEND = Input_MeteopgtAll.Read();
-                        IWETstart--; // reset the counter, because metepgt.all is finally read in ReadMeteoData, after the GRAMM wind field is available
+                        (int unused, calculationFinished) = Input_MeteopgtAll.Read(IDISP, CancelToken);
                     }
                 }
 
+                if (calculationFinished == Consts.CalculationFinished)
+                {
+                    break; // reached last line in meteopgt.all ->  exit loop
+                }
                 if (ISTATIONAER == Consts.TransientMode && IDISP == 0)
                 {
                     break; // reached last line in mettimeseries -> exit loop				
@@ -575,13 +569,11 @@ namespace GRAL_2001
                     break; // reached last weather situation from console command line input
                 }
 
-                String WindfieldPath = ReadWindfeldTXT();
-
+                WindfieldPath = ReadWindfeldTXT();
                 if (Topo == Consts.TerrainAvailable)
                 {
                     Console.Write("Reading GRAMM wind field: ");
                 }
-
                 if (ISTATIONAER == Consts.TransientMode && IDISP < 0) // found no corresponding weather situation in meteopgt.all
                 {
                     Info = "Cannot find a corresponding entry in meteopgt.all to the following line in mettimeseries.dat - situation skipped: " + IWET.ToString();
@@ -589,7 +581,7 @@ namespace GRAL_2001
                     Console.WriteLine(Info);
                     ProgramWriters.LogfileGralCoreWrite(Info);
                 }
-                else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
+                else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath, IDISP))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
                 {
                     if (Program.IWETstartstop.Start < 2) // //GUI status output for the 1st instance only
                     {
@@ -602,99 +594,18 @@ namespace GRAL_2001
                         }
                         catch { }
                     }
-                    //Topography mode -> read GRAMM stability classes
-                    if (Topo == Consts.TerrainAvailable)
+                    // start a new Windfield-Calculation for each situation, except it has been started earlier in GPU mode
+                    if (Program.WindFieldTask == null) 
                     {
-                        string SclFileName = String.Empty;
-                        if (WindfieldPath == String.Empty)
-                        {
-                            //case 1: stability fields are located in the same sub-directory as the GRAL executable
-                            SclFileName = Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".scl";
-                        }
-                        else
-                        {
-                            //case 2: wind fields are imported from a different project
-                            SclFileName = Path.Combine(WindfieldPath, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".scl");
-                        }
-
-                        if (File.Exists(SclFileName))
-                        {
-                            Console.WriteLine("Reading GRAMM stability classes: " + SclFileName);
-
-                            ReadSclUstOblClasses Reader = new ReadSclUstOblClasses
-                            {
-                                FileName = SclFileName,
-                                Stabclasses = AKL_GRAMM
-                            };
-                            Reader.ReadSclFile();
-                            AKL_GRAMM = Reader.Stabclasses;
-                            Reader.Close();
-                        }
-                    }
-
-                    //Read meteorological input data depending on the input type IStatisitcs
-                    ReadMeteoData();
-
-                    //Check if all weather situations have been computed
-                    if (IEND == Consts.CalculationFinished)
-                    {
-                        break;
-                    }
-
-                    //potential temperature gradient
-                    CalculateTemperatureGradient();
-
-                    //optional: read pre-computed GRAL flow fields
-                    bool GffFiles = ReadGralFlowFields.Read();
-
-                    if (GffFiles == false) // Reading of GRAL Flowfields not successful
-                    {
-                        //microscale flow field: complex terrain
-                        if (Topo == Consts.TerrainAvailable)
-                        {
-                            MicroscaleTerrain.Calculate(FirstLoop);
-                        }
-                        //microscale flow field: flat terrain
-                        else if ((Topo == Consts.TerrainFlat) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
-                        {
-                            MicroscaleFlat.Calculate();
-                        }
-                        if (Topo == Consts.TerrainFlat)
-                        {
-                            Program.AHMIN = 0;
-                        }
-
-                        //optional: write GRAL flow fields
-                        ThreadWriteGffFiles = new Thread(WriteGRALFlowFields.Write);
-                        ThreadWriteGffFiles.Start(); // start writing thread
-
-                        if (FirstLoop)
-                        {
-                            WriteGRALFlowFields.WriteGRALGeometries();
-                        }
-                    }
-                    else
-                    {
-                        //Read Vegetation areas
-                        if ((Program.FlowFieldLevel == Consts.FlowFieldProg) && (File.Exists("vegetation.dat") == true) && Program.VEG[0][0][1] < 0)
-                        {
-                            //read vegetation only once
-                            ProgramReaders Readclass = new ProgramReaders();
-                            Readclass.ReadVegetation();
-                            Program.VEG[0][0][1] = 0;
-                            Program.VEG[0][0][0] = -0.001f; //reset marker, that vegetation is available
-                        }
-                    }
+                        Program.WindFieldTask = Task.Run(() => WindfieldProcessing(Program.IDISP, Program.IWET, calculationFinished, FirstLoop, Program.ThreadWriteGffFiles, Program.WindfieldPath, true, Program.CancelToken.Token));
+                    }                        
+                    (calculationFinished, bool GffFiles) = await Program.WindFieldTask;
+                    Program.WindFieldTask.Dispose();
+                    Program.WindFieldTask = null;
+                    
                     ProgramWriters WriteClass = new ProgramWriters();
-
                     //time needed for wind-field computations
                     double CalcTimeWindfield = (Environment.TickCount - StartTime) * 0.001;
-
-                    //reset receptor concentrations
-                    if (ReceptorsAvailable) // if receptors are acitvated
-                    {
-                        ReadReceptors.ReceptorResetConcentration();
-                    }
 
                     // if writing thread for *.grz files has been started -> wait until Thread has been finished
                     if (ThreadWrite2DConcentrationFiles != null)
@@ -734,7 +645,7 @@ namespace GRAL_2001
                             WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
                             //optional: write sub Domains as utilized in GRAL
                             WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
-                            SyncWithMutex.ReleaseMutex(); // release the mutex
+                             SyncWithMutex.ReleaseMutex(); // release the mutex
                         }
                         else
                         {
@@ -746,7 +657,7 @@ namespace GRAL_2001
                             WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
                         }
                     }
-
+                    
                     RnGSeed = new DeterministicRandomGenerator(IWET, WindVelGral, WindDirGral);
 
                     //calculating momentum and bouyancy forces for point sources
@@ -763,12 +674,20 @@ namespace GRAL_2001
 
                     //boundary-layer height
                     CalculateBoudaryLayerHeight();
+                    //reset receptor concentrations and store windfield data for the receptor meteo files - Boundary Layer Height is needed here!
+                    if (ReceptorsAvailable) // if receptors are acitvated
+                    {
+                        ReadReceptors.ReceptorResetConcentration();
+                    }
 
                     //show meteorological parameters on screen
                     OutputOfMeteoData();
 
                     bool useGpu;
-                    try { useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX); }
+                    try 
+                    { 
+                        useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX); 
+                    }
                     catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
                     {
                         // A stop during the GPU check or startup finishes GRAL like the checks below.

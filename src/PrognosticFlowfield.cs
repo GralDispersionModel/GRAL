@@ -28,7 +28,7 @@ namespace GRAL_2001
         ///Start the calculation of microscale prognostic flow fields
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public static void Calculate()
+        public static void Calculate(int Weathersituation, bool Synchron)
         {
             CultureInfo ic = CultureInfo.InvariantCulture; //19.05.25 Ku: use ic for the file output
             int NJJ = Program.NJJ;
@@ -88,7 +88,7 @@ namespace GRAL_2001
                 if (MemRed > 500)
                 {
                     string Info = "Reduce Memory Usage (Staggered Prognostic Grid): " + MemRed.ToString() + " x " + NKK.ToString() + " Cells: " + Math.Round(MemRed / 1000000D * 16D * (NKK + 2), 1) + " MByte";
-                    Console.WriteLine(Info);
+                    if (Synchron) { Console.WriteLine(Info); }
                     ProgramWriters.LogfileGralCoreWrite(Info);
                 }
 
@@ -288,8 +288,11 @@ namespace GRAL_2001
                 catch
                 { }
 
-                Console.WriteLine("Relaxation Factor Velocities:   " + relax.ToString());
-                Console.WriteLine("Relaxation Factor Pressure:     " + relaxp.ToString());
+                if (Synchron)
+                {
+                    Console.WriteLine("Relaxation Factor Velocities:   " + relax.ToString());
+                    Console.WriteLine("Relaxation Factor Pressure:     " + relaxp.ToString());
+                }
             }
 
             //INITIAL VALUES FOR STAGGERED GRID VELOCITIES VALUES AND COMPUTATION OF INITIAL MAXIMUM VELOCITIES
@@ -598,7 +601,7 @@ namespace GRAL_2001
         CONTINUE_SIMULATION:
             while ((IterationLoops <= IterationStepsMax) && (Program.FlowFieldLevel == Consts.FlowFieldProg))
             {
-                if (IterationLoops == 1)
+                if (IterationLoops == 1 && Synchron)
                 {
                     Console.WriteLine();
                     Console.WriteLine("ADVECTION");
@@ -1221,7 +1224,7 @@ namespace GRAL_2001
                         DeltaFirst = (float)_delta;
                     }
 
-                    Console.WriteLine("ITERATION " + IterationLoops.ToString() + ": " + _delta.ToString("0.000"));
+                    if (Synchron) { Console.WriteLine("ITERATION " + IterationLoops.ToString() + ": " + _delta.ToString("0.000")); }
 
                     if (_delta < 0.012 && (IterationLoops >= IterationStepsMin))
                     {
@@ -1252,7 +1255,7 @@ namespace GRAL_2001
             //OUTPUT OF ENCOUNTERED PROBLEMS DURING THE SIMULATION
             if (DeltaFinish > DeltaFirst)
             {
-                ProgramWriters.LogfileProblemreportWrite("Convergence not fullfilled for flow field: " + Program.IWET.ToString());
+                ProgramWriters.LogfileProblemreportWrite("Convergence not fullfilled for flow field: " + Weathersituation.ToString());
             }
 
             //CHECK FOR UNREALISTIC WIND SPEED VALUES
@@ -1302,13 +1305,13 @@ namespace GRAL_2001
 
             if ((UKunrealistic >= 1) || (VKunrealistic >= 1) || (WKunrealistic >= 1))
             {
-                ProgramWriters.LogfileProblemreportWrite("Unrealistic wind speeds encountered for flow field: " + Program.IWET.ToString() + " x,y,z-coordinates (total): "
+                ProgramWriters.LogfileProblemreportWrite("Unrealistic wind speeds encountered for flow field: " + Weathersituation.ToString() + " x,y,z-coordinates (total): "
                                             + Xunrealistic.ToString("0.0", ic) + "(" + UKunrealistic.ToString() + ") ,"
                                             + Yunrealistic.ToString("0.0", ic) + "(" + VKunrealistic.ToString() + ") ,"
                                             + Zunrealistic.ToString("0.0", ic) + "(" + VKunrealistic.ToString() + ")");
             }
 
-            Console.WriteLine("Total number of iterations: " + IterationLoops.ToString());
+            if (Synchron) { Console.WriteLine("Total number of iterations: " + IterationLoops.ToString()); }
 
             //OUTPUT FOR VDI TEST CASES
             if (File.Exists("VDI-A1-1.txt") == true)

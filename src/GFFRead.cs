@@ -25,10 +25,10 @@ namespace GRAL_2001
         /// <summary>
         ///Read a GRAL flow field file
         /// </summary>
-        public static bool Read()
+        public static bool Read(int WeatherSituation)
         {
             bool ReadingOK = false;      
-            string GRALflowfield = Path.Combine(Program.GFFFilePath, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".gff");
+            string GRALflowfield = Path.Combine(Program.GFFFilePath, Convert.ToString(WeatherSituation).PadLeft(5, '0') + ".gff");
             //reading *.gff-file and GRAL geometries
             if (File.Exists(GRALflowfield) == true && ReadGRALGeometries())
             {
