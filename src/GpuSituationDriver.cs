@@ -16,7 +16,6 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Threading.Tasks;
 namespace GRAL_2001
 {
     // Opt-in situation driver; residual and fresh kernels finish before host output processing.
@@ -349,7 +348,7 @@ namespace GRAL_2001
             JsonElement initDetails = initAck.RootElement.Clone();
             double initRoundTrip = step.Elapsed.TotalSeconds, residualSplit = 0, residualRoundTrip = 0, residualKernel = 0; int batches = 0; long residualParticles = 0;
 
-            StartNextWindField();
+            Program.StartNextWindField();
 
             if (Program.ISTATIONAER == Consts.TransientMode)
                 using (var iter = GpuResidualBatch.Enumerate().GetEnumerator())
@@ -395,35 +394,5 @@ namespace GRAL_2001
             if (closeError != null) throw closeError;
         }
 
-        private void StartNextWindField()
-        {
-            if (GpuSettings.Value("fallback_on_startup") == "0" && (Program.Topo == Consts.TerrainAvailable || (Program.Topo == Consts.TerrainFlat && Program.BuildingsExist == true)))
-            {
-                int iDisp = Program.IDISP + 1;
-                int calculationFinished = Consts.CalculationRunning;
-                if (Program.IStatistics == Consts.MeteoPgtAll)
-                {
-                    if (Program.ISTATIONAER == Consts.TransientMode)
-                    {
-                        //search for the corresponding weather situation in meteopgt.all
-                        iDisp = Program.InputMetTimeSeries.SearchWeatherSituation(Program.IWET) + 1;
-                        int IWeTStart = iDisp;
-                        if (Program.IWET > Program.MeteoTimeSer.Count)
-                        {
-                            Program.IEND = Consts.CalculationFinished;
-                        }
-                    }
-                    else
-                    {
-                        //in stationary mode, meteopgt.all is read here, because we need IEND
-                        (int unused, calculationFinished) = Input_MeteopgtAll.Read(iDisp, Program.CancelToken);
-                    }
-                }
-                if (calculationFinished == Consts.CalculationRunning)
-                {
-                    Program.WindFieldTask = Task.Run(() => Program.WindfieldProcessing(iDisp, Program.IWET, calculationFinished, false, Program.ThreadWriteGffFiles, Program.WindfieldPath, false, Program.CancelToken.Token));
-                }
-            }
-        }
     }
 }

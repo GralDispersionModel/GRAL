@@ -151,6 +151,7 @@ namespace GRAL_2001
                                 }
                                 catch { }
                             }
+                            throw new IOException(err, e);
                         }
 
                     }
@@ -164,7 +165,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="GRALflowfield">File name</param>
         /// <returns></returns>
-        private static bool WriteCompressedGFFFiles(string GRALflowfield)
+        private static void WriteCompressedGFFFiles(string GRALflowfield)
         {
             try
             {
@@ -227,7 +228,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-                return true;
             }
             catch (Exception e)
             {
@@ -244,7 +244,7 @@ namespace GRAL_2001
                     }
                     catch { }
                 }
-                return false;
+                throw new IOException(err, e);
             }
         }
 
@@ -253,7 +253,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="GRALflowfield">File name</param>
         /// <returns></returns>
-        private static bool WriteStrongCompressedGFFFiles(string GRALflowfield)
+        private static void WriteStrongCompressedGFFFiles(string GRALflowfield)
         {
             try
             {
@@ -359,7 +359,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-                return true;
             }
             catch (Exception e)
             {
@@ -376,7 +375,7 @@ namespace GRAL_2001
                     }
                     catch { }
                 }
-                return false;
+                throw new IOException(err, e);
             }
         }
 
@@ -385,7 +384,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="GRALflowfield">File name</param>
         /// <returns></returns>
-        private static bool WriteTerrainCompressedGFFFiles(string GRALflowfield)
+        private static void WriteTerrainCompressedGFFFiles(string GRALflowfield)
         {
             try
             {
@@ -514,7 +513,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-                return true;
             }
             catch (Exception e)
             {
@@ -531,7 +529,7 @@ namespace GRAL_2001
                     }
                     catch { }
                 }
-                return false;
+                throw new IOException(err, e);
             }
         }
 

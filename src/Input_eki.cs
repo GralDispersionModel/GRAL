@@ -12,7 +12,6 @@
 
 using System;
 using System.IO;
-using System.Threading;
 
 namespace GRAL_2001
 {
@@ -24,36 +23,31 @@ namespace GRAL_2001
         /// <summary>
     	/// Read the meteo input file elimakidata.prn
     	/// </summary> 
-        /// <returns>(Next Weather Situation number, Last Weather Situation reached)</returns>
-        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
+        public static MeteoReadStatus Read(int situation)
         {
+            int lineNumber = 0;
             try
             {
-                StreamReader sr = new StreamReader("elimakidata.prn");
-                try
+                using (StreamReader sr = new StreamReader("elimakidata.prn"))
                 {
-                    string[] text = new string[1];
+                    string[] text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
-                    if (RecentSituation == Program.IWETstart)
+                    Program.MetProfileNumb = 3;
+                    Program.MeasurementHeight[1] = 7 / 2;
+                    Program.MeasurementHeight[2] = 6;
+                    Program.MeasurementHeight[3] = 10;
+
+                    float observedObukhovLength = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                    if (!float.IsFinite(observedObukhovLength))
                     {
-                        //number of observations of the vertical profile                    
-                        Program.MetProfileNumb = 3;
-                        Program.MeasurementHeight[1] = 7 / 2;
-                        Program.MeasurementHeight[2] = 6;
-                        Program.MeasurementHeight[3] = 10;
-
-                        for (int n = 1; n <= RecentSituation; n++)
-                        {
-                            string text1 = sr.ReadLine();
-                            if (sr.EndOfStream == true) // at the end of the stream -> computation finished
-                            {
-                                return (RecentSituation + 1, Consts.CalculationFinished); // read meteopgt.all OK
-                            }
-                            text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        }
+                        throw new FormatException("Obukhov length must be finite");
                     }
-
-                    Program.Ob[1][1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                    // Ob = 0 would give infinite dissipation and a zero time step.
+                    if (observedObukhovLength == 0)
+                    {
+                        observedObukhovLength = 1.0F;
+                    }
 
                     //read wind components along the vertical profile
                     int n1 = 0;
@@ -62,6 +56,10 @@ namespace GRAL_2001
                         n1 = (k - 1) * 2;
                         Program.ObsWindU[k] = Convert.ToSingle(text[1 + n1].Replace(".", Program.Decsep));
                         Program.ObsWindV[k] = Convert.ToSingle(text[2 + n1].Replace(".", Program.Decsep));
+                        if (!float.IsFinite(Program.ObsWindU[k]) || !float.IsFinite(Program.ObsWindV[k]))
+                        {
+                            throw new FormatException("wind components must be finite");
+                        }
                     }
 
                     int ianzi = 0;
@@ -92,6 +90,7 @@ namespace GRAL_2001
                     {
                         for (int iy = 1; iy <= Program.NY; iy++)
                         {
+                            Program.Ob[ix][iy] = observedObukhovLength;
                             if ((Program.Ob[ix][iy] >= 0) && (Program.Ob[ix][iy] < 100))
                             {
                                 double phim = 1 + 5 * Program.MeasurementHeight[Program.MetProfileNumb] / Program.Ob[ix][iy];
@@ -113,42 +112,12 @@ namespace GRAL_2001
                         }
                     }
                 }
-                catch
-                {
-                    string err = "Error when reading file elimakidata.prn in line " + (Program.IWETstart).ToString() + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                    }
-                    cancelToken.Cancel();
-                    return (0, Consts.CalculationFinished);
-                }
-                sr.Close();
-                sr.Dispose();
+                return MeteoReadStatus.Success;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file elimakidata.prn. -> Execution stopped: press ESC to stop";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
-
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                {
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
-                        ;
-                    }
-                }
-                cancelToken.Cancel();
-                return (0, Consts.CalculationFinished);
+                return MeteoRows.ReportError("elimakidata.prn", lineNumber, ex);
             }
-            return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
     }
 }

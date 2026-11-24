@@ -26,18 +26,6 @@ namespace GRAL_2001
         //global variables declaration block
         //note that arrays are defined as jagged-arrays as they have a much better computational performance than matrices
         ///<summary>
-        ///Task for starting the windfield calculation
-        /// </summary>
-        public static Task<(int, bool)> WindFieldTask = null;
-        ///<summary>
-        ///Thread for writing *.gff files
-        /// </summary>
-        public static Thread ThreadWriteGffFiles = null;
-        ///<summary>
-        ///Path for windd data
-        /// </summary>
-        public static String WindfieldPath = string.Empty;
-        ///<summary>
         ///Times series for the transient GRAL mode 
         /// </summary>
         public static InputMettimeSeries InputMetTimeSeries;
@@ -619,7 +607,7 @@ namespace GRAL_2001
         ///<summary>
         ///Store the meteo data for all receptor points
         ///</summary>
-        public static ReceptorMeteoDataClass[] ReceptorMeteoData = new ReceptorMeteoDataClass[1];
+        internal static ReceptorWeather[] ReceptorMeteoData = Array.Empty<ReceptorWeather>();
         ///<summary>
         ///Factor to decrease the standard deviation of the horizontal wind fluctuations in dependency on the averaging time
         ///</summary>
@@ -1005,10 +993,6 @@ namespace GRAL_2001
         ///</summary>
         public static int IWET = 0;
         ///<summary>
-        ///Flag when reaching the final weather situation
-        ///</summary>
-        public static int IEND = Consts.CalculationRunning;
-        ///<summary>
         ///Set when a meteorological input line could not be read; the run ends early with exit code 1
         ///</summary>
         public static bool MeteoInputFailed = false;
@@ -1193,10 +1177,6 @@ namespace GRAL_2001
         ///</summary>
         public static bool ResultFileZipped = false;
         ///<summary>
-        /// filename for GRAL output files
-        ///</summary>
-        public static string ZippedFile;
-        ///<summary>
         /// time series of meteorological  data -> mettimeseries.dat
         ///</summary>
         public static List<WindData> MeteoTimeSer = new List<WindData>();
@@ -1204,10 +1184,6 @@ namespace GRAL_2001
         /// time series of meteorological  data -> meteopgt.all
         ///</summary>
         public static List<WindData> MeteopgtLst = new List<WindData>();
-        ///<summary>
-        /// number of the actual weather situation in meteopgt.all corresponding with the actual situation in mettimeseries for transient simulations
-        ///</summary>
-        public static int IDISP = 0;
         ///<summary>
         /// Average deposition settings in transient mode
         ///</summary>
@@ -1452,12 +1428,7 @@ namespace GRAL_2001
             public override string ToString() => $"({Start}_{End})";
         }
 
-        public class ReceptorMeteoDataClass()
-        {
-           public float UK;
-           public float VK;
-           public int AK;
-           public float BdLH;
-        }
+        internal readonly record struct ReceptorWeather(float U, float V, int TimeseriesStability,
+                                                        int MeteoFileStability, float BoundaryLayerHeight);
     }
 }

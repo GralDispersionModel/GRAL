@@ -30,6 +30,7 @@ namespace GRAL_2001
             if (File.Exists("vegetation.dat") == true)
             {
                 int block = 0;
+                int lineNumber = 0;
                 Program.VegetationExist = true;
                 Console.WriteLine();
                 Console.WriteLine("Reading building file vegetation.dat");
@@ -60,6 +61,7 @@ namespace GRAL_2001
 
                         while (read.EndOfStream == false)
                         {
+                            ++lineNumber;
                             text1 = read.ReadLine();
                             text = text1.Split(new char[] { '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -122,22 +124,9 @@ namespace GRAL_2001
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    string err = "Error when reading file vegetation.dat in line " + block.ToString() + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Program.CleanUpMemory();
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                    }
-
-                    Environment.Exit(0);
+                    throw new InvalidDataException($"Error when reading file vegetation.dat in line {lineNumber}: {ex.Message}", ex);
                 }
                 
                 string Info = "Total number of vegetation cells in 2D: " + block.ToString();
@@ -159,6 +148,7 @@ namespace GRAL_2001
             if (File.Exists("vegetation.dat") == true)
             {
                 int block = 0;
+                int lineNumber = 0;
                 Program.VegetationExist = true;
                 Console.WriteLine();
                 Console.WriteLine("Reading file vegetation.dat");
@@ -180,6 +170,7 @@ namespace GRAL_2001
                         Int32 IYCUT;
                         while (read.EndOfStream == false)
                         {
+                            ++lineNumber;
                             text1 = read.ReadLine();
                             text = text1.Split(new char[] { '\t', ',' });
 
@@ -236,22 +227,9 @@ namespace GRAL_2001
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    string err = "Error when reading file vegetation.dat in line " + block.ToString() + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Program.CleanUpMemory();
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                    }
-
-                    Environment.Exit(0);
+                    throw new InvalidDataException($"Error when reading file vegetation.dat in line {lineNumber}: {ex.Message}", ex);
                 }
 
                 string Info = "Total number of vegetation cells in 2D: " + block.ToString();

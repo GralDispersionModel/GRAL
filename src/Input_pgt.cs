@@ -12,7 +12,6 @@
 
 using System;
 using System.IO;
-using System.Threading;
 
 namespace GRAL_2001
 {
@@ -21,72 +20,67 @@ namespace GRAL_2001
     /// </summary> 
     class Input_MeteopgtAll
     {
-        /// <summary>
-    	/// Read the current line of the variable Program.IWETstart from the classified meteo data file meteopgt.all
-    	/// </summary> 
-        /// <returns>(Next Weather Situation number, Last Weather Situation reached)</returns>
-        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
+        internal static MeteoReadStatus ReadRow(int situation, out WeatherRow row)
         {
-            int n = 0;
+            row = default;
+            int lineNumber = 1;
             try
             {
-                if (!File.Exists("meteopgt.all"))
-                {
-                    string error = "File meteopgt.all not available in the project folder " + Directory.GetCurrentDirectory() + Environment.NewLine + "Execution stopped: press ESC to exit";
-                    Console.WriteLine(error);
-                    ProgramWriters.LogfileProblemreportWrite(error);
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Program.CleanUpMemory();
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
-                    }
-                    cancelToken.Cancel();
-                    return (0, Consts.CalculationFinished);
-                }
-
                 using (StreamReader sr = new StreamReader("meteopgt.all"))
                 {
-                    string[] text = new string[1];
-                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
-                    float anemoHeight = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
-                    string TIMESERIES = text[1].Trim();
-                    double SECTORWIDTH = Convert.ToDouble(text[2].Replace(".", Program.Decsep));
-                    double akla_sum = 0; int akla_count = 0;
+                    string[] header = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                    float anemoHeight = Convert.ToSingle(header[0].Replace(".", Program.Decsep));
+                    string TIMESERIES = header[1].Trim();
+                    double SECTORWIDTH = Convert.ToDouble(header[2].Replace(".", Program.Decsep));
 
-                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    string text1 = string.Empty;
-                    for (n = 1; n <= RecentSituation; n++)
+                    lineNumber = 2;
+                    if (sr.ReadLine() == null)
                     {
-                        if (sr.EndOfStream == true) // at the end of the stream -> computation finished
-                        {
-                            return (n + 1, Consts.CalculationFinished); // read meteopgt.all OK
-                        }
-
-                        text1 = sr.ReadLine();
+                        throw new FormatException("missing second header line");
                     }
-                    text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
+                    row = new WeatherRow(lineNumber, anemoHeight, TIMESERIES == "0", SECTORWIDTH,
+                        Convert.ToSingle(text[0].Replace(".", Program.Decsep)),
+                        Convert.ToSingle(text[1].Replace(".", Program.Decsep)), Convert.ToInt16(text[2]));
+                }
+                return MeteoReadStatus.Success;
+            }
+            catch (Exception ex) { return MeteoRows.ReportError("meteopgt.all", lineNumber, ex); }
+        }
+
+        internal readonly record struct WeatherRow(int LineNumber, float AnemometerHeight, bool UseSectors,
+            double SectorWidth, float Direction, float Speed, int Stability)
+        {
+            // In terrain, CalcMetParams needs the .wnd and optional .scl for this row.
+            internal MeteoReadStatus Apply()
+            {
+                try
+                {
+                    float anemoHeight = AnemometerHeight;
+                    int stabilityclass = Stability;
+                    double akla_sum = 0;
+                    int akla_count = 0;
                     Program.MetProfileNumb = 1;
                     Program.MeasurementHeight[1] = anemoHeight;
-                    Program.WindDirGral = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
-                    Program.WindVelGral = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
-                    int stabilityclass = Convert.ToInt16(text[2]);
+                    Program.WindDirGral = Direction;
+                    Program.WindVelGral = Speed;
                     Program.StabClass = stabilityclass;
 
                     //random wind direction taken from the defined sector width
-                    if ((TIMESERIES == "0") && (Program.Topo != Consts.TerrainAvailable))
+                    if (UseSectors && Program.Topo != Consts.TerrainAvailable)
                     {
                         float rngVal = (float) Random.Shared.NextDouble();
                         if (Program.UseFixedRndSeedVal)
                         {
-                            Program.DeterministicRandomGenerator rnGSeed = new Program.DeterministicRandomGenerator(RecentSituation, Program.WindVelGral, Program.WindDirGral);
                             uint m_w = Program.RnGSeed.Seed1;
                             uint m_z = Program.RnGSeed.Seed2;
                             m_z = 36969 * (m_z & 65535) + (m_z >> 16);
                             m_w = 18000 * (m_w & 65535) + (m_w >> 16);
                             rngVal = ((m_z << 16) + m_w + 1) * 2.328306435454494e-10F;
                         }
-                        Program.WindDirGral = Program.WindDirGral - (float)(SECTORWIDTH / 20) + (float)(rngVal * SECTORWIDTH / 10);
+                        Program.WindDirGral = Program.WindDirGral - (float)(SectorWidth / 20) + (float)(rngVal * SectorWidth / 10);
                     }
 
                     //horizontal wind components
@@ -152,22 +146,10 @@ namespace GRAL_2001
                     {
                         Program.StabClassGramm = Convert.ToInt32(akla_sum / akla_count);
                     }
+                    return MeteoReadStatus.Success;
                 }
+                catch (Exception ex) { return MeteoRows.ReportError("meteopgt.all", LineNumber, ex); }
             }
-            catch (Exception ex)
-            {
-                string err = "Error when reading file meteopgt.all in line " + (n).ToString() + " Execution stopped: press ESC to stop";
-                Console.WriteLine(ex.Message + Environment.NewLine + err);
-                ProgramWriters.LogfileProblemreportWrite(err);
-
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                {
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) {; }
-                }
-                cancelToken.Cancel();
-                return (0, Consts.CalculationFinished);
-            }
-            return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
 
         /// <summary>

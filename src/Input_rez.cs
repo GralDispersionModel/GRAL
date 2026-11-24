@@ -196,10 +196,8 @@ namespace GRAL_2001
                     // Environment.Exit(0);
                 }
 
-                if (block < Program.ReceptorNumber)
-                {
-                    Program.ReceptorNumber = block;
-                }
+                Program.ReceptorNumber = block - 1;
+                Program.ReceptorMeteoData = new Program.ReceptorWeather[Program.ReceptorNumber + 1];
 
                 Console.WriteLine();
                 // info about receptors
@@ -280,7 +278,6 @@ namespace GRAL_2001
                 {
                     Program.ReceptorsAvailable = false;
                 }
-                ReceptorResetConcentration();
             }
         }
 
@@ -296,56 +293,33 @@ namespace GRAL_2001
                 {
                     Program.ReceptorConc[i][k] = 0;
                 }
-                // store Meteo Data for the receptors
                 if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
                 {
-                    try
-                    {
-                        int I_SC = (int)((Program.ReceptorX[i] - Program.GrammWest) / Program.DDX[1]) + 1;
-                        int J_SC = (int)((Program.ReceptorY[i] - Program.GrammSouth) / Program.DDY[1]) + 1;
-
-                        // receptor flow field indices not defined
-                        if (Program.ReceptorIIndFF[i] == 0 && Program.ReceptorJIndFF[i] == 0 && Program.ReceptorKIndFF[i] == 0)
-                        {
-                            double xsi = Program.ReceptorX[i] - Program.IKOOAGRAL;
-                            double eta = Program.ReceptorY[i] - Program.JKOOAGRAL;
-                            //receptor indices in the GRAL concentration grid
-                            Program.ReceptorIIndFF[i] = (int)(xsi / Program.DXK) + 1;
-                            Program.ReceptorJIndFF[i] = (int)(eta / Program.DYK) + 1;
-                            Program.ReceptorKIndFF[i] = 1;
-
-                            for (int k = Program.NKK; k >= 1; k--)
-                            {
-                                if (Program.HOKART[k] + Program.AHMIN > Program.ReceptorZ[i] + Program.AHK[Program.ReceptorIIndFF[i]][Program.ReceptorJIndFF[i]])
-                                {
-                                    Program.ReceptorKIndFF[i] = k;
-                                }
-                            }
-                        }
-                        Program.ReceptorMeteoData[i].UK = Program.UK[Program.ReceptorIIndFF[i]][Program.ReceptorJIndFF[i]][Program.ReceptorKIndFF[i]];
-                        Program.ReceptorMeteoData[i].VK = Program.VK[Program.ReceptorIIndFF[i]][Program.ReceptorJIndFF[i]][Program.ReceptorKIndFF[i]];
-                        int Ak = 0;
-                        if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1 && Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
-                        {
-                            Ak = Program.SC_Gral[I_SC][J_SC];
-                        }
-                        else
-                        {
-                            if (Program.StabClassGramm > 0)
-                            {
-                                Ak = Program.StabClassGramm;
-                            }
-                            else
-                            {
-                                Ak = Program.StabClass;
-                            }
-                        }
-                        Program.ReceptorMeteoData[i].AK = Ak;
-                        Program.ReceptorMeteoData[i].BdLH = MathF.Round(Program.BdLayHeight);                        
-                    }
-                    catch { }
+                    Program.ReceptorMeteoData[i] = CaptureWeather(i);
                 }
             }
+        }
+
+        private static Program.ReceptorWeather CaptureWeather(int receptor)
+        {
+            int i = Program.ReceptorIIndFF[receptor];
+            int j = Program.ReceptorJIndFF[receptor];
+            int k = Program.ReceptorKIndFF[receptor];
+            int stability = Program.StabClassGramm > 0 ? Program.StabClassGramm : Program.StabClass;
+            // Without a local stability grid, the standalone meteo file uses the input class.
+            int meteoFileStability = Program.StabClass;
+            if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
+            {
+                int x = (int)((Program.ReceptorX[receptor] - Program.GrammWest) / Program.DDX[1]) + 1;
+                int y = (int)((Program.ReceptorY[receptor] - Program.GrammSouth) / Program.DDY[1]) + 1;
+                if (x >= 0 && x <= Program.NX1 && y >= 0 && y <= Program.NY1)
+                {
+                    stability = Program.SC_Gral[x][y];
+                }
+                meteoFileStability = stability;
+            }
+            return new Program.ReceptorWeather(Program.UK[i][j][k], Program.VK[i][j][k], stability,
+                                               meteoFileStability, MathF.Round(Program.BdLayHeight));
         }
     }
 }

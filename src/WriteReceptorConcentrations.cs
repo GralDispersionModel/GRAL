@@ -197,24 +197,14 @@ namespace GRAL_2001
 
                             if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
                             {
-                                try
+                                for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                                 {
-                                    for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
-                                    {
-                                        // write receptor meteo data
-                                        int I_SC = (int)((Program.ReceptorX[ianz] - Program.GrammWest) / Program.DDX[1]) + 1;
-                                        int J_SC = (int)((Program.ReceptorY[ianz] - Program.GrammSouth) / Program.DDY[1]) + 1;
-                                        StB.Append(Program.ReceptorMeteoData[ianz].UK.ToString("0.00"));
-                                        StB.Append("\t");
-                                        StB.Append(Program.ReceptorMeteoData[ianz].VK.ToString("0.00"));
-                                        StB.Append("\t");
-                                        StB.Append(Program.ReceptorMeteoData[ianz].AK.ToString());
-                                        StB.Append("\t");
-                                        StB.Append(Program.ReceptorMeteoData[ianz].BdLH.ToString());
-                                        StB.Append("\t");
-                                    }
+                                    var weather = Program.ReceptorMeteoData[ianz];
+                                    StB.Append(weather.U.ToString("0.00")).Append('\t');
+                                    StB.Append(weather.V.ToString("0.00")).Append('\t');
+                                    StB.Append(weather.TimeseriesStability).Append('\t');
+                                    StB.Append(weather.BoundaryLayerHeight).Append('\t');
                                 }
-                                catch { }
                             }
                             RewriteReceptorHistory("Receptor_Timeseries_Transient.txt", header,
                                 Encoding.Unicode, Program.IWET, StB.ToString(), null, true);
@@ -385,10 +375,10 @@ namespace GRAL_2001
 
                         for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                         {
-                            write.Write(Program.ReceptorMeteoData[ianz].UK.ToString("0.00", ic) +
-                                                "\t" + Program.ReceptorMeteoData[ianz].VK.ToString("0.00", ic) +
-                                                "\t" + Program.ReceptorMeteoData[ianz].AK.ToString(ic) +
-                                                "\t" + Program.ReceptorMeteoData[ianz].BdLH.ToString(ic) + "\t");
+                            var weather = Program.ReceptorMeteoData[ianz];
+                            write.Write(weather.U.ToString("0.00", ic) + "\t" + weather.V.ToString("0.00", ic) +
+                                        "\t" + weather.MeteoFileStability.ToString(ic) +
+                                        "\t" + weather.BoundaryLayerHeight.ToString(ic) + "\t");
                         }
                     }
                 }

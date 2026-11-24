@@ -108,6 +108,7 @@ device_name =             ! name of that device; another name at the ordinal mak
 backend =                 ! cuda or hip; no entry: automatic
 allow_integrated =        ! 1: an integrated AMD GPU may be used when no other is found
 fallback_on_startup =     ! 1: run on the CPU when the GPU cannot start
+flow_field_overlap = 0    ! 1: prepare the next wind field during GPU dispersion in eligible runs
 nvrtc_dir =               ! use only this NVRTC folder
 hiprtc_dir =              ! use only this hiprtc folder
 chunk =                   ! largest number of particles per launch, 1 to 65536
@@ -127,7 +128,8 @@ cache_dir =               ! folder for compiled kernels, or off
 | `device_name` | none | name of the device chosen with `device` |
 | `backend` | `INU_GPU_BACKEND` | `cuda` or `hip` |
 | `allow_integrated` | none | `1`: an integrated AMD GPU may be used when the automatic choice finds no other (otherwise `only_integrated`); `0` or no entry: it may not |
-| `fallback_on_startup` | `INU_GPU_FALLBACK_ON_STARTUP` | `0` or `1`. With `1`, GRAL also computes flow fields and GPU dispersion in sequence. |
+| `fallback_on_startup` | `INU_GPU_FALLBACK_ON_STARTUP` | Set `1` to continue on the CPU if GPU startup fails. |
+| `flow_field_overlap` | none | Set `1` to allow overlap. With `0` or no entry, GRAL prepares each wind field in sequence. |
 | `nvrtc_dir` | `INU_GPU_NVRTC_DIR` | absolute folder of this machine |
 | `hiprtc_dir` | `INU_GPU_HIPRTC_DIR` | absolute folder of this machine |
 | `chunk` | `INU_GRAL_GPU_CHUNK` | as the variable |
@@ -199,9 +201,9 @@ For developers (variables only, not in `GPU.txt` and not checked by `--gpu-check
 
 ## What runs on the GPU
 
-GRAL can prepare the next weather situation's flow field on the CPU while the GPU tracks fresh particles for the current situation. This works with `meteopgt.all` on complex terrain or on flat terrain with buildings or initialized vegetation. GRAL uses the computed field in memory and writes each situation's results in order. The console identifies both situations and reports the time the CPU spent preparing the next field. Part of that time can fall after the GPU finishes.
+GRAL can prepare the next wind field on the CPU while the GPU computes dispersion for the current weather situation. To enable this in a transient terrain run with `meteopgt.all`, set `flow_field_overlap = 1` in the project's `Computation/GPU.txt`. Once the GPU confirms it has received the current inputs, the worker waits for the current wind-field writer and reads the `.wnd` for the next matched weather situation. Its console message gives both the time-series row and the wind-field number. `Flow field [s]` includes preparation time that can overlap GPU work for the previous row.
 
-GRAL keeps the serial order when `fallback_on_startup = 1` or the next wind field is already available as a `.gff` file. It also uses the serial order for receptors, odour, vertical concentration output, online flow output and the VDI and IDAHO diagnostic runs. Runs with a specified range of weather situations or an external GFF folder can share wind files, so they also run in sequence.
+Even with overlap enabled, GRAL uses the serial path for stationary runs, flat terrain, buildings, odour output, an external GFF folder, online flow output, and runs that specify a situation range and write GFF files. Prognostic validation runs with `IDAHO.txt` or `VDI-*.txt` also run in sequence. The worker never prepares a row beyond the selected range or the end of the time series.
 
 Transient and stationary runs with terrain or flat terrain; meteopgt.all meteorology, and in stationary mode also ZR, EKI and Sonic profiles; point, line, area and portal sources including tunnel entrances and opposite lanes; buildings; dry and wet deposition; decay; odour output; vertical concentration output; receptors; and up to nine concentration layers.
 
