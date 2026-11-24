@@ -42,7 +42,7 @@ namespace GRAL_2001
         // Odour output and volume corrections still read the current host wind or building grid.
         internal static void StartNextWindField()
         {
-            if (GpuSettings.Value("fallback_on_startup") != "0" || CancelToken.IsCancellationRequested ||
+            if (GpuSettings.Value("flow_field_overlap") != "1" || CancelToken.IsCancellationRequested ||
                 ISTATIONAER != Consts.TransientMode || IStatistics != Consts.MeteoPgtAll ||
                 Topo != Consts.TerrainAvailable || Odour || BuildingsExist || GRALOnlineFunctions || IWET == int.MaxValue ||
                 GFFFilePath.Length != 0 || (IWETstartstop.Start > 0 && File.Exists("GRAL_FlowFields.txt")))

@@ -2,7 +2,7 @@
 
 Run with Python 3.9+ and a published GRAL build:
     python gpu/tests/test_flow_overlap.py /path/to/publish/GRAL.dll
-The optional --reference argument selects a separate serial reference build.
+Use --reference to also compare with a separate serial build.
 Use --backend cuda for NVIDIA. GPU checks require a working native runtime.
 Use --cpu-only to run just the EKI input checks without a GPU.
 """
@@ -48,7 +48,7 @@ def write_geometry(path):
         floats(faces, (nx + 1) * (ny + 1))
 
 
-def make_case(root, allow_fallback, backend):
+def make_case(root, allow_fallback, backend, *, overlap=None):
     comp = root / "Computation"
     weather = root / "Weather"
     comp.mkdir(parents=True)
@@ -66,6 +66,8 @@ def make_case(root, allow_fallback, backend):
         "meteopgt.all": "10,1,0\ndirection,speed,stability,frequency\n27,2,4,1\n18,2.5,3,1\n9,2,4,1\n",
         "mettimeseries.dat": "01.01 1 2 9 4\n01.01 2 2 27 4\n01.01 3 2.5 18 3\n",
     }
+    if overlap is not None:
+        settings["GPU.txt"] += f"flow_field_overlap = {int(overlap)}\n"
     for name, value in settings.items():
         (comp / name).write_bytes(value.encode("ascii"))
     write_geometry(comp / "ggeom.asc")
@@ -171,9 +173,16 @@ def main():
         check_eki(candidate, root, args.backend)
         if args.cpu_only:
             return
-        reference = args.reference.resolve(strict=True) if args.reference else candidate
-        serial, serial_work, serial_counts = run_case(reference, make_case(root / "serial", True, args.backend), args.backend)
-        threaded, parallel_work, threaded_counts = run_case(candidate, make_case(root / "overlap", False, args.backend), args.backend)
+        serial, serial_work, serial_counts = run_case(
+            candidate, make_case(root / "serial", True, args.backend, overlap=False), args.backend)
+        threaded, parallel_work, threaded_counts = run_case(
+            candidate, make_case(root / "overlap", True, args.backend, overlap=True), args.backend)
+        if args.reference:
+            reference = args.reference.resolve(strict=True)
+            reference_payloads, reference_work, reference_counts = run_case(
+                reference, make_case(root / "reference", True, args.backend), args.backend)
+            if reference_payloads != serial or reference_work or reference_counts != serial_counts:
+                raise AssertionError("Reference serial run differs from candidate serial run")
     different = [k for k in serial.keys() | threaded.keys() if serial.get(k) != threaded.get(k)]
     if serial_counts != threaded_counts:
         raise AssertionError(f"Serial and overlapped particle counts differ: {serial_counts} vs {threaded_counts}")
