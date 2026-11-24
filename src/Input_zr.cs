@@ -12,7 +12,6 @@
 
 using System;
 using System.IO;
-using System.Threading;
 
 namespace GRAL_2001
 {
@@ -21,40 +20,39 @@ namespace GRAL_2001
     /// </summary>
     class Input_zr
     {
-        /// <returns>(Next Weather Situation number, Last Weather Situation reached)</returns>
-        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
+        public static MeteoReadStatus Read(int situation)
         {
-            int n = 0;
+            int lineNumber = 1;
             try
             {
-                StreamReader sr = new StreamReader("inputzr.dat");
-                try
+                using (StreamReader sr = new StreamReader("inputzr.dat"))
                 {
-                    string[] text = new string[1];
-                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
 
                     //number of observations of the vertical profile
                     Program.MetProfileNumb = Convert.ToInt16(text[0].Replace(".", Program.Decsep));
 
                     //height of these observations above ground in m
+                    lineNumber = 2;
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
                     Console.WriteLine();
                     Console.Write("Observational heights: ");
-                    for (n = 1; n <= Program.MetProfileNumb; n++)
+                    for (int n = 1; n <= Program.MetProfileNumb; n++)
                     {
                         Program.MeasurementHeight[n] = Convert.ToSingle(text[n - 1].Replace(".", Program.Decsep));
                         Console.Write(Program.MeasurementHeight[n].ToString("0.00") + "m  ");
                     }
                     Console.WriteLine();
 
-                    for (n = 1; n <= RecentSituation; n++)
+                    for (int n = 1; n <= situation; n++)
                     {
-                        string text1 = sr.ReadLine();
-                        if (sr.EndOfStream == true) // at the end of the stream -> computation finished
+                        lineNumber = n + 2;
+                        string line = MeteoRows.ReadDataLine(sr);
+                        if (line == null)
                         {
-                            return (0, Consts.CalculationFinished); // reading OK
+                            return MeteoReadStatus.EndOfInput;
                         }
-                        text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                        text = line.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
 
                     Program.Ustern[1][1] = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
@@ -116,46 +114,16 @@ namespace GRAL_2001
                     {
                         Program.V0[k] = Program.U0[k];
                     }
-
                 }
-                catch
-                {
-                    Console.WriteLine("Error when reading file inputzr.dat in line " + (Program.IWETstart + 2).ToString() + " Execution stopped: press ESC to stop");
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                        sr.Close();
-                        sr.Dispose();
-                        cancelToken.Cancel();
-                        return (RecentSituation, Consts.CalculationFinished);
-                    }
-                }
-
-                sr.Close();
-                sr.Dispose();
+                return MeteoReadStatus.Success;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file inputzr.dat in line " + (n).ToString() + " Execution stopped: press ESC to stop";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
-
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                {
-                    Program.CleanUpMemory();
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
-                        ;
-                    }
-                }
-                cancelToken.Cancel();
-                return (RecentSituation, Consts.CalculationFinished);
+                string error = $"Error when reading file inputzr.dat in line {lineNumber}: {ex.Message}";
+                Console.WriteLine(error);
+                ProgramWriters.LogfileProblemreportWrite(error);
+                return MeteoReadStatus.InvalidInput;
             }
-            return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
     }
 }

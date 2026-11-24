@@ -26,11 +26,12 @@ namespace GRAL_2001
         public List<WindData> WindData { set { _winddata = value; } get { return _winddata; } }
 
         /// <summary>
-    	/// Read the time series meteo data file mettimeseries.txt
+        /// Read the time series meteo data file mettimeseries.dat
     	/// </summary> 
-        public void ReadMetTimeSeries()
+        public bool ReadMetTimeSeries()
         {
             string filename = "mettimeseries.dat";
+            int lineNumber = 0;
             string[] text2;
             string[] text3;
 
@@ -43,14 +44,12 @@ namespace GRAL_2001
                         string text;
 
                         // read data
-                        int count = 0;
-                        while (mettimeseries.EndOfStream == false)
+                        while (true)
                         {
+                            lineNumber++;
+                            text = MeteoRows.ReadDataLine(mettimeseries);
+                            if (text == null) break;
                             WindData wd = new WindData();
-                            count++;
-
-                            text = mettimeseries.ReadLine();
-
                             text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                             text3 = text2[0].Split(new char[] { '.', ':', '-' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -61,28 +60,35 @@ namespace GRAL_2001
                             wd.Vel = Convert.ToSingle(text2[2].Replace(".", Program.Decsep));
                             wd.Dir = Convert.ToSingle(text2[3].Replace(".", Program.Decsep));
                             wd.Stab_Class = Convert.ToInt16(text2[4]);
-                            wd.IWet = count;
+                            wd.IWet = lineNumber;
 
                             _winddata.Add(wd);
                         }
-
+                        if (_winddata.Count == 0)
+                        {
+                            throw new FormatException("no weather situations");
+                        }
                     }
                 }
+                return true;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file mettimeseries.txt -> Execution stopped: press ESC to stop";
+                _winddata.Clear();
+                string err = $"Error when reading file {filename} in line {Math.Max(1, lineNumber)}: {ex.Message}";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
+                return false;
             }
         }//read mettimeseries
 
         /// <summary>
     	/// Read the classified meteo data file meteopgt.all
     	/// </summary> 
-        public void ReadMeteopgtAll()
+        public bool ReadMeteopgtAll()
         {
             string filename = "meteopgt.all";
+            int lineNumber = 1;
             string[] text2;
 
             try
@@ -92,35 +98,48 @@ namespace GRAL_2001
                     using (StreamReader meteopgt = new StreamReader(fs_meteopgt))
                     {
                         //header (not used)
-                        string text = meteopgt.ReadLine();
-                        text = meteopgt.ReadLine();
+                        if (meteopgt.ReadLine() == null)
+                        {
+                            throw new FormatException("missing first header line");
+                        }
+                        lineNumber = 2;
+                        if (meteopgt.ReadLine() == null)
+                        {
+                            throw new FormatException("missing second header line");
+                        }
 
                         // read data
-                        int count = 0;
-                        while (meteopgt.EndOfStream == false)
+                        string text;
+                        while (true)
                         {
+                            lineNumber++;
+                            text = MeteoRows.ReadDataLine(meteopgt);
+                            if (text == null) break;
                             WindData wd = new WindData();
-                            count++;
-
-                            text = meteopgt.ReadLine();
                             text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
                             wd.Dir = Convert.ToSingle(text2[0].Replace(".", Program.Decsep));
                             wd.Vel = Convert.ToSingle(text2[1].Replace(".", Program.Decsep));
                             wd.Stab_Class = Convert.ToInt16(text2[2]);
-                            wd.IWet = count;
+                            wd.IWet = lineNumber - 2;
 
                             _winddata.Add(wd);
                         }
-
+                        if (_winddata.Count == 0)
+                        {
+                            throw new FormatException("no weather situations");
+                        }
                     }
                 }
+                return true;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file meteopgt.txt -> Execution stopped: press ESC to stop";
+                _winddata.Clear();
+                string err = $"Error when reading file {filename} in line {lineNumber}: {ex.Message}";
                 Console.WriteLine(err);
                 ProgramWriters.LogfileProblemreportWrite(err);
+                return false;
             }
         }//read meteopgt.all
 

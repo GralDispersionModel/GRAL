@@ -969,16 +969,7 @@ namespace GRAL_2001
                     Pt = new IntPoint(1, 1);
                     if (Program.FlowFieldLevel == Consts.FlowFieldProg)
                     {
-                        string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-                        Console.WriteLine("Press a key to exit");
-                        if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        {
-                            Program.CleanUpMemory();
-                            Console.ReadKey(true);
-                        }
-                        Environment.Exit(0);
+                        throw new InvalidDataException("Prognostic flow requires at least one subdomain containing buildings or vegetation. Check whether absolute building heights are below the surface.");
                     }
                 }
             }

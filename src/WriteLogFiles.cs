@@ -348,7 +348,7 @@ namespace GRAL_2001
         /// <summary>
         ///Output of GRAL Problem report
         /// </summary>
-        public async static void LogfileProblemreportWrite(string a)
+        public static void LogfileProblemreportWrite(string a)
         {
             if (Program.SyncWithMutex != null && Program.SyncWithMutex.WaitOne(1000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 1000 ms.
             {
@@ -357,7 +357,7 @@ namespace GRAL_2001
                 {
                     using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
                     {
-                        await sw.WriteLineAsync(a);
+                        sw.WriteLine(a);
                     }
                 }
                 catch { }
@@ -376,7 +376,7 @@ namespace GRAL_2001
                 {
                     using (StreamWriter sw = new StreamWriter("Problemreport_GRAL.txt", true))
                     {
-                        await sw.WriteLineAsync(a);
+                        sw.WriteLine(a);
                     }
                 }
                 catch { }

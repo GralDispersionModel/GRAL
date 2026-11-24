@@ -70,38 +70,41 @@ namespace GRAL_2001
                         {
                             using (ZipArchive archive = new ZipArchive(zipToOpen, ZipArchiveMode.Read)) //open Zip archive
                             {
+                                bool foundStability = false;
                                 foreach (ZipArchiveEntry entry in archive.Entries)  // search for a scl file
                                 {
                                     if (entry.FullName.Contains("scl"))
                                     {
                                         using (BinaryReader stability = new BinaryReader(entry.Open())) //Open Zip entry
                                         {
-                                            ReadValues(stability, ref _Stabclasses);
+                                            if (!ReadValues(stability, ref _Stabclasses)) return false;
+                                            foundStability = true;
                                         }
                                     }
                                     if (entry.FullName.Contains("ust"))
                                     {
                                         using (BinaryReader stability = new BinaryReader(entry.Open())) //Open Zip entry
                                         {
-                                            ReadValues(stability, ref _Ustar);
+                                            if (!ReadValues(stability, ref _Ustar)) return false;
                                         }
                                     }
                                     if (entry.FullName.Contains("obl"))
                                     {
                                         using (BinaryReader stability = new BinaryReader(entry.Open())) //Open Zip entry
                                         {
-                                            ReadValues(stability, ref _MOlength);
+                                            if (!ReadValues(stability, ref _MOlength)) return false;
                                         }
                                     }
                                 }
+                                return foundStability;
                             }
                         }
                     }
                     else // not zipped
                     {
-                        using (BinaryReader stability = new BinaryReader(File.Open(_filename, FileMode.Open)))
+                        using (BinaryReader stability = new BinaryReader(File.OpenRead(_filename)))
                         {
-                            ReadValues(stability, ref _Stabclasses);
+                            return ReadValues(stability, ref _Stabclasses);
                         }
 
                     }
@@ -111,7 +114,6 @@ namespace GRAL_2001
                     throw new FileNotFoundException(_filename + @"not found");
                 }
 
-                return true; // Reading OK
             }
             catch
             {
@@ -137,8 +139,7 @@ namespace GRAL_2001
 
                 if (Scl_Array == null || Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
                 {
-                    Scl_Array = null; // delete array -
-                    Scl_Array = new float[NI, NJ]; // create new array
+                    Scl_Array = new float[NI + 1, NJ + 1];
                 }
                 else
                 {
@@ -220,10 +221,9 @@ namespace GRAL_2001
                 int NK = stability.ReadInt32();
 
                 _GRAMMhorgridsize = stability.ReadSingle();
-                if (Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
+                if (Scl_Array == null || Scl_Array.GetUpperBound(0) != NI || Scl_Array.GetUpperBound(1) != NJ)
                 {
-                    Scl_Array = null; // delete array -
-                    Scl_Array = new int[NI, NJ]; // create new array
+                    Scl_Array = new int[NI + 1, NJ + 1];
                 }
                 else
                 {

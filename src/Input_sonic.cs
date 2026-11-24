@@ -12,7 +12,6 @@
 
 using System;
 using System.IO;
-using System.Threading;
 
 namespace GRAL_2001
 {
@@ -21,33 +20,33 @@ namespace GRAL_2001
     /// </summary>
     class Input_Sonic
     {
-        public static (int, int) Read(int RecentSituation, CancellationTokenSource cancelToken)
+        public static MeteoReadStatus Read(int situation)
         {
-            int n = 0;
+            int lineNumber = 1;
             try
             {
-                StreamReader sr = new StreamReader("sonic.dat");
-                try
+                using (StreamReader sr = new StreamReader("sonic.dat"))
                 {
-                    string[] text = new string[1];
-                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] header = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
 
                     //number of observations of the vertical profile
                     Program.MetProfileNumb = 1;
                     //height of observation above ground in m                    
-                    Program.MeasurementHeight[1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                    Program.MeasurementHeight[1] = Convert.ToSingle(header[0].Replace(".", Program.Decsep));
                     Console.WriteLine();
                     Console.WriteLine("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
                     
-                    for (n = 1; n <= RecentSituation; n++)
+                    string line = null;
+                    for (int n = 1; n <= situation; n++)
                     {
-                        string text1 = sr.ReadLine();
-                        if (sr.EndOfStream == true) // at the end of the stream -> computation finished
+                        lineNumber = n + 1;
+                        line = MeteoRows.ReadDataLine(sr);
+                        if (line == null)
                         {
-                            return (RecentSituation + 1, Consts.CalculationFinished); // read meteopgt.all OK
+                            return MeteoReadStatus.EndOfInput;
                         }
-                        text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
                     }
+                    string[] text = line.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
 
                     Program.WindVelGral = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
                     Program.WindDirGral = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
@@ -86,44 +85,15 @@ namespace GRAL_2001
                         }
                     }
                 }
-                catch
-                {
-                    string err = "Error when reading file sonic.dat in line " + (Program.IWETstart + 1).ToString() + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Program.CleanUpMemory();
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                    }
-                    cancelToken.Cancel();
-                    return (0, Consts.CalculationFinished);
-                }
-                sr.Close();
-                sr.Dispose();
+                return MeteoReadStatus.Success;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file sonic.dat in line " + (n).ToString() + " Execution stopped: press ESC to stop";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
-
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                {
-                    Program.CleanUpMemory();
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
-                        ;
-                    }
-                }
-                cancelToken.Cancel();
-                return (0, Consts.CalculationFinished);
+                string error = $"Error when reading file sonic.dat in line {lineNumber}: {ex.Message}";
+                Console.WriteLine(error);
+                ProgramWriters.LogfileProblemreportWrite(error);
+                return MeteoReadStatus.InvalidInput;
             }
-             return (RecentSituation, Consts.CalculationRunning); // read meteopgt.all OK
         }
     }
 }
