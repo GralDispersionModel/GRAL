@@ -44,11 +44,8 @@ namespace GRAL_2001
                         string text;
 
                         // read data
-                        while (true)
+                        while ((text = MeteoRows.ReadDataLine(mettimeseries, ref lineNumber)) != null)
                         {
-                            lineNumber++;
-                            text = MeteoRows.ReadDataLine(mettimeseries);
-                            if (text == null) break;
                             WindData wd = new WindData();
                             text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                             text3 = text2[0].Split(new char[] { '.', ':', '-' }, StringSplitOptions.RemoveEmptyEntries);
@@ -75,9 +72,7 @@ namespace GRAL_2001
             catch (Exception ex)
             {
                 _winddata.Clear();
-                string err = $"Error when reading file {filename} in line {Math.Max(1, lineNumber)}: {ex.Message}";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
+                MeteoRows.ReportError(filename, lineNumber, ex);
                 return false;
             }
         }//read mettimeseries
@@ -110,11 +105,8 @@ namespace GRAL_2001
 
                         // read data
                         string text;
-                        while (true)
+                        while ((text = MeteoRows.ReadDataLine(meteopgt, ref lineNumber)) != null)
                         {
-                            lineNumber++;
-                            text = MeteoRows.ReadDataLine(meteopgt);
-                            if (text == null) break;
                             WindData wd = new WindData();
                             text2 = text.Split(new char[] { ' ', ';', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -136,9 +128,7 @@ namespace GRAL_2001
             catch (Exception ex)
             {
                 _winddata.Clear();
-                string err = $"Error when reading file {filename} in line {lineNumber}: {ex.Message}";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
+                MeteoRows.ReportError(filename, lineNumber, ex);
                 return false;
             }
         }//read meteopgt.all

@@ -36,17 +36,8 @@ namespace GRAL_2001
                     Console.WriteLine();
                     Console.WriteLine("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
                     
-                    string line = null;
-                    for (int n = 1; n <= situation; n++)
-                    {
-                        lineNumber = n + 1;
-                        line = MeteoRows.ReadDataLine(sr);
-                        if (line == null)
-                        {
-                            return MeteoReadStatus.EndOfInput;
-                        }
-                    }
-                    string[] text = line.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
                     Program.WindVelGral = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
                     Program.WindDirGral = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
@@ -89,10 +80,7 @@ namespace GRAL_2001
             }
             catch (Exception ex)
             {
-                string error = $"Error when reading file sonic.dat in line {lineNumber}: {ex.Message}";
-                Console.WriteLine(error);
-                ProgramWriters.LogfileProblemreportWrite(error);
-                return MeteoReadStatus.InvalidInput;
+                return MeteoRows.ReportError("sonic.dat", lineNumber, ex);
             }
         }
     }

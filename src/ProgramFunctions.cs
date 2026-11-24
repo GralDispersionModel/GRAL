@@ -730,11 +730,12 @@ namespace GRAL_2001
         /// <summary>
         /// Read the user defined meteo data
         /// </summary>
-        private static MeteoReadStatus ReadMeteoData(int situation)
+        private static MeteoReadStatus ReadMeteoData(int situation, out Input_MeteopgtAll.WeatherRow classifiedRow)
         {
+            classifiedRow = default;
             return IStatistics switch
             {
-                Consts.MeteoPgtAll => Input_MeteopgtAll.Read(situation),
+                Consts.MeteoPgtAll => Input_MeteopgtAll.ReadRow(situation, out classifiedRow),
                 Consts.MeteoZR => Input_zr.Read(situation),
                 Consts.MeteoEKI => Input_Eki.Read(situation),
                 Consts.MeteoSonic => Input_Sonic.Read(situation),

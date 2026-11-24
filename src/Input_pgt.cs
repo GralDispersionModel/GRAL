@@ -20,15 +20,6 @@ namespace GRAL_2001
     /// </summary> 
     class Input_MeteopgtAll
     {
-        internal readonly record struct WeatherRow(int LineNumber, float AnemometerHeight, bool UseSectors,
-            double SectorWidth, float Direction, float Speed, int Stability);
-
-        public static MeteoReadStatus Read(int situation)
-        {
-            var status = ReadRow(situation, out var row);
-            return status == MeteoReadStatus.Success ? Apply(row) : status;
-        }
-
         internal static MeteoReadStatus ReadRow(int situation, out WeatherRow row)
         {
             row = default;
@@ -47,17 +38,8 @@ namespace GRAL_2001
                     {
                         throw new FormatException("missing second header line");
                     }
-                    string line = null;
-                    for (int n = 1; n <= situation; n++)
-                    {
-                        lineNumber = n + 2;
-                        line = MeteoRows.ReadDataLine(sr);
-                        if (line == null)
-                        {
-                            return MeteoReadStatus.EndOfInput;
-                        }
-                    }
-                    string[] text = line.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
                     row = new WeatherRow(lineNumber, anemoHeight, TIMESERIES == "0", SECTORWIDTH,
                         Convert.ToSingle(text[0].Replace(".", Program.Decsep)),
@@ -65,113 +47,109 @@ namespace GRAL_2001
                 }
                 return MeteoReadStatus.Success;
             }
-            catch (Exception ex) { return ReportError(lineNumber, ex); }
+            catch (Exception ex) { return MeteoRows.ReportError("meteopgt.all", lineNumber, ex); }
         }
 
-        // In terrain, CalcMetParams needs the .wnd and optional .scl for this row.
-        internal static MeteoReadStatus Apply(WeatherRow row)
+        internal readonly record struct WeatherRow(int LineNumber, float AnemometerHeight, bool UseSectors,
+            double SectorWidth, float Direction, float Speed, int Stability)
         {
-            try
+            // In terrain, CalcMetParams needs the .wnd and optional .scl for this row.
+            internal MeteoReadStatus Apply()
             {
-                float anemoHeight = row.AnemometerHeight;
-                int stabilityclass = row.Stability;
-                double akla_sum = 0;
-                int akla_count = 0;
-                Program.MetProfileNumb = 1;
-                Program.MeasurementHeight[1] = anemoHeight;
-                Program.WindDirGral = row.Direction;
-                Program.WindVelGral = row.Speed;
-                Program.StabClass = stabilityclass;
-
-                //random wind direction taken from the defined sector width
-                if (row.UseSectors && Program.Topo != Consts.TerrainAvailable)
+                try
                 {
-                    float rngVal = (float) Random.Shared.NextDouble();
-                    if (Program.UseFixedRndSeedVal)
+                    float anemoHeight = AnemometerHeight;
+                    int stabilityclass = Stability;
+                    double akla_sum = 0;
+                    int akla_count = 0;
+                    Program.MetProfileNumb = 1;
+                    Program.MeasurementHeight[1] = anemoHeight;
+                    Program.WindDirGral = Direction;
+                    Program.WindVelGral = Speed;
+                    Program.StabClass = stabilityclass;
+
+                    //random wind direction taken from the defined sector width
+                    if (UseSectors && Program.Topo != Consts.TerrainAvailable)
                     {
-                        uint m_w = Program.RnGSeed.Seed1;
-                        uint m_z = Program.RnGSeed.Seed2;
-                        m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-                        m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-                        rngVal = ((m_z << 16) + m_w + 1) * 2.328306435454494e-10F;
-                    }
-                    Program.WindDirGral = Program.WindDirGral - (float)(row.SectorWidth / 20) + (float)(rngVal * row.SectorWidth / 10);
-                }
-
-                //horizontal wind components
-                Program.WindDirGral *= 10;
-                Program.WindDirGral = (float)((270 - Program.WindDirGral) * Math.PI / 180);
-                Program.ObsWindU[1] = (float)(Program.WindVelGral * Math.Cos(Program.WindDirGral));
-                Program.ObsWindV[1] = (float)(Program.WindVelGral * Math.Sin(Program.WindDirGral));
-
-                //Calculate Obukhov length and friction velocity for GRAMM grid
-                for (int ix = 1; ix <= Program.NX; ix++)
-                {
-                    for (int iy = 1; iy <= Program.NY; iy++)
-                    {
-                        Program.Z0Gramm[ix][iy] = MathF.Max(Program.Z0Gramm[ix][iy], 0.00001F);
-
-                        if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
+                        float rngVal = (float) Random.Shared.NextDouble();
+                        if (Program.UseFixedRndSeedVal)
                         {
-                            stabilityclass = (int)Program.AKL_GRAMM[ix - 1, iy - 1];
+                            uint m_w = Program.RnGSeed.Seed1;
+                            uint m_z = Program.RnGSeed.Seed2;
+                            m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+                            m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+                            rngVal = ((m_z << 16) + m_w + 1) * 2.328306435454494e-10F;
                         }
-
-                        // sum up the SC values inside the GRAL domain area
-                        if (Program.GrammWest + Program.DDX[1] * ix > Program.IKOOAGRAL &&
-                        Program.GrammWest + Program.DDX[1] * ix < Program.IKOOAGRAL + Program.GralDx * Program.NXL &&
-                        Program.GrammSouth + Program.DDY[1] * iy > Program.JKOOAGRAL &&
-                        Program.GrammSouth + Program.DDY[1] * iy < Program.JKOOAGRAL + Program.GralDy * Program.NYL)
-                        if (stabilityclass > 0 && stabilityclass < 8)
-                        {
-                            akla_sum += stabilityclass;
-                            akla_count++;
-                        }
-
-                        Program.SC_Gral[ix][iy] = (byte)Math.Max(0, Math.Min(7, stabilityclass)); // 11.9.2017 Kuntner remember the Stability class for the receptor concentrations
-                        (Program.Ob[ix][iy], Program.Ustern[ix][iy]) = CalcMetParams(stabilityclass, anemoHeight, ix, iy, Program.Z0Gramm[ix][iy]);
+                        Program.WindDirGral = Program.WindDirGral - (float)(SectorWidth / 20) + (float)(rngVal * SectorWidth / 10);
                     }
-                }
 
-                //if GRAL Roughness is used (with buildings only) -> calculate OL and Ustar for each FF cell
-                if (Program.AdaptiveRoughnessMax > 0)
-                {
-                    for (int ix = 1; ix <= Program.NII; ix++)
+                    //horizontal wind components
+                    Program.WindDirGral *= 10;
+                    Program.WindDirGral = (float)((270 - Program.WindDirGral) * Math.PI / 180);
+                    Program.ObsWindU[1] = (float)(Program.WindVelGral * Math.Cos(Program.WindDirGral));
+                    Program.ObsWindV[1] = (float)(Program.WindVelGral * Math.Sin(Program.WindDirGral));
+
+                    //Calculate Obukhov length and friction velocity for GRAMM grid
+                    for (int ix = 1; ix <= Program.NX; ix++)
                     {
-                        for (int iy = 1; iy <= Program.NJJ; iy++)
+                        for (int iy = 1; iy <= Program.NY; iy++)
                         {
-                            //index for flat terrain = 1
-                            int IUstern = 1;
-                            int JUstern = 1;
+                            Program.Z0Gramm[ix][iy] = MathF.Max(Program.Z0Gramm[ix][iy], 0.00001F);
+
                             if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
                             {
-                                double x = ix * Program.DXK + Program.GralWest;
-                                double y = iy * Program.DYK + Program.GralSouth;
-                                double xsi1 = x - Program.GrammWest;
-                                double eta1 = y - Program.GrammSouth;
-                                IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX - 1);
-                                JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY - 1);
-                                stabilityclass = Program.AKL_GRAMM[IUstern, JUstern];
+                                stabilityclass = (int)Program.AKL_GRAMM[ix - 1, iy - 1];
                             }
 
-                            (Program.OLGral[ix][iy], Program.USternGral[ix][iy]) = CalcMetParams(stabilityclass, anemoHeight, IUstern, JUstern, Program.Z0Gral[ix][iy]);
+                            // sum up the SC values inside the GRAL domain area
+                            if (Program.GrammWest + Program.DDX[1] * ix > Program.IKOOAGRAL &&
+                            Program.GrammWest + Program.DDX[1] * ix < Program.IKOOAGRAL + Program.GralDx * Program.NXL &&
+                            Program.GrammSouth + Program.DDY[1] * iy > Program.JKOOAGRAL &&
+                            Program.GrammSouth + Program.DDY[1] * iy < Program.JKOOAGRAL + Program.GralDy * Program.NYL)
+                            if (stabilityclass > 0 && stabilityclass < 8)
+                            {
+                                akla_sum += stabilityclass;
+                                akla_count++;
+                            }
+
+                            Program.SC_Gral[ix][iy] = (byte)Math.Max(0, Math.Min(7, stabilityclass)); // 11.9.2017 Kuntner remember the Stability class for the receptor concentrations
+                            (Program.Ob[ix][iy], Program.Ustern[ix][iy]) = CalcMetParams(stabilityclass, anemoHeight, ix, iy, Program.Z0Gramm[ix][iy]);
                         }
                     }
-                }
-                if (akla_count > 0)
-                {
-                    Program.StabClassGramm = Convert.ToInt32(akla_sum / akla_count);
-                }
-                return MeteoReadStatus.Success;
-            }
-            catch (Exception ex) { return ReportError(row.LineNumber, ex); }
-        }
 
-        private static MeteoReadStatus ReportError(int lineNumber, Exception ex)
-        {
-            string error = $"Error when reading file meteopgt.all in line {lineNumber}: {ex.Message}";
-            Console.WriteLine(error);
-            ProgramWriters.LogfileProblemreportWrite(error);
-            return MeteoReadStatus.InvalidInput;
+                    //if GRAL Roughness is used (with buildings only) -> calculate OL and Ustar for each FF cell
+                    if (Program.AdaptiveRoughnessMax > 0)
+                    {
+                        for (int ix = 1; ix <= Program.NII; ix++)
+                        {
+                            for (int iy = 1; iy <= Program.NJJ; iy++)
+                            {
+                                //index for flat terrain = 1
+                                int IUstern = 1;
+                                int JUstern = 1;
+                                if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
+                                {
+                                    double x = ix * Program.DXK + Program.GralWest;
+                                    double y = iy * Program.DYK + Program.GralSouth;
+                                    double xsi1 = x - Program.GrammWest;
+                                    double eta1 = y - Program.GrammSouth;
+                                    IUstern = Math.Clamp((int)(xsi1 / Program.DDX[1]) + 1, 1, Program.NX - 1);
+                                    JUstern = Math.Clamp((int)(eta1 / Program.DDY[1]) + 1, 1, Program.NY - 1);
+                                    stabilityclass = Program.AKL_GRAMM[IUstern, JUstern];
+                                }
+
+                                (Program.OLGral[ix][iy], Program.USternGral[ix][iy]) = CalcMetParams(stabilityclass, anemoHeight, IUstern, JUstern, Program.Z0Gral[ix][iy]);
+                            }
+                        }
+                    }
+                    if (akla_count > 0)
+                    {
+                        Program.StabClassGramm = Convert.ToInt32(akla_sum / akla_count);
+                    }
+                    return MeteoReadStatus.Success;
+                }
+                catch (Exception ex) { return MeteoRows.ReportError("meteopgt.all", LineNumber, ex); }
+            }
         }
 
         /// <summary>

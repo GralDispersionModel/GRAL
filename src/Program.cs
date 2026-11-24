@@ -527,7 +527,7 @@ namespace GRAL_2001
                     catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) { break; }
                     catch (Exception exc)
                     {
-                        ReportWindFailure($"weather {weather.Row}, field {weather.Field}: {exc.Message}");
+                        ReportWindFailure(exc.Message);
                         break;
                     }
                     if (wind.Status == MeteoReadStatus.InvalidInput)
@@ -737,12 +737,12 @@ namespace GRAL_2001
                         LOG01_Output();
                     }
 
-                    string zippedFile = IWET.ToString("00000") + ".grz";
+                    string ZippedFile = IWET.ToString("00000") + ".grz";
                     try
                     {
-                        if (File.Exists(zippedFile))
+                        if (File.Exists(ZippedFile))
                         {
-                            File.Delete(zippedFile); // delete existing files
+                            File.Delete(ZippedFile); // delete existing files
                         }
                     }
                     catch { }
@@ -750,7 +750,7 @@ namespace GRAL_2001
                     //output of 2-D concentration files (concentrations, deposition, odour-files)
                     Console.WriteLine("Writing result files in a background thread");
                     int recentWeatherSituation = IWET;
-                    ThreadWrite2DConcentrationFiles = new Thread(() => WriteClass.Write2DConcentrations(recentWeatherSituation, zippedFile));
+                    ThreadWrite2DConcentrationFiles = new Thread(() => WriteClass.Write2DConcentrations(recentWeatherSituation, ZippedFile));
                     ThreadWrite2DConcentrationFiles.Start(); // start writing thread
 
                     if (SyncWithMutex != null && SyncWithMutex.WaitOne(2000)) //File access synchronisation across multiple GRAL instances allows for a waiting time of up to 2000 ms.

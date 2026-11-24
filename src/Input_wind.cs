@@ -10,20 +10,31 @@
 ///</remarks>
 #endregion
 
+using System;
 using System.IO;
 
 namespace GRAL_2001
 {
     class ReadWndFile
     {
-        public static void Read(string filename)
+        public static bool Read(string filename, int weatherRow)
         {
+            if (!File.Exists(filename))
+            {
+                string error = "The following wind field does not exist: " + filename;
+                if (Program.ISTATIONAER != Consts.TransientMode) throw new FileNotFoundException(error);
+                Console.WriteLine($"{error} - situation skipped: {weatherRow}");
+                return false;
+            }
+
+            Console.WriteLine("Reading GRAMM wind field: " + filename);
             bool ok = Program.IOUTPUT <= 0
                 ? new WindfieldReader().WindfieldRead(filename, Program.NX, Program.NY, Program.NZ,
                     ref Program.UWIN, ref Program.VWIN, ref Program.WWIN)
                 : new WindfieldReaderSoundplan().WindfieldRead(filename, Program.NX, Program.NY, Program.NZ,
                     ref Program.UWIN, ref Program.VWIN, ref Program.WWIN);
             if (!ok) throw new InvalidDataException("Cannot read GRAMM wind field " + filename);
+            return true;
         }
     }
 }

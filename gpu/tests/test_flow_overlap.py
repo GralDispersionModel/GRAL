@@ -87,24 +87,25 @@ def fixture_environment():
             if not key.upper().startswith(("INU_GPU_", "INU_GRAL_GPU_")) or key.upper() in host_settings}
 
 
-def run_case(dll, comp, backend):
-    run = subprocess.run(["dotnet", str(dll), str(comp)], cwd=comp, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT, env=fixture_environment(), timeout=180)
-    log = run.stdout.decode("utf-8", errors="replace")
+def run_gral(dll, comp, timeout):
+    return subprocess.run(["dotnet", str(dll), str(comp)], cwd=comp, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, env=fixture_environment(), timeout=timeout,
+                          encoding="utf-8", errors="replace")
+
+
+def run_case(dll, root, backend, overlap):
+    comp = make_case(root, True, backend, overlap=overlap)
+    run = run_gral(dll, comp, 180)
+    log = run.stdout
     if run.returncode or "GPU run summary: 3 situation(s) computed on the GPU, 0 on the CPU" not in log:
         raise RuntimeError(log)
-    expected_fields = [3, 1, 2]
-    parallel = []
-    for line in log.splitlines():
-        match = re.search(r"Reading GRAMM wind field: .*?([0-9]+)\.wnd", line)
-        if match:
-            if not expected_fields or expected_fields.pop(0) != int(match.group(1)):
-                raise AssertionError(f"Unexpected wind input: {line}")
-        if "Flow field calculation for the next situation starts in parallel" in line:
-            key = re.search(r"\(weather (\d+), field (\d+)\)", line)
-            parallel.append(tuple(map(int, key.groups())) if key else None)
-    if expected_fields:
-        raise AssertionError(f"Missing wind inputs: {expected_fields}")
+    fields = re.findall(r"Reading GRAMM wind field: .*?(\d+)\.wnd", log)
+    if list(map(int, fields)) != [3, 1, 2]:
+        raise AssertionError(f"Unexpected wind input sequence: {fields}")
+    starts = re.findall(r"Flow field calculation for the next situation starts in parallel(?: \(weather (\d+), field (\d+)\))?", log)
+    expected = [("2", "1"), ("3", "2")] if overlap else []
+    if starts != expected:
+        raise AssertionError(f"Unexpected overlap targets: {starts}, expected {expected}")
     metrics = [json.loads(line) for line in (comp / "GRAL_GPU_metrics.jsonl").read_text("utf-8-sig").splitlines()]
     if [row["situation"] for row in metrics] != [1, 2, 3] or any(
         row["rng_seed_mode"] != "fixed" or not row["result_server_metrics"]["reproducible_sums"] or
@@ -131,7 +132,7 @@ def run_case(dll, comp, backend):
                             raise AssertionError(f"Concentrations must be finite and include positive cells: {name}")
                     payloads[path.name, name] = hashlib.sha256(data).digest()
     counts = [(row["fresh_particles"], row["fresh_active_particles"], row["residual_particles"]) for row in metrics]
-    return payloads, parallel, counts
+    return payloads, counts
 
 
 def check_eki(dll, root, backend):
@@ -146,9 +147,8 @@ def check_eki(dll, root, backend):
         settings[2:4] = ["1", "2"]  # steady, EKI
         (comp / "in.dat").write_bytes(("\n".join(settings) + "\n").encode("ascii"))
         (comp / "elimakidata.prn").write_bytes(("120 2 1 3 1 4 2\n" + second).encode("ascii"))
-        result = subprocess.run(["dotnet", str(dll), str(comp)], cwd=comp, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, env=fixture_environment(), timeout=60)
-        log = result.stdout.decode("utf-8", errors="replace")
+        result = run_gral(dll, comp, 60)
+        log = result.stdout
         weather = sorted(p.stem for p in comp.glob("*.grz"))
         wanted = ["00001", "00002"] if expected == 0 else ["00001"]
         if result.returncode != expected or weather != wanted:
@@ -173,22 +173,17 @@ def main():
         check_eki(candidate, root, args.backend)
         if args.cpu_only:
             return
-        serial, serial_work, serial_counts = run_case(
-            candidate, make_case(root / "serial", True, args.backend, overlap=False), args.backend)
-        threaded, parallel_work, threaded_counts = run_case(
-            candidate, make_case(root / "overlap", True, args.backend, overlap=True), args.backend)
+        serial, counts = run_case(candidate, root / "serial", args.backend, False)
+        comparisons = [("overlap", candidate, True)]
         if args.reference:
-            reference = args.reference.resolve(strict=True)
-            reference_payloads, reference_work, reference_counts = run_case(
-                reference, make_case(root / "reference", True, args.backend), args.backend)
-            if reference_payloads != serial or reference_work or reference_counts != serial_counts:
-                raise AssertionError("Reference serial run differs from candidate serial run")
-    different = [k for k in serial.keys() | threaded.keys() if serial.get(k) != threaded.get(k)]
-    if serial_counts != threaded_counts:
-        raise AssertionError(f"Serial and overlapped particle counts differ: {serial_counts} vs {threaded_counts}")
-    if different or serial_work or parallel_work != [(2, 1), (3, 2)]:
-        raise AssertionError(f"Differing payloads: {sorted(different)}; serial work: {serial_work}; "
-                             f"overlap targets (weather, field): {parallel_work}")
+            comparisons.append(("reference", args.reference.resolve(strict=True), None))
+        for label, dll, overlap in comparisons:
+            fields, particles = run_case(dll, root / label, args.backend, overlap)
+            if particles != counts:
+                raise AssertionError(f"{label} particle counts {particles} differ from serial counts {counts}")
+            different = [k for k in fields.keys() | serial.keys() if fields.get(k) != serial.get(k)]
+            if different:
+                raise AssertionError(f"{label} differs from the serial run in {sorted(different)}")
     print(f"PASS: three {args.backend.upper()} situations, two flow overlaps, three wind fields and nine concentration grids")
 
 

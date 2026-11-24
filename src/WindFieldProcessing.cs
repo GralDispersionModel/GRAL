@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 ///<remarks>
 /// <Graz Lagrangian Particle Dispersion Model>
 /// Copyright (C) [2019]  [Dietmar Oettl, Markus Kuntner]
@@ -81,98 +81,97 @@ namespace GRAL_2001
         {
             try
             {
-                if (pendingWind is { } pending)
-                {
-                    pendingWind = null;
-                    try
-                    {
-                        if (pending.Work.GetAwaiter().GetResult().Status == MeteoReadStatus.InvalidInput)
-                            MeteoInputFailed = true;
-                    }
-                    catch (Exception exc) when (exc is not OperationCanceledException)
-                    {
-                        throw new InvalidOperationException($"Weather {pending.Weather.Row}, field {pending.Weather.Field}: {exc.Message}", exc);
-                    }
-                }
+                if (pendingWind is { } pending && TakeWind(pending.Weather, false).Status == MeteoReadStatus.InvalidInput)
+                    MeteoInputFailed = true;
             }
             finally { DrainWindWriter(); }
         }
 
         private static PreparedWind PrepareWind(WeatherKey weather, bool firstLoop, bool ahead)
         {
-            DrainWindWriter();
-            CancelToken.Token.ThrowIfCancellationRequested();
-            var clock = Stopwatch.StartNew();
-            if (ahead)
-                Console.WriteLine($"Flow field calculation for the next situation starts in parallel (weather {weather.Row}, field {weather.Field})");
-
-            WindVelGramm = -99;
-            WindDirGramm = -99;
-            StabClassGramm = -99;
-            new ProgramReaders().ReadMaxNumbProc();
-            bool terrainPgt = Topo == Consts.TerrainAvailable && IStatistics == Consts.MeteoPgtAll;
-            Input_MeteopgtAll.WeatherRow classifiedRow = default;
-            var status = terrainPgt ? Input_MeteopgtAll.ReadRow(weather.Field, out classifiedRow) : ReadMeteoData(weather.Field);
-            if (status != MeteoReadStatus.Success) return new PreparedWind(status);
-
-            if (Topo == Consts.TerrainAvailable)
+            try
             {
-                string path = ReadWindfeldTXT();
-                string stem = Path.Combine(path, weather.Field.ToString("00000"));
-                if (!File.Exists(stem + ".wnd"))
+                DrainWindWriter();
+                CancelToken.Token.ThrowIfCancellationRequested();
+                var clock = Stopwatch.StartNew();
+                if (ahead)
+                    Console.WriteLine($"Flow field calculation for the next situation starts in parallel (weather {weather.Row}, field {weather.Field})");
+
+                WindVelGramm = -99;
+                WindDirGramm = -99;
+                StabClassGramm = -99;
+                new ProgramReaders().ReadMaxNumbProc();
+                var status = ReadMeteoData(weather.Field, out var classifiedRow);
+                if (status != MeteoReadStatus.Success) return new PreparedWind(status);
+
+                if (Topo == Consts.TerrainAvailable)
                 {
-                    if (ISTATIONAER == Consts.TransientMode)
+                    string stem = Path.Combine(ReadWindfeldTXT(), weather.Field.ToString("00000"));
+                    if (!ReadWndFile.Read(stem + ".wnd", weather.Row))
+                        return new PreparedWind(status, MissingWind: true);
+                    AKL_GRAMM[0, 0] = 0; // no local stability classes until this field supplies them
+                    if (File.Exists(stem + ".scl"))
                     {
-                        Console.WriteLine($"The following wind field does not exist: {stem}.wnd - situation skipped: {weather.Row}");
-                        return new PreparedWind(MeteoReadStatus.Success, MissingWind: true);
-                    }
-                    throw new FileNotFoundException("The following wind field does not exist: " + stem + ".wnd");
-                }
-                Console.WriteLine("Reading GRAMM wind field: " + stem + ".wnd");
-                ReadWndFile.Read(stem + ".wnd");
-                AKL_GRAMM[0, 0] = 0; // no local stability classes until this field supplies them
-                if (File.Exists(stem + ".scl"))
-                {
-                    Console.WriteLine("Reading GRAMM stability classes: " + stem + ".scl");
-                    var reader = new ReadSclUstOblClasses { FileName = stem + ".scl", Stabclasses = AKL_GRAMM };
-                    try
-                    {
+                        Console.WriteLine("Reading GRAMM stability classes: " + stem + ".scl");
+                        var reader = new ReadSclUstOblClasses { FileName = stem + ".scl", Stabclasses = AKL_GRAMM };
                         if (!reader.ReadSclFile() || reader.Stabclasses.GetUpperBound(0) != NX ||
                             reader.Stabclasses.GetUpperBound(1) != NY)
                             throw new InvalidDataException("Invalid GRAMM stability field: " + stem + ".scl");
                         AKL_GRAMM = reader.Stabclasses;
                     }
-                    finally { reader.Close(); }
                 }
-            }
 
-            if (terrainPgt)
-            {
-                status = Input_MeteopgtAll.Apply(classifiedRow);
-                if (status != MeteoReadStatus.Success) return new PreparedWind(status);
-            }
-            CancelToken.Token.ThrowIfCancellationRequested();
-            CalculateTemperatureGradient();
-            bool fromGff = ReadGralFlowFields.Read(weather.Field);
-            if (!fromGff)
-            {
-                if (Topo == Consts.TerrainAvailable)
-                    MicroscaleTerrain.Calculate(firstLoop, weather.Field, !ahead);
-                else if (Topo == Consts.TerrainFlat && (BuildingsExist || File.Exists("vegetation.dat")))
-                    MicroscaleFlat.Calculate(weather.Field, !ahead);
-                if (Topo == Consts.TerrainFlat) AHMIN = 0;
+                if (IStatistics == Consts.MeteoPgtAll)
+                {
+                    status = classifiedRow.Apply();
+                    if (status != MeteoReadStatus.Success) return new PreparedWind(status);
+                }
                 CancelToken.Token.ThrowIfCancellationRequested();
-                if (File.Exists("GRAL_FlowFields.txt"))
-                    windFileWriter = Task.Run(() => WriteGRALFlowFields.Write(weather.Field));
-                if (firstLoop) WriteGRALFlowFields.WriteGRALGeometries();
+                //potential temperature gradient
+                CalculateTemperatureGradient();
+
+                //optional: read pre-computed GRAL flow fields
+                bool GffFiles = ReadGralFlowFields.Read(weather.Field);
+
+                if (GffFiles == false) // Reading of GRAL Flowfields not successful
+                {
+                    //microscale flow field: complex terrain
+                    if (Topo == Consts.TerrainAvailable)
+                    {
+                        MicroscaleTerrain.Calculate(firstLoop, weather.Field, !ahead);
+                    }
+                    //microscale flow field: flat terrain
+                    else if ((Topo == Consts.TerrainFlat) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
+                    {
+                        MicroscaleFlat.Calculate(weather.Field, !ahead);
+                    }
+                    if (Topo == Consts.TerrainFlat)
+                    {
+                        Program.AHMIN = 0;
+                    }
+
+                    //optional: write GRAL flow fields
+                    CancelToken.Token.ThrowIfCancellationRequested();
+                    if (File.Exists("GRAL_FlowFields.txt"))
+                        windFileWriter = Task.Run(() => WriteGRALFlowFields.Write(weather.Field));
+
+                    if (firstLoop)
+                    {
+                        WriteGRALFlowFields.WriteGRALGeometries();
+                    }
+                }
+                else if (FlowFieldLevel == Consts.FlowFieldProg && File.Exists("vegetation.dat") && VEG[0][0][1] < 0)
+                {
+                    new ProgramReaders().ReadVegetation();
+                    VEG[0][0][1] = 0;
+                    VEG[0][0][0] = -0.001f;
+                }
+                return new PreparedWind(status, ReadFromGff: GffFiles, Seconds: clock.Elapsed.TotalSeconds);
             }
-            else if (FlowFieldLevel == Consts.FlowFieldProg && File.Exists("vegetation.dat") && VEG[0][0][1] < 0)
+            catch (Exception exc) when (exc is not OperationCanceledException)
             {
-                new ProgramReaders().ReadVegetation();
-                VEG[0][0][1] = 0;
-                VEG[0][0][0] = -0.001f;
+                throw new InvalidOperationException($"weather {weather.Row}, field {weather.Field}: {exc.Message}", exc);
             }
-            return new PreparedWind(status, ReadFromGff: fromGff, Seconds: clock.Elapsed.TotalSeconds);
         }
     }
 }

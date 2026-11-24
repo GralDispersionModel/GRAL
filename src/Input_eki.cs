@@ -25,22 +25,13 @@ namespace GRAL_2001
     	/// </summary> 
         public static MeteoReadStatus Read(int situation)
         {
-            int lineNumber = 1;
+            int lineNumber = 0;
             try
             {
                 using (StreamReader sr = new StreamReader("elimakidata.prn"))
                 {
-                    string line = null;
-                    for (int n = 1; n <= situation; n++)
-                    {
-                        lineNumber = n;
-                        line = MeteoRows.ReadDataLine(sr);
-                        if (line == null)
-                        {
-                            return MeteoReadStatus.EndOfInput;
-                        }
-                    }
-                    string[] text = line.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
                     Program.MetProfileNumb = 3;
                     Program.MeasurementHeight[1] = 7 / 2;
@@ -125,10 +116,7 @@ namespace GRAL_2001
             }
             catch (Exception ex)
             {
-                string error = $"Error when reading file elimakidata.prn in line {lineNumber}: {ex.Message}";
-                Console.WriteLine(error);
-                ProgramWriters.LogfileProblemreportWrite(error);
-                return MeteoReadStatus.InvalidInput;
+                return MeteoRows.ReportError("elimakidata.prn", lineNumber, ex);
             }
         }
     }

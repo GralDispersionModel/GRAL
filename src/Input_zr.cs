@@ -44,16 +44,8 @@ namespace GRAL_2001
                     }
                     Console.WriteLine();
 
-                    for (int n = 1; n <= situation; n++)
-                    {
-                        lineNumber = n + 2;
-                        string line = MeteoRows.ReadDataLine(sr);
-                        if (line == null)
-                        {
-                            return MeteoReadStatus.EndOfInput;
-                        }
-                        text = line.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    }
+                    text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
                     Program.Ustern[1][1] = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
                     Program.Ob[1][1] = Convert.ToSingle(text[2].Replace(".", Program.Decsep));
@@ -119,10 +111,7 @@ namespace GRAL_2001
             }
             catch (Exception ex)
             {
-                string error = $"Error when reading file inputzr.dat in line {lineNumber}: {ex.Message}";
-                Console.WriteLine(error);
-                ProgramWriters.LogfileProblemreportWrite(error);
-                return MeteoReadStatus.InvalidInput;
+                return MeteoRows.ReportError("inputzr.dat", lineNumber, ex);
             }
         }
     }
