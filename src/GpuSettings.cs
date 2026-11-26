@@ -29,6 +29,7 @@ namespace GRAL_2001
             ("use_gpu","INU_GPU_EXPERIMENTAL"),("reproducible_sums","INU_GPU_REPRODUCIBLE_SUMS"),
             ("device","INU_GPU_DEVICE"),("device_name",null),("backend","INU_GPU_BACKEND"),("allow_integrated",null),
             ("fallback_on_startup","INU_GPU_FALLBACK_ON_STARTUP"),("nvrtc_dir","INU_GPU_NVRTC_DIR"),("hiprtc_dir","INU_GPU_HIPRTC_DIR"),
+            ("flow_field_overlap",null),
             ("chunk","INU_GRAL_GPU_CHUNK"),("block","INU_GRAL_GPU_BLOCK"),("max_kernel_ms","INU_GPU_MAX_KERNEL_MS"),
             ("memory_budget_bytes","INU_GPU_MEMORY_BUDGET_BYTES"),("memory_reserve_bytes","INU_GPU_MEMORY_RESERVE_BYTES"),
             ("pinned_budget_bytes","INU_GPU_PINNED_BUDGET_BYTES"),("cache_dir","INU_GPU_CACHE_DIR")
@@ -128,6 +129,7 @@ namespace GRAL_2001
                 case "use_gpu":
                 case "reproducible_sums":
                 case "allow_integrated":
+                case "flow_field_overlap":
                 case "fallback_on_startup": if(value!="0" && value!="1") throw new ArgumentException(label+" must be 0 or 1, got '"+value+"'"); break;
                 case "nvrtc_dir":
                 case "hiprtc_dir": GpuCuda.DirectoryValue(value,label); break;

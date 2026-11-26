@@ -20,22 +20,20 @@ namespace GRAL_2001
     /// </summary>
     class Input_zr
     {
-        public static void Read()
+        public static MeteoReadStatus Read(int situation)
         {
+            int lineNumber = 1;
             try
             {
-                StreamReader sr = new StreamReader("inputzr.dat");
-                int errorLine = 1; // file line reported if reading fails
-                try
+                using (StreamReader sr = new StreamReader("inputzr.dat"))
                 {
-                    string[] text = new string[1];
-                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
 
                     //number of observations of the vertical profile
                     Program.MetProfileNumb = Convert.ToInt16(text[0].Replace(".", Program.Decsep));
 
                     //height of these observations above ground in m
-                    errorLine = 2;
+                    lineNumber = 2;
                     text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
                     Console.WriteLine();
                     Console.Write("Observational heights: ");
@@ -46,32 +44,8 @@ namespace GRAL_2001
                     }
                     Console.WriteLine();
 
-                    errorLine = Program.IWETstart + 2;
-                    for (int n = 1; n <= Program.IWETstart; n++)
-                    {
-                        string text1 = sr.ReadLine();
-                        if (text1 == null)
-                        {
-                            Program.IEND = Consts.CalculationFinished;
-                            return;
-                        }
-                        if (string.IsNullOrWhiteSpace(text1))
-                        {
-                            // Trailing blank lines end the data; a blank line followed by more data is an input error
-                            string rest;
-                            while ((rest = sr.ReadLine()) != null && string.IsNullOrWhiteSpace(rest))
-                            {
-                            }
-                            if (rest == null)
-                            {
-                                Program.IEND = Consts.CalculationFinished;
-                                return;
-                            }
-                            errorLine = n + 2;
-                            throw new FormatException("blank line is followed by more data");
-                        }
-                        text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    }
+                    text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
                     Program.Ustern[1][1] = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
                     Program.Ob[1][1] = Convert.ToSingle(text[2].Replace(".", Program.Decsep));
@@ -132,49 +106,12 @@ namespace GRAL_2001
                     {
                         Program.V0[k] = Program.U0[k];
                     }
-
-                    Program.IWETstart = Program.IDISP + 1;
                 }
-                catch (Exception exc)
-                {
-                    string err = "Error when reading file inputzr.dat in line " + errorLine.ToString() + ": " + exc.Message + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                    }
-                    // Continuing would reuse the previous situation's meteorology without notice.
-                    // End the run through the normal finish sequence so pending output writers complete; exit code 1.
-                    Program.MeteoInputFailed = true;
-                    Program.IEND = Consts.CalculationFinished;
-                    sr.Close();
-                    sr.Dispose();
-                    return;
-                }
-                sr.Close();
-                sr.Dispose();
+                return MeteoReadStatus.Success;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file inputzr.dat. -> Execution stopped: press ESC to stop";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
-
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                {
-                    Program.CleanUpMemory();
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
-                        ;
-                    }
-                }
-
-                Environment.Exit(0);
+                return MeteoRows.ReportError("inputzr.dat", lineNumber, ex);
             }
         }
     }

@@ -15,6 +15,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,7 +25,10 @@ namespace GRAL_2001
     {
         //global variables declaration block
         //note that arrays are defined as jagged-arrays as they have a much better computational performance than matrices
-
+        ///<summary>
+        ///Times series for the transient GRAL mode 
+        /// </summary>
+        public static InputMettimeSeries InputMetTimeSeries;
         ///<summary>
         ///Sets the maximum number of cores to be used in the parallelisation
         /// </summary>
@@ -601,6 +605,10 @@ namespace GRAL_2001
         ///</summary>
         public static double[][] ReceptorTotalConc = CreateArray<double[]>(1, () => new double[1]);
         ///<summary>
+        ///Store the meteo data for all receptor points
+        ///</summary>
+        internal static ReceptorWeather[] ReceptorMeteoData = Array.Empty<ReceptorWeather>();
+        ///<summary>
         ///Factor to decrease the standard deviation of the horizontal wind fluctuations in dependency on the averaging time
         ///</summary>
         public static float StdDeviationV = 1;
@@ -985,10 +993,6 @@ namespace GRAL_2001
         ///</summary>
         public static int IWET = 0;
         ///<summary>
-        ///Flag when reaching the final weather situation
-        ///</summary>
-        public static int IEND = Consts.CalculationRunning;
-        ///<summary>
         ///Set when a meteorological input line could not be read; the run ends early with exit code 1
         ///</summary>
         public static bool MeteoInputFailed = false;
@@ -1173,10 +1177,6 @@ namespace GRAL_2001
         ///</summary>
         public static bool ResultFileZipped = false;
         ///<summary>
-        /// filename for GRAL output files
-        ///</summary>
-        public static string ZippedFile;
-        ///<summary>
         /// time series of meteorological  data -> mettimeseries.dat
         ///</summary>
         public static List<WindData> MeteoTimeSer = new List<WindData>();
@@ -1184,10 +1184,6 @@ namespace GRAL_2001
         /// time series of meteorological  data -> meteopgt.all
         ///</summary>
         public static List<WindData> MeteopgtLst = new List<WindData>();
-        ///<summary>
-        /// number of the actual weather situation in meteopgt.all corresponding with the actual situation in mettimeseries for transient simulations
-        ///</summary>
-        public static int IDISP = 0;
         ///<summary>
         /// Average deposition settings in transient mode
         ///</summary>
@@ -1381,7 +1377,7 @@ namespace GRAL_2001
             public DeterministicRandomGenerator(int Situation, float WindSpeed, float WindDirection)
             {
                 // Absolute value because wind direction can be negative (i.e., a 270-degree wind direction)
-                Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + WindSpeed * 100) + (uint)(Situation << 2);
+                Seed1 = 521288629 + Convert.ToUInt32(Math.Abs(WindDirection) + Math.Abs(WindSpeed) * 100) + (uint)(Situation << 2);
                 Seed2 = 2232121 + Convert.ToUInt32(Math.Abs(WindDirection) * 2) + (uint)(Situation << 1);
                 if (Seed1 == 0)
                 {
@@ -1431,5 +1427,8 @@ namespace GRAL_2001
 
             public override string ToString() => $"({Start}_{End})";
         }
+
+        internal readonly record struct ReceptorWeather(float U, float V, int TimeseriesStability,
+                                                        int MeteoFileStability, float BoundaryLayerHeight);
     }
 }

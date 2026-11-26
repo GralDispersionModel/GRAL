@@ -20,33 +20,24 @@ namespace GRAL_2001
     /// </summary>
     class Input_Sonic
     {
-        public static void Read()
+        public static MeteoReadStatus Read(int situation)
         {
+            int lineNumber = 1;
             try
             {
-                StreamReader sr = new StreamReader("sonic.dat");
-                try
+                using (StreamReader sr = new StreamReader("sonic.dat"))
                 {
-                    string[] text = new string[1];
-                    text = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
+                    string[] header = sr.ReadLine().Split(new char[] { ' ', ',', '\t', ';', '!' }, StringSplitOptions.RemoveEmptyEntries);
 
                     //number of observations of the vertical profile
                     Program.MetProfileNumb = 1;
                     //height of observation above ground in m                    
-                    Program.MeasurementHeight[1] = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
+                    Program.MeasurementHeight[1] = Convert.ToSingle(header[0].Replace(".", Program.Decsep));
                     Console.WriteLine();
                     Console.WriteLine("Observational heights: " + Program.MeasurementHeight[1].ToString("0.00"));
                     
-                    for (int n = 1; n <= Program.IWETstart; n++)
-                    {
-                        string text1 = sr.ReadLine();
-                        if (text1 == null)
-                        {
-                            Program.IEND = Consts.CalculationFinished;
-                            return;
-                        }
-                        text = text1.Split(new char[] { ' ', ',', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                    }
+                    string[] text = MeteoRows.ReadSituation(sr, situation, ref lineNumber);
+                    if (text == null) return MeteoReadStatus.EndOfInput;
 
                     Program.WindVelGral = Convert.ToSingle(text[0].Replace(".", Program.Decsep));
                     Program.WindDirGral = Convert.ToSingle(text[1].Replace(".", Program.Decsep));
@@ -84,45 +75,12 @@ namespace GRAL_2001
                             Program.Ob[ix][iy] = Program.Ob[1][1];
                         }
                     }
-
-                    Program.IWETstart = Program.IDISP + 1;
                 }
-                catch
-                {
-                    string err = "Error when reading file sonic.dat in line " + (Program.IWETstart + 1).ToString() + " Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-
-                    if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                    {
-                        Program.CleanUpMemory();
-                        while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                        {
-                            ;
-                        }
-                    }
-
-                    Environment.Exit(0);
-                }
-                sr.Close();
-                sr.Dispose();
+                return MeteoReadStatus.Success;
             }
-            catch
+            catch (Exception ex)
             {
-                string err = "Error when reading file sonic.dat. -> Execution stopped: press ESC to stop";
-                Console.WriteLine(err);
-                ProgramWriters.LogfileProblemreportWrite(err);
-
-                if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                {
-                    Program.CleanUpMemory();
-                    while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                    {
-                        ;
-                    }
-                }
-
-                Environment.Exit(0);
+                return MeteoRows.ReportError("sonic.dat", lineNumber, ex);
             }
         }
     }

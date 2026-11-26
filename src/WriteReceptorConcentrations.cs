@@ -69,7 +69,7 @@ namespace GRAL_2001
         ///<param name="mode">0: new line of concentration, 1: new line with statistical error</param> 
         public void WriteReceptorTimeseries(int mode)
         {
-            if (Program.ReceptorsAvailable)
+             if (Program.ReceptorsAvailable)
             {
                 StringBuilder StB = new StringBuilder();
                 try
@@ -197,41 +197,14 @@ namespace GRAL_2001
 
                             if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
                             {
-                                try
+                                for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                                 {
-                                    for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
-                                    {
-                                        // write receptor meteo data
-                                        int I_SC = (int)((Program.ReceptorX[ianz] - Program.GrammWest) / Program.DDX[1]) + 1;
-                                        int J_SC = (int)((Program.ReceptorY[ianz] - Program.GrammSouth) / Program.DDY[1]) + 1;
-                                        StB.Append(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00"));
-                                        StB.Append("\t");
-                                        StB.Append(Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00"));
-                                        StB.Append("\t");
-                                        int Ak = 0;
-                                        if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1 && Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
-                                        {
-                                            Ak = Program.SC_Gral[I_SC][J_SC];
-                                        }
-                                        else
-                                        {
-                                            if (Program.StabClassGramm > 0)
-                                            {
-                                                Ak = Program.StabClassGramm;
-                                            }
-                                            else
-                                            {
-                                                Ak = Program.StabClass;
-                                            }
-                                        }
-                                        StB.Append(Ak.ToString());
-                                        StB.Append("\t");
-
-                                        StB.Append(Math.Round(Program.BdLayHeight).ToString());
-                                        StB.Append("\t");
-                                    }
+                                    var weather = Program.ReceptorMeteoData[ianz];
+                                    StB.Append(weather.U.ToString("0.00")).Append('\t');
+                                    StB.Append(weather.V.ToString("0.00")).Append('\t');
+                                    StB.Append(weather.TimeseriesStability).Append('\t');
+                                    StB.Append(weather.BoundaryLayerHeight).Append('\t');
                                 }
-                                catch { }
                             }
                             RewriteReceptorHistory("Receptor_Timeseries_Transient.txt", header,
                                 Encoding.Unicode, Program.IWET, StB.ToString(), null, true);
@@ -402,44 +375,10 @@ namespace GRAL_2001
 
                         for (int ianz = 1; ianz <= Program.ReceptorNumber; ianz++)
                         {
-                            if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0) // 11.9.2017 Kuntner Write Local SCL
-                            {
-                                int I_SC = (int)((Program.ReceptorX[ianz] - Program.GrammWest) / Program.DDX[1]) + 1;
-                                int J_SC = (int)((Program.ReceptorY[ianz] - Program.GrammSouth) / Program.DDY[1]) + 1;
-
-                                if (I_SC >= 0 && I_SC <= Program.NX1 && J_SC >= 0 && J_SC <= Program.NY1)
-                                {
-                                    write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                                "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                                "\t" + Program.SC_Gral[I_SC][J_SC].ToString(ic) +
-                                                "\t" + Math.Round(Program.BdLayHeight).ToString(ic) + "\t");
-                                }
-                                else // invalid indices -> write mean SCL or meteogpt SCL
-                                {
-                                    int Ak;
-                                    if (Program.StabClassGramm > 0)
-                                    {
-                                        Ak = Program.StabClassGramm;
-                                    }
-                                    else
-                                    {
-                                        Ak = Program.StabClass;
-                                    }
-
-                                    write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                                "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                                "\t" + Ak.ToString(ic) +
-                                                "\t" + Math.Round(Program.BdLayHeight).ToString(ic) + "\t");
-                                }
-                            }
-                            else // original format without SCL
-                            {
-                                int Ak = Program.StabClass;
-                                write.Write(Program.UK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                      "\t" + Program.VK[Program.ReceptorIIndFF[ianz]][Program.ReceptorJIndFF[ianz]][Program.ReceptorKIndFF[ianz]].ToString("0.00", ic) +
-                                      "\t" + Ak.ToString(ic) +
-                                      "\t" + Math.Round(Program.BdLayHeight).ToString(ic) + "\t");
-                            }
+                            var weather = Program.ReceptorMeteoData[ianz];
+                            write.Write(weather.U.ToString("0.00", ic) + "\t" + weather.V.ToString("0.00", ic) +
+                                        "\t" + weather.MeteoFileStability.ToString(ic) +
+                                        "\t" + weather.BoundaryLayerHeight.ToString(ic) + "\t");
                         }
                     }
                 }

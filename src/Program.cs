@@ -168,11 +168,8 @@ namespace GRAL_2001
 
             //reading main control file in.dat
             ReaderClass.ReadInDat();
-            // Decide the GPU switch here, so that its line is in the GRAL log of every run, also one that ends before the first situation
-            try { _ = GpuExperimental.Enabled; }
-            catch (ArgumentException exc)
+            void StopAtStartup(Exception exc)
             {
-                // An invalid GPU.txt stops the run before the first situation, also when it would have left the GPU off
                 Console.WriteLine();
                 Console.WriteLine("ERROR: " + exc.Message);
                 ProgramWriters.LogfileProblemreportWrite(exc.Message); // also writes to Logfile_GRALCore
@@ -187,6 +184,9 @@ namespace GRAL_2001
                 }
                 Environment.Exit(1);
             }
+            // Decide the GPU switch here, so that its line is in the GRAL log of every run.
+            try { _ = GpuExperimental.Enabled; }
+            catch (ArgumentException exc) { StopAtStartup(exc); }
             //override first weather situation when using a command line argument for the 1st and last weather situation
             if (IWETstartstop.Start > 0)
             {
@@ -330,7 +330,8 @@ namespace GRAL_2001
             if (AdaptiveRoughnessMax > 0 && BuildingsExist)
             {
                 //define FlowField dependend Z0, UStar and OL, generate Z0GRAL[][] array and write RoghnessGRAL file
-                InitAdaptiveRoughnessLenght(ReaderClass);
+                try { InitAdaptiveRoughnessLenght(ReaderClass); }
+                catch (InvalidDataException exc) { StopAtStartup(exc); }
             }
             else
             {
@@ -398,7 +399,7 @@ namespace GRAL_2001
             IWET = IWETstart - 1;
 
             //read mettimeseries.dat, meteopgt.all and Precipitation.txt in case of transient simulations
-            InputMettimeSeries InputMetTimeSeries = new InputMettimeSeries();
+            InputMetTimeSeries = new InputMettimeSeries();
 
             // read vegetation deposition factors
             VegetationDepoVelFactors = ReaderClass.ReadVegetationDeposition();
@@ -406,25 +407,13 @@ namespace GRAL_2001
             if ((ISTATIONAER == Consts.TransientMode) && (IStatistics == Consts.MeteoPgtAll))
             {
                 InputMetTimeSeries.WindData = MeteoTimeSer;
-                InputMetTimeSeries.ReadMetTimeSeries();
-                MeteoTimeSer = InputMetTimeSeries.WindData;
-                if (MeteoTimeSer.Count == 0) // no data available
+                MeteoInputFailed = !InputMetTimeSeries.ReadMetTimeSeries();
+                if (!MeteoInputFailed)
                 {
-                    string err = "Error when reading file mettimeseries.dat -> Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
+                    InputMetTimeSeries.WindData = MeteopgtLst;
+                    MeteoInputFailed = !InputMetTimeSeries.ReadMeteopgtAll();
                 }
-                InputMetTimeSeries.WindData = MeteopgtLst;
-                InputMetTimeSeries.ReadMeteopgtAll();
-                MeteopgtLst = InputMetTimeSeries.WindData;
-                if (MeteopgtLst.Count == 0) // no data available
-                {
-                    string err = "Error when reading file meteopgt.all -> Execution stopped: press ESC to stop";
-                    Console.WriteLine(err);
-                    ProgramWriters.LogfileProblemreportWrite(err);
-                }
-                // Read precipitation data
-                ReaderClass.ReadPrecipitationTXT();
+                if (!MeteoInputFailed) ReaderClass.ReadPrecipitationTXT();
             }
             else
             {
@@ -441,10 +430,9 @@ namespace GRAL_2001
             /********************************************
              * MAIN LOOP OVER EACH WEATHER SITUATION    *
              ********************************************/
-            Thread ThreadWriteGffFiles = null;
             Thread ThreadWriteConz4dFile = null;
             Thread ThreadWrite2DConcentrationFiles = null;
-            int recentWeatherSituation = 0;
+            
             // A GPU failure (startup without fallback, or an error after GPU work started) ends the run like a failed meteorology
             // input: the reason goes to the console and the logs, the finish sequence runs and the exit code is 1.
             bool gpuFailed = false;
@@ -460,137 +448,97 @@ namespace GRAL_2001
                 ProgramWriters.LogfileProblemreportWrite(err); // also writes to Logfile_GRALCore
             }
             // A failed GPU situation ends the run; let the writer threads of earlier situations finish their files first.
-            void RunGpuSituation()
+            bool RunGpuSituation()
             {
                 try
                 {
                     GpuExperimental.Run(1, NTEILMAX);
+                    return true;
                 }
-                catch (Exception) when (CancelToken.IsCancellationRequested)
-                {
-                    // A cancelled run stops like the CPU path: the caller sees the token and finishes GRAL normally.
-                    ThreadWriteGffFiles?.Join();
-                    ThreadWriteConz4dFile?.Join();
-                    ThreadWrite2DConcentrationFiles?.Join();
-                }
+                catch (Exception) when (CancelToken.IsCancellationRequested) { return false; }
                 catch (Exception exc)
                 {
-                    ThreadWriteGffFiles?.Join();
-                    ThreadWriteConz4dFile?.Join();
-                    ThreadWrite2DConcentrationFiles?.Join();
                     ReportGpuFailure(exc);
+                    return false;
                 }
             }
 
-            bool FirstLoop = true;
-            while (IEND == Consts.CalculationRunning)
+            bool windFailed = false;
+            void ReportWindFailure(string message)
             {
-                // if GFF writing thread has been started -> wait until GFF--WriteThread has been finished
-                if (ThreadWriteGffFiles != null)
+                windFailed = true;
+                string error = "Wind field preparation failed: " + message;
+                Console.WriteLine(error);
+                ProgramWriters.LogfileProblemreportWrite(error);
+            }
+            bool FirstLoop = true;
+            
+            try
+            {
+                while (!MeteoInputFailed)
                 {
-                    ThreadWriteGffFiles.Join(5000); // wait up to 5s or until thread has been finished
-                    if (ThreadWriteGffFiles.IsAlive)
+                    if (CancelToken.IsCancellationRequested)
                     {
-                        Console.Write("Writing *.gff file..");
-                        while (ThreadWriteGffFiles.IsAlive)
-                        {
-                            ThreadWriteGffFiles.Join(30000); // wait up to 30s or until thread has been finished
-                            Console.Write(".");
-                        }
-                        Console.WriteLine();
+                        goto FinishGral;
                     }
-                    ThreadWriteGffFiles = null; // Release ressources				
-                }
-
-                if (CancelToken.IsCancellationRequested)
-                {
-                    goto FinishGral;
-                }
-
-                // Odour output reads the current wind and turbulence fields.
-                if (Odour && ThreadWrite2DConcentrationFiles != null)
-                {
-                    ThreadWrite2DConcentrationFiles.Join();
-                    ThreadWrite2DConcentrationFiles = null;
-                }
-
-                //Next weather situation
-                IWET++;
-                IDISP = IWET;
-                WindVelGramm = -99; WindDirGramm = -99; StabClassGramm = -99; // Reset GRAMM values
-
-                //show actual computed weather situation
-                Console.WriteLine("_".PadLeft(79, '_'));
-                Console.Write("Weather number: " + IWET.ToString());
-                if (ISTATIONAER == Consts.TransientMode)
-                {
-                    int _iwet = IWET - 1;
-                    if (_iwet < MeteoTimeSer.Count)
+                    // Odour output reads the current wind and turbulence fields.
+                    if (Odour && ThreadWrite2DConcentrationFiles != null)
                     {
-                        Console.WriteLine(" - " + MeteoTimeSer[_iwet].Day + "." + MeteoTimeSer[_iwet].Month + "-" + MeteoTimeSer[_iwet].Hour + ":00");
+                        ThreadWrite2DConcentrationFiles.Join();
+                        ThreadWrite2DConcentrationFiles = null;
                     }
-                }
-                else
-                {
-                    Console.WriteLine();
-                }
 
-                //time stamp to evaluate computation times
-                int StartTime = Environment.TickCount;
+                    //Next weather situation
+                    IWET++;
+                    if (ResolveWeather(IWET) is not WeatherKey weather) break;
 
-                //Set the maximum number of threads to be used in each parallelized region
-                ReaderClass.ReadMaxNumbProc();
-
-                //read meteorological input data 
-                if (IStatistics == Consts.MeteoPgtAll)
-                {
+                    //show actual computed weather situation
+                    Console.WriteLine("_".PadLeft(79, '_'));
+                    Console.Write("Weather number: " + IWET.ToString());
                     if (ISTATIONAER == Consts.TransientMode)
                     {
-                        //search for the corresponding weather situation in meteopgt.all
-                        IDISP = InputMetTimeSeries.SearchWeatherSituation() + 1;
-                        IWETstart = IDISP;
-                        if (IWET > MeteoTimeSer.Count)
+                        int _iwet = IWET - 1;
+                        if (_iwet < MeteoTimeSer.Count)
                         {
-                            IEND = Consts.CalculationFinished;
+                            Console.WriteLine(" - " + MeteoTimeSer[_iwet].Day + "." + MeteoTimeSer[_iwet].Month + "-" + MeteoTimeSer[_iwet].Hour + ":00");
                         }
                     }
                     else
                     {
-                        //in stationary mode, meteopgt.all is read here, because we need IEND
-                        IEND = Input_MeteopgtAll.Read();
-                        IWETstart--; // reset the counter, because metepgt.all is finally read in ReadMeteoData, after the GRAMM wind field is available
+                        Console.WriteLine();
                     }
-                }
 
-                if (ISTATIONAER == Consts.TransientMode && IDISP == 0)
-                {
-                    break; // reached last line in mettimeseries -> exit loop				
-                }
-                if (IEND == Consts.CalculationFinished)
-                {
-                    break; // reached last line in meteopgt.all ->  exit loop
-                }
-                if (IWET > IWETstartstop.End)
-                {
-                    break; // reached last weather situation from console command line input
-                }
+                    //time stamp to evaluate computation times
+                    int StartTime = Environment.TickCount;
 
-                String WindfieldPath = ReadWindfeldTXT();
-
-                if (Topo == Consts.TerrainAvailable)
-                {
-                    Console.Write("Reading GRAMM wind field: ");
-                }
-
-                if (ISTATIONAER == Consts.TransientMode && IDISP < 0) // found no corresponding weather situation in meteopgt.all
-                {
-                    Info = "Cannot find a corresponding entry in meteopgt.all to the following line in mettimeseries.dat - situation skipped: " + IWET.ToString();
-                    Console.WriteLine();
-                    Console.WriteLine(Info);
-                    ProgramWriters.LogfileGralCoreWrite(Info);
-                }
-                else if (Topo == Consts.TerrainFlat || (Topo == Consts.TerrainAvailable && ReadWndFile.Read(WindfieldPath))) // stationary mode or an entry in meteopgt.all exist && if topo -> wind field does exist
-                {
+                    if (weather.Field < 0)
+                    {
+                        Info = "Cannot find a corresponding entry in meteopgt.all to the following line in mettimeseries.dat - situation skipped: " + IWET.ToString();
+                        Console.WriteLine();
+                        Console.WriteLine(Info);
+                        ProgramWriters.LogfileGralCoreWrite(Info);
+                        continue;
+                    }
+                    PreparedWind wind;
+                    try
+                    {
+                        wind = TakeWind(weather, FirstLoop);
+                    }
+                    catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) { break; }
+                    catch (Exception exc)
+                    {
+                        ReportWindFailure(exc.Message);
+                        break;
+                    }
+                    if (wind.Status == MeteoReadStatus.InvalidInput)
+                    {
+                        MeteoInputFailed = true;
+                        break;
+                    }
+                    if (wind.Status == MeteoReadStatus.EndOfInput) break;
+                    if (wind.MissingWind) continue;
+                    int dispersionStart = Environment.TickCount;
+                    int hostProcessors = IPROC;
                     if (Program.IWETstartstop.Start < 2) // //GUI status output for the 1st instance only
                     {
                         try
@@ -602,99 +550,7 @@ namespace GRAL_2001
                         }
                         catch { }
                     }
-                    //Topography mode -> read GRAMM stability classes
-                    if (Topo == Consts.TerrainAvailable)
-                    {
-                        string SclFileName = String.Empty;
-                        if (WindfieldPath == String.Empty)
-                        {
-                            //case 1: stability fields are located in the same sub-directory as the GRAL executable
-                            SclFileName = Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".scl";
-                        }
-                        else
-                        {
-                            //case 2: wind fields are imported from a different project
-                            SclFileName = Path.Combine(WindfieldPath, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".scl");
-                        }
-
-                        if (File.Exists(SclFileName))
-                        {
-                            Console.WriteLine("Reading GRAMM stability classes: " + SclFileName);
-
-                            ReadSclUstOblClasses Reader = new ReadSclUstOblClasses
-                            {
-                                FileName = SclFileName,
-                                Stabclasses = AKL_GRAMM
-                            };
-                            Reader.ReadSclFile();
-                            AKL_GRAMM = Reader.Stabclasses;
-                            Reader.Close();
-                        }
-                    }
-
-                    //Read meteorological input data depending on the input type IStatisitcs
-                    ReadMeteoData();
-
-                    //Check if all weather situations have been computed
-                    if (IEND == Consts.CalculationFinished)
-                    {
-                        break;
-                    }
-
-                    //potential temperature gradient
-                    CalculateTemperatureGradient();
-
-                    //optional: read pre-computed GRAL flow fields
-                    bool GffFiles = ReadGralFlowFields.Read();
-
-                    if (GffFiles == false) // Reading of GRAL Flowfields not successful
-                    {
-                        //microscale flow field: complex terrain
-                        if (Topo == Consts.TerrainAvailable)
-                        {
-                            MicroscaleTerrain.Calculate(FirstLoop);
-                        }
-                        //microscale flow field: flat terrain
-                        else if ((Topo == Consts.TerrainFlat) && ((BuildingsExist == true) || (File.Exists("vegetation.dat") == true)))
-                        {
-                            MicroscaleFlat.Calculate();
-                        }
-                        if (Topo == Consts.TerrainFlat)
-                        {
-                            Program.AHMIN = 0;
-                        }
-
-                        //optional: write GRAL flow fields
-                        ThreadWriteGffFiles = new Thread(WriteGRALFlowFields.Write);
-                        ThreadWriteGffFiles.Start(); // start writing thread
-
-                        if (FirstLoop)
-                        {
-                            WriteGRALFlowFields.WriteGRALGeometries();
-                        }
-                    }
-                    else
-                    {
-                        //Read Vegetation areas
-                        if ((Program.FlowFieldLevel == Consts.FlowFieldProg) && (File.Exists("vegetation.dat") == true) && Program.VEG[0][0][1] < 0)
-                        {
-                            //read vegetation only once
-                            ProgramReaders Readclass = new ProgramReaders();
-                            Readclass.ReadVegetation();
-                            Program.VEG[0][0][1] = 0;
-                            Program.VEG[0][0][0] = -0.001f; //reset marker, that vegetation is available
-                        }
-                    }
                     ProgramWriters WriteClass = new ProgramWriters();
-
-                    //time needed for wind-field computations
-                    double CalcTimeWindfield = (Environment.TickCount - StartTime) * 0.001;
-
-                    //reset receptor concentrations
-                    if (ReceptorsAvailable) // if receptors are acitvated
-                    {
-                        ReadReceptors.ReceptorResetConcentration();
-                    }
 
                     // if writing thread for *.grz files has been started -> wait until Thread has been finished
                     if (ThreadWrite2DConcentrationFiles != null)
@@ -734,7 +590,7 @@ namespace GRAL_2001
                             WriteClass.WriteBuildingHeights("building_heights.txt", Program.BUI_HEIGHT, "0.0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
                             //optional: write sub Domains as utilized in GRAL
                             WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
-                            SyncWithMutex.ReleaseMutex(); // release the mutex
+                             SyncWithMutex.ReleaseMutex(); // release the mutex
                         }
                         else
                         {
@@ -746,7 +602,7 @@ namespace GRAL_2001
                             WriteClass.WriteSubDomain("PrognosticSubDomainAreas.txt", Program.ADVDOM, "0", 1, Program.IKOOAGRAL, Program.JKOOAGRAL);
                         }
                     }
-
+                    
                     RnGSeed = new DeterministicRandomGenerator(IWET, WindVelGral, WindDirGral);
 
                     //calculating momentum and bouyancy forces for point sources
@@ -763,12 +619,20 @@ namespace GRAL_2001
 
                     //boundary-layer height
                     CalculateBoudaryLayerHeight();
+                    //reset receptor concentrations and store windfield data for the receptor meteo files - Boundary Layer Height is needed here!
+                    if (ReceptorsAvailable) // if receptors are acitvated
+                    {
+                        ReadReceptors.ReceptorResetConcentration();
+                    }
 
                     //show meteorological parameters on screen
                     OutputOfMeteoData();
 
                     bool useGpu;
-                    try { useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX); }
+                    try 
+                    { 
+                        useGpu = GpuExperimental.Enabled && GpuExperimental.CanRun(1, NTEILMAX); 
+                    }
                     catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
                     {
                         // A stop during the GPU check or startup finishes GRAL like the checks below.
@@ -779,6 +643,17 @@ namespace GRAL_2001
                         // Only the GPU switch and the GPU startup run in this try block
                         ReportGpuFailure(exc);
                         goto FinishGral;
+                    }
+
+                    if (ISTATIONAER == Consts.TransientMode)
+                    {
+                        TransConcThreshold = ReaderClass.ReadTransientThreshold();
+                    }
+                    // The initial log reads terrain geometry. Finish it before releasing the fields to the GPU callback.
+                    if (FirstLoop)
+                    {
+                        ProgramWriters.LogfileGralCoreInfo(ResultFileZipped, wind.ReadFromGff);
+                        FirstLoop = false;
                     }
 
                     //Transient mode: non-steady-state particles
@@ -801,8 +676,6 @@ namespace GRAL_2001
                             }
                         }
 
-                        //set lower concentration threshold for memory effect
-                        TransConcThreshold = ReaderClass.ReadTransientThreshold();
                         int cellNr = NII * NJJ;
                         DispTimeSum = TAUS;
                         // start the calculation for transient particle from all cells
@@ -813,22 +686,26 @@ namespace GRAL_2001
                                 ThreadWriteConz4dFile.Join();
                                 ThreadWriteConz4dFile = null;
                             }
-                            RunGpuSituation();
+                            if (!RunGpuSituation()) goto FinishGral;
                         }
                         else { ParallelTransientParticleDriver(0, cellNr); }
                     } // non-steady-state particles
-                    if (CancelToken.IsCancellationRequested || gpuFailed)
+                    if (!useGpu && CancelToken.IsCancellationRequested)
                     {
                         goto FinishGral;
                     }
                     Console.WriteLine();
                     Console.Write("Dispersion computation.....");
+                    // A completed GPU situation must reach the output writers even if a stop arrives now.
                     //new released the particles from all sources
                     DispTimeSum = TAUS;
-                    if (useGpu && ISTATIONAER == Consts.StationaryMode) { RunGpuSituation(); }
+                    if (useGpu && ISTATIONAER == Consts.StationaryMode)
+                    {
+                        if (!RunGpuSituation()) goto FinishGral;
+                    }
                     else if (!useGpu) { ParallelParticleDriver(1, NTEILMAX + 1); }
                     Console.WriteLine();
-                    if (CancelToken.IsCancellationRequested || gpuFailed)
+                    if (!useGpu && CancelToken.IsCancellationRequested)
                     {
                         goto FinishGral;
                     }
@@ -842,31 +719,25 @@ namespace GRAL_2001
                     //tranferring non-steady-state concentration fields
                     if (ISTATIONAER == Consts.TransientMode)
                     {
-                        TransferNonSteadyStateConcentrations(WriteClass, ref ThreadWriteConz4dFile);
-                    }
-
-                    if (FirstLoop)
-                    {
-                        ProgramWriters.LogfileGralCoreInfo(ResultFileZipped, GffFiles);
-                        FirstLoop = false;
+                        TransferNonSteadyStateConcentrations(WriteClass, ref ThreadWriteConz4dFile, hostProcessors);
                     }
 
                     //Correction of concentration volume in each cell and for each gridded receptor 
                     VolumeCorrection();
 
                     //time needed for dispersion computations
-                    double CalcTimeDispersion = (Environment.TickCount - StartTime) * 0.001 - CalcTimeWindfield;
+                    double CalcTimeDispersion = (Environment.TickCount - dispersionStart) * 0.001;
                     Console.WriteLine();
-                    Console.WriteLine("Total simulation time [s]: " + (CalcTimeWindfield + CalcTimeDispersion).ToString("0.0"));
+                    Console.WriteLine("Total simulation time [s]: " + ((Environment.TickCount - StartTime) * 0.001).ToString("0.0"));
                     Console.WriteLine("Dispersion [s]: " + CalcTimeDispersion.ToString("0.0"));
-                    Console.WriteLine("Flow field [s]: " + CalcTimeWindfield.ToString("0.0"));
+                    Console.WriteLine("Flow field [s]: " + wind.Seconds.ToString("0.0"));
 
                     if (LogLevel > Consts.LogLevelOff) // additional LOG-Output
                     {
                         LOG01_Output();
                     }
 
-                    ZippedFile = IWET.ToString("00000") + ".grz";
+                    string ZippedFile = IWET.ToString("00000") + ".grz";
                     try
                     {
                         if (File.Exists(ZippedFile))
@@ -878,7 +749,7 @@ namespace GRAL_2001
 
                     //output of 2-D concentration files (concentrations, deposition, odour-files)
                     Console.WriteLine("Writing result files in a background thread");
-                    recentWeatherSituation = IWET;
+                    int recentWeatherSituation = IWET;
                     ThreadWrite2DConcentrationFiles = new Thread(() => WriteClass.Write2DConcentrations(recentWeatherSituation, ZippedFile));
                     ThreadWrite2DConcentrationFiles.Start(); // start writing thread
 
@@ -907,8 +778,16 @@ namespace GRAL_2001
                         //microscale flow-field at receptors
                         WriteClass.WriteMicroscaleFlowfieldReceptors();
                     }
-                } //skipped situation if no entry in meteopgt.all could be found in transient GRAL mode
-            } // loop for all meteorological situations
+                } // loop for all meteorological situations
+            }
+            finally
+            {
+                try { DrainWindWork(); }
+                catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) { }
+                catch (Exception exc) { ReportWindFailure(exc.Message); }
+                ThreadWrite2DConcentrationFiles?.Join();
+                ThreadWriteConz4dFile?.Join();
+            }
 FinishGral:
             bool gpuShutdownFailed = false;
             GpuExperimental.LogSummary(gpuFailed);
@@ -951,25 +830,12 @@ FinishGral:
                 ProgramWriters.ShowEmissionRate();
             }
 
-            if (ThreadWriteGffFiles != null) // if Thread has been started -> wait until GFF--WriteThread has been finished
+            if (windFailed || MeteoInputFailed || CancelToken.IsCancellationRequested)
             {
-                ThreadWriteGffFiles.Join(); // wait, until thread has been finished
-                ThreadWriteGffFiles = null; // Release ressources
+                if (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp"))
+                    ProgramWriters.LogfileGralCoreWrite("The transient checkpoint of the last completed situation was kept.");
             }
-
-            if (ThreadWrite2DConcentrationFiles != null) // if Thread has been started -> wait until *.grz WriteThread has been finished
-            {
-                ThreadWrite2DConcentrationFiles.Join(); // wait, until thread has been finished
-                ThreadWrite2DConcentrationFiles = null; // Release ressources
-            }
-
-            if (ThreadWriteConz4dFile != null) // wait for the last transient checkpoint before the temporary files are deleted
-            {
-                ThreadWriteConz4dFile.Join();
-                ThreadWriteConz4dFile = null;
-            }
-
-            if (gpuFailed)
+            else if (gpuFailed)
             {
                 // Leave the checkpoint of the last finished situation, as the unhandled GPU error did before and as an interrupted run does
                 if (File.Exists("Transient_Concentrations1.tmp") || File.Exists("Transient_Concentrations2.tmp"))
@@ -1012,7 +878,7 @@ FinishGral:
                 SyncWithMutex.Dispose();
             }
 
-            bool runFailed = verticalOutputFailed || gpuShutdownFailed || gpuFailed || MeteoInputFailed;
+            bool runFailed = verticalOutputFailed || gpuShutdownFailed || gpuFailed || windFailed || MeteoInputFailed;
             if (Program.CancelToken.IsCancellationRequested)
             {
                 ProgramWriters.LogfileGralCoreWrite("GRAL simulations cancelled at: " + DateTime.Now.ToString());    

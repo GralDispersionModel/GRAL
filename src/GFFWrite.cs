@@ -22,7 +22,7 @@ namespace GRAL_2001
         /// <summary>
         ///Write GRAL microscale wind fields in *.gff format
         /// </summary>
-        public static void Write()
+        public static void Write(int WeatherSituation)
         {
             if (File.Exists("GRAL_FlowFields.txt") == true)
             {
@@ -37,7 +37,7 @@ namespace GRAL_2001
                 catch { }
 
                 //write *.gff-file
-                string GRALflowfield = Path.Combine(Program.GFFFilePath, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".gff");
+                string GRALflowfield = Path.Combine(Program.GFFFilePath, Convert.ToString(WeatherSituation).PadLeft(5, '0') + ".gff");
 
                 // delete corrupt or invalid gff file
                 if (File.Exists(GRALflowfield))
@@ -86,7 +86,7 @@ namespace GRAL_2001
                 if (File.Exists("GRAL_FlowFields.txt") == true)
                 {
                     //write *.tke-file
-                    string GRALtkefield = Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".tke";
+                    string GRALtkefield = Convert.ToString(WeatherSituation).PadLeft(5, '0') + ".tke";
 
                     // delete corrupt or invalid tke file
                     if (File.Exists(GRALtkefield))
@@ -151,6 +151,7 @@ namespace GRAL_2001
                                 }
                                 catch { }
                             }
+                            throw new IOException(err, e);
                         }
 
                     }
@@ -164,7 +165,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="GRALflowfield">File name</param>
         /// <returns></returns>
-        private static bool WriteCompressedGFFFiles(string GRALflowfield)
+        private static void WriteCompressedGFFFiles(string GRALflowfield)
         {
             try
             {
@@ -227,7 +228,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-                return true;
             }
             catch (Exception e)
             {
@@ -244,7 +244,7 @@ namespace GRAL_2001
                     }
                     catch { }
                 }
-                return false;
+                throw new IOException(err, e);
             }
         }
 
@@ -253,7 +253,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="GRALflowfield">File name</param>
         /// <returns></returns>
-        private static bool WriteStrongCompressedGFFFiles(string GRALflowfield)
+        private static void WriteStrongCompressedGFFFiles(string GRALflowfield)
         {
             try
             {
@@ -359,7 +359,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-                return true;
             }
             catch (Exception e)
             {
@@ -376,7 +375,7 @@ namespace GRAL_2001
                     }
                     catch { }
                 }
-                return false;
+                throw new IOException(err, e);
             }
         }
 
@@ -385,7 +384,7 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="GRALflowfield">File name</param>
         /// <returns></returns>
-        private static bool WriteTerrainCompressedGFFFiles(string GRALflowfield)
+        private static void WriteTerrainCompressedGFFFiles(string GRALflowfield)
         {
             try
             {
@@ -514,7 +513,6 @@ namespace GRAL_2001
                         }
                     }
                 }
-                return true;
             }
             catch (Exception e)
             {
@@ -531,7 +529,7 @@ namespace GRAL_2001
                     }
                     catch { }
                 }
-                return false;
+                throw new IOException(err, e);
             }
         }
 

@@ -25,10 +25,13 @@ namespace GRAL_2001
         /// </summary>
         /// <param name="firstloop">True if the calculation starts with the first weather situation</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Calculate(bool firstloop)
+        public static void Calculate(bool firstloop, int Weathersituation, bool Synchron)
         {
-            Console.WriteLine();
-            Console.WriteLine("FLOW FIELD COMPUTATION WITH TOPOGRAPHY");
+            if (Synchron)
+            {
+                Console.WriteLine();
+                Console.WriteLine("FLOW FIELD COMPUTATION WITH TOPOGRAPHY");
+            }
             float DXK = Program.DXK;
             float DYK = Program.DYK;
             float DDX1 = Program.DDX[1];
@@ -648,11 +651,11 @@ namespace GRAL_2001
             }
 
             //optional: write GRAL orography
-            if (Program.IDISP == 1 || firstloop)
+            if (Weathersituation == 1 || firstloop)
             {
                 if (File.Exists("GRAL_Topography.txt") == true)
                 {
-                    Console.WriteLine("Writing the file GRAL_Topography.txt");
+                    if (Synchron) { Console.WriteLine("Writing the file GRAL_Topography.txt"); }
 
                     try
                     {
@@ -863,18 +866,18 @@ namespace GRAL_2001
                     ProgramReaders Readclass = new ProgramReaders();
                     Readclass.ReadVegetation();
                 }
-                Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES");
-                PrognosticFlowfield.Calculate();
+                if (Synchron) { Console.WriteLine("PROGNOSTIC WIND FIELD AROUND OBSTACLES"); }
+                PrognosticFlowfield.Calculate(Weathersituation, Synchron);
             }
 
             //Final mass conservation using poisson equation for pressure
             if (Program.FlowFieldLevel == Consts.FlowFieldDiag)
             {
-                Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES");
+                if (Synchron) { Console.WriteLine("DIAGNOSTIC WIND FIELD AROUND OBSTACLES"); }
             }
             else if (Program.FlowFieldLevel == Consts.FlowFieldNoBuildings)
             {
-                Console.WriteLine("DIAGNOSTIC WIND FIELD CALCULATION");
+                if (Synchron) { Console.WriteLine("DIAGNOSTIC WIND FIELD CALCULATION"); }
             }
 
             DiagnosticFlowfield.Calculate();
@@ -966,16 +969,7 @@ namespace GRAL_2001
                     Pt = new IntPoint(1, 1);
                     if (Program.FlowFieldLevel == Consts.FlowFieldProg)
                     {
-                        string err = "Prognostic approach selected but there are no buildings or no vegetation areas and therefore no prognostic sub domains and no prognostic wind field calculation \nAre the absolute building heights below the surface?";
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-                        Console.WriteLine("Press a key to exit");
-                        if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        {
-                            Program.CleanUpMemory();
-                            Console.ReadKey(true);
-                        }
-                        Environment.Exit(0);
+                        throw new InvalidDataException("Prognostic flow requires at least one subdomain containing buildings or vegetation. Check whether absolute building heights are below the surface.");
                     }
                 }
             }

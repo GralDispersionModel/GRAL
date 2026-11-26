@@ -17,77 +17,24 @@ namespace GRAL_2001
 {
     class ReadWndFile
     {
-        public static bool Read(string pfad)
+        public static bool Read(string filename, int weatherRow)
         {
-            bool GRAMMwfhere = true;
-            try
+            if (!File.Exists(filename))
             {
-                string wndfilename = String.Empty;
-
-                if (pfad != String.Empty)
-                {
-                    //case 2: wind fields are imported from a different project
-                    wndfilename = Path.Combine(pfad, Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".wnd");
-                }
-                else
-                {
-                    //case 1: wind fields are located in the same sub-directory as the GRAL executable
-                    wndfilename = Convert.ToString(Program.IDISP).PadLeft(5, '0') + ".wnd";
-                }
-
-                Console.WriteLine(wndfilename);
-
-                //check whether wind-field exists
-                if (File.Exists(wndfilename) == false)
-                {
-                    string err = "The following wind field does not exist: " + wndfilename;
-                    Console.WriteLine(err);
-
-                    //in transient mode GRAL should continue the simulation
-                    if (Program.ISTATIONAER != Consts.TransientMode)
-                    {
-                        Console.WriteLine("Simulation interrupted.");
-                        ProgramWriters.LogfileProblemreportWrite(err);
-
-                        if (Program.IOUTPUT <= 0 && Program.WaitForConsoleKey) // not for Soundplan or no keystroke
-                        {
-                            Program.CleanUpMemory();
-                            while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
-                            {
-                                ;
-                            }
-                        }
-
-                        Environment.Exit(0);
-                    }
-                    else
-                    {
-                        GRAMMwfhere = false;
-                    }
-                }
-
-                //there are two different output formats of GRAMM
-                if (Program.IOUTPUT <= 0) // default
-                {
-                    WindfieldReader Reader = new WindfieldReader();
-                    if (Reader.WindfieldRead(wndfilename, Program.NX, Program.NY, Program.NZ, ref Program.UWIN, ref Program.VWIN, ref Program.WWIN) == false)
-                    {
-                        throw new IOException();
-                    }
-                }
-                else // soundplan
-                {
-                    WindfieldReaderSoundplan Reader = new WindfieldReaderSoundplan();
-                    if (Reader.WindfieldRead(wndfilename, Program.NX, Program.NY, Program.NZ, ref Program.UWIN, ref Program.VWIN, ref Program.WWIN) == false)
-                    {
-                        throw new IOException();
-                    }
-                }
-
+                string error = "The following wind field does not exist: " + filename;
+                if (Program.ISTATIONAER != Consts.TransientMode) throw new FileNotFoundException(error);
+                Console.WriteLine($"{error} - situation skipped: {weatherRow}");
+                return false;
             }
-            catch
-            { }
-            return GRAMMwfhere;
+
+            Console.WriteLine("Reading GRAMM wind field: " + filename);
+            bool ok = Program.IOUTPUT <= 0
+                ? new WindfieldReader().WindfieldRead(filename, Program.NX, Program.NY, Program.NZ,
+                    ref Program.UWIN, ref Program.VWIN, ref Program.WWIN)
+                : new WindfieldReaderSoundplan().WindfieldRead(filename, Program.NX, Program.NY, Program.NZ,
+                    ref Program.UWIN, ref Program.VWIN, ref Program.WWIN);
+            if (!ok) throw new InvalidDataException("Cannot read GRAMM wind field " + filename);
+            return true;
         }
     }
 }

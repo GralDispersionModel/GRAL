@@ -11,9 +11,10 @@
 #endregion
 
 using System;
-using System.IO;
-using System.Collections.Generic;
 using System.Collections.Frozen;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
 
 namespace GRAL_2001
 {
@@ -28,9 +29,9 @@ namespace GRAL_2001
             if (File.Exists("Receptor.dat") == true)
             {
                 int block = 1;
-                using (StreamReader sr = new StreamReader("Receptor.dat"))
+                try
                 {
-                    try
+                    using (StreamReader sr = new StreamReader("Receptor.dat"))
                     {
                         string[] text = new string[1];
                         text = sr.ReadLine().Split(new char[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
@@ -180,25 +181,23 @@ namespace GRAL_2001
                             }
                         }
                     }
-                    catch
-                    {
-                        string err = "Error when reading file 'Receptor.dat' in line " + (block + 1).ToString();
-                        Console.WriteLine(err);
-                        ProgramWriters.LogfileProblemreportWrite(err);
-                        Program.ReceptorNumber = 0;
-                        Program.ReceptorsAvailable = false;
-                        return;
-
-                        // if (Program.IOUTPUT <= 0) // Soundplan
-                        //     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
-                        // Environment.Exit(0);
-                    }
                 } // using
-
-                if (block < Program.ReceptorNumber)
+                catch
                 {
-                    Program.ReceptorNumber = block;
+                    string err = "Error when reading file 'Receptor.dat' in line " + (block + 1).ToString();
+                    Console.WriteLine(err);
+                    ProgramWriters.LogfileProblemreportWrite(err);
+                    Program.ReceptorNumber = 0;
+                    Program.ReceptorsAvailable = false;
+                    return;
+
+                    // if (Program.IOUTPUT <= 0) // Soundplan
+                    //     while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                    // Environment.Exit(0);
                 }
+
+                Program.ReceptorNumber = block - 1;
+                Program.ReceptorMeteoData = new Program.ReceptorWeather[Program.ReceptorNumber + 1];
 
                 Console.WriteLine();
                 // info about receptors
@@ -279,7 +278,6 @@ namespace GRAL_2001
                 {
                     Program.ReceptorsAvailable = false;
                 }
-                ReceptorResetConcentration();
             }
         }
 
@@ -295,7 +293,33 @@ namespace GRAL_2001
                 {
                     Program.ReceptorConc[i][k] = 0;
                 }
+                if (Program.FlowFieldLevel > Consts.FlowFieldDiag)
+                {
+                    Program.ReceptorMeteoData[i] = CaptureWeather(i);
+                }
             }
+        }
+
+        private static Program.ReceptorWeather CaptureWeather(int receptor)
+        {
+            int i = Program.ReceptorIIndFF[receptor];
+            int j = Program.ReceptorJIndFF[receptor];
+            int k = Program.ReceptorKIndFF[receptor];
+            int stability = Program.StabClassGramm > 0 ? Program.StabClassGramm : Program.StabClass;
+            // Without a local stability grid, the standalone meteo file uses the input class.
+            int meteoFileStability = Program.StabClass;
+            if (Program.Topo == Consts.TerrainAvailable && Program.AKL_GRAMM[0, 0] != 0)
+            {
+                int x = (int)((Program.ReceptorX[receptor] - Program.GrammWest) / Program.DDX[1]) + 1;
+                int y = (int)((Program.ReceptorY[receptor] - Program.GrammSouth) / Program.DDY[1]) + 1;
+                if (x >= 0 && x <= Program.NX1 && y >= 0 && y <= Program.NY1)
+                {
+                    stability = Program.SC_Gral[x][y];
+                }
+                meteoFileStability = stability;
+            }
+            return new Program.ReceptorWeather(Program.UK[i][j][k], Program.VK[i][j][k], stability,
+                                               meteoFileStability, MathF.Round(Program.BdLayHeight));
         }
     }
 }

@@ -730,28 +730,17 @@ namespace GRAL_2001
         /// <summary>
         /// Read the user defined meteo data
         /// </summary>
-        private static void ReadMeteoData()
+        private static MeteoReadStatus ReadMeteoData(int situation, out Input_MeteopgtAll.WeatherRow classifiedRow)
         {
-            //read meteorological input data (wind speed, wind direction, stability class)
-            if (IStatistics == Consts.MeteoPgtAll) // meteopgt.all 
+            classifiedRow = default;
+            return IStatistics switch
             {
-                Input_MeteopgtAll.Read();
-            }
-            //read meteorological input data (friction velocity, Obukhov length, boundary-layer height, standard deviation of horizontal wind fluctuations, u- and v-wind components)
-            if (IStatistics == Consts.MeteoZR)
-            {
-                Input_zr.Read();
-            }
-            //read meteorological input data (friction velocity, Obukhov length, standard deviation of horizontal wind fluctuations, u- and v-wind components)
-            if (IStatistics == Consts.MeteoEKI)
-            {
-                Input_Eki.Read();
-            }
-            //read meteorological input data (velocity, direction, friction velocity, standard deviation of horizontal and vertical wind fluctuations, Obukhov length, meandering parameters)
-            if (IStatistics == Consts.MeteoSonic)
-            {
-                Input_Sonic.Read();
-            }
+                Consts.MeteoPgtAll => Input_MeteopgtAll.ReadRow(situation, out classifiedRow),
+                Consts.MeteoZR => Input_zr.Read(situation),
+                Consts.MeteoEKI => Input_Eki.Read(situation),
+                Consts.MeteoSonic => Input_Sonic.Read(situation),
+                _ => MeteoReadStatus.Success
+            };
         }
 
         /// <summary>
@@ -980,15 +969,16 @@ namespace GRAL_2001
         /// <summary>
         /// Transfer non-steady-state concentration fields and start writing of conz4d array
         /// </summary>
-        private static void TransferNonSteadyStateConcentrations(ProgramWriters WriteClass, ref Thread TreadWriteConz4dFile)
+        private static void TransferNonSteadyStateConcentrations(ProgramWriters WriteClass, ref Thread TreadWriteConz4dFile, int hostProcessors)
         {
             //Create a shallow copy
             float[][][][] copytemp = (float[][][][])Conz4d.Clone();
             Conz4d = Conz5d;
             Conz5d = copytemp;
 
-            //Clear array Conz5d
-            Parallel.For(1, Program.NII + 2, Program.pOptions, i =>
+            // The next flow solver can change its own thread limit while these output arrays are cleared.
+            var options = new ParallelOptions { MaxDegreeOfParallelism = hostProcessors };
+            Parallel.For(1, Program.NII + 2, options, i =>
             {
                 for (int j = 1; j <= Program.NJJ + 1; j++)
                 {
@@ -1008,7 +998,8 @@ namespace GRAL_2001
                     WriteClass.Write3DTempConcentrations();
                 }
                 //write conz4d File 
-                TreadWriteConz4dFile = new Thread(() => WriteClass.WriteTransientConcentration(IWET));
+                int completedWeather = IWET;
+                TreadWriteConz4dFile = new Thread(() => WriteClass.WriteTransientConcentration(completedWeather));
                 TreadWriteConz4dFile.Start(); // start writing thread
             }
         }
@@ -1228,6 +1219,10 @@ namespace GRAL_2001
                     Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, nteil =>
                     {
                         Interlocked.Increment(ref advance);
+                        if (Program.CancelToken.IsCancellationRequested)
+                        {
+                            throw new Exception();
+                        }
                         if (advance > percent10)
                         {
                             if (Interlocked.Exchange(ref advance, 0) > advance)  // set advance to 0
@@ -1354,6 +1349,10 @@ namespace GRAL_2001
                 {
                     Parallel.For(inclusiveLowerBound, exclusiveUpperBound, pOpt, cell =>
                     {
+                        if (Program.CancelToken.IsCancellationRequested)
+                        {
+                            throw new Exception();
+                        }
                         Interlocked.Increment(ref advancenss);
                         if (advancenss > percent10nss)
                         {
